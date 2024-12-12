@@ -50,6 +50,7 @@ app.post('/register', async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ message: '請輸入帳號和密碼' });
   }
+  
 
   const existingUser = users.find((u) => u.username === username);
   if (existingUser) {
