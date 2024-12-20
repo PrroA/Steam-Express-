@@ -3,7 +3,7 @@ import Link from 'next/link';
 export function Header() {
   return (
     <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <h1 className="text-xl font-bold">Steam Clone</h1>
+      <Link href={"/"} className="text-xl font-bold">Steam Clone</Link>
       <nav className="flex gap-4">
         <Link href="/login">
           <button className="bg-blue-500 py-1 px-3 rounded hover:bg-blue-700">

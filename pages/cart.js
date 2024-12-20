@@ -1,45 +1,31 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { fetchCart, removeFromCart } from './api/cartApi'; // API 方法
 import { Header } from '../components/Header';
-export default function CartPage() {
-  const [cart, setCart] = useState([]);
+import axios from 'axios';
 
+export default function CartPage() {
+  const [cart, setCart] = useState([]); // 購物車內容
+  const [total, setTotal] = useState(0); // 總價
+
+  // 加載購物車內容
   useEffect(() => {
-    const fetchCart = async () => {
+    const loadCart = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('http://localhost:4000/cart', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setCart(response.data);
+        const data = await fetchCart(token); // 從伺服器獲取購物車內容
+        console.log('購物車內容:', data);
+        setCart(Array.isArray(data) ? data : []); // 確保 data 是數組
+        calculateTotal(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('無法獲取購物車:', error.response?.data || error.message);
+        console.error('無法獲取購物車內容:', error);
+        setCart([]); // 如果出錯，設置為空數組
       }
     };
-
-    fetchCart();
+    loadCart();
   }, []);
-
-  const handleRemoveItem = async (id) => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await axios.delete(`http://localhost:4000/cart/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setCart(response.data.cart);
-      alert('商品已移除');
-    } catch (error) {
-      alert('移除商品失敗');
-    }
-  };
-
+  // 結帳按鈕
   const handleCheckout = async () => {
     const token = localStorage.getItem('token');
-    console.log('Token:', token); // 調試
     try {
       const response = await axios.post(
         'http://localhost:4000/checkout',
@@ -50,58 +36,109 @@ export default function CartPage() {
           },
         }
       );
-      alert(response.data.message);
+      alert(response.data.message); // 結帳成功提示
       setCart([]); // 清空購物車
+      setTotal(0); // 重置總價
     } catch (error) {
       console.error('結帳失敗:', error.response?.data || error.message);
       alert('結帳失敗，請稍後再試');
     }
   };
   
+  // 計算總價
+  const calculateTotal = (cartItems) => {
+    if (!Array.isArray(cartItems)) {
+      setTotal(0);
+      return;
+    }
 
-  const totalPrice = cart.reduce((total, item) => {
-    return total + parseFloat(item.price.replace('$', '')) * item.quantity;
-  }, 0);
+    const totalPrice = cartItems.reduce((sum, item) => {
+      return sum + parseFloat(item.price.replace('$', '')) * item.quantity;
+    }, 0);
+    setTotal(totalPrice);
+  };
+
+  // 移除商品
+  const handleRemove = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const updatedCart = await removeFromCart(id, token); // 從購物車移除商品
+      setCart(updatedCart);
+      calculateTotal(updatedCart);
+    } catch (error) {
+      console.error('移除商品失敗:', error);
+    }
+  };
+
+  // 清空購物車
+  const handleClearCart = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      for (let item of cart) {
+        await removeFromCart(item.id, token); // 移除每個商品
+      }
+      setCart([]);
+      setTotal(0);
+      alert('購物車已清空');
+    } catch (error) {
+      console.error('清空購物車失敗:', error);
+    }
+  };
+
+  if (cart.length === 0) {
+    return (
+      <>
+        <Header />
+        <div className="p-6 bg-gray-100 min-h-screen text-center">
+          <h1 className="text-2xl font-bold text-gray-700">你的購物車是空的</h1>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <Header />
-   
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">購物車</h1>
-      {cart.length === 0 ? (
-        <p className="text-center text-gray-500">你的購物車是空的</p>
-      ) : (
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <ul className="divide-y divide-gray-300">
+      <div className="p-6 bg-gray-100 min-h-screen">
+        <h1 className="text-2xl font-bold text-gray-700 mb-4">購物車</h1>
+        <div className="max-w-4xl mx-auto bg-white p-4 rounded-lg shadow">
+          <ul>
             {cart.map((item) => (
-              <li key={item.id} className="flex justify-between items-center py-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-500">{item.name}</h2>
-                  <p className="text-gray-500">數量: {item.quantity}</p>
-                  <p className="text-gray-700">價格: {item.price}</p>
+              <li key={item.id} className="flex items-center justify-between py-4 border-b">
+                <div className="flex items-center">
+                  <img src={item.image} alt={item.name} className="w-16 h-16 object-cover mr-4" />
+                  <div>
+                    <h2 className="font-bold text-lg text-gray-700">{item.name}</h2>
+                    <p className="text-gray-700">數量: {item.quantity}</p>
+                    <p className="text-gray-700">價格: {item.price}</p>
+                  </div>
                 </div>
                 <button
-                  className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-700"
-                  onClick={() => handleRemoveItem(item.id)}
+                  onClick={() => handleRemove(item.id)}
+                  className="text-red-500 hover:underline"
                 >
                   移除
                 </button>
               </li>
             ))}
           </ul>
-          <div className="mt-6 text-right">
-            <h2 className="text-xl font-bold text-gray-500">總價: ${totalPrice.toFixed(2)}</h2>
+          <div className="mt-4 text-right">
+            <h2 className="text-xl font-bold text-gray-700">總價: ${total.toFixed(2)}</h2>
             <button
-              onClick={handleCheckout}
-              className="bg-blue-500 text-white py-2 px-6 rounded hover:bg-blue-700 mt-4"
+              onClick={handleClearCart}
+              className="bg-red-500 text-white px-4 py-2 rounded mt-2 hover:bg-red-700"
             >
-              結帳
+              清空購物車
             </button>
+            <button
+  onClick={handleCheckout}
+  className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-700"
+>
+  結帳
+</button>
           </div>
         </div>
-      )}
-    </div>
+      </div>
     </>
   );
 }
