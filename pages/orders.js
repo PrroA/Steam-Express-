@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Header } from '../components/Header';
+import Link from 'next/link';
+import { toast } from 'react-toastify';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -46,7 +48,7 @@ export default function OrdersPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert(response.data.message); // 支付成功提示
+      toast.success(response.data.message); // 通知提示
 
       // 更新訂單狀態
       setOrders((prevOrders) =>

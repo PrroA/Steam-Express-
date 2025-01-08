@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Header} from '../components/Header';
+import { toast } from 'react-toastify';
 export default function RegisterPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
     const handleRegister = async () => {
+        console.log(username, password);
         try {
             const response = await axios.post('http://localhost:4000/register', { username, password });
-            alert(response.data.message);
+            toast.success(response.data.message); 
         } catch (error) {
-            alert(error.response?.data?.message || '註冊失敗');
+            toast.error(error.response?.data?.message || '註冊失敗'); 
         }
     };
 
     return (
         <>
             <Header />
-       
         <div className="min-h-screen bg-gray-100 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-md w-96">
                 <h1 className="text-2xl font-bold mb-4 text-blue-500">註冊</h1>

@@ -6,8 +6,9 @@ import { GameCard } from '../components/GameCard';
 export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(''); // 關鍵字
+  const [searchQuery, setSearchQuery] = useState(''); // 定義搜索關鍵字的狀態
 
+//Search games
   useEffect(() => {
     const fetchGames = async () => {
       try {

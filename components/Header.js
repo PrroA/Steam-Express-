@@ -16,8 +16,10 @@ export function Header() {
           </button>
         </Link>
         <Link href="/orders" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">
-        查看訂單
+          查看訂單
         </Link>
+        <Link href="/wishlist" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">願望清單</Link>
+        <Link href="/transactions" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">交易記錄</Link>
       </nav>
     </header>
   );

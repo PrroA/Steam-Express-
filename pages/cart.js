@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { fetchCart, removeFromCart } from './api/cartApi'; // API 方法
 import { Header } from '../components/Header';
 import axios from 'axios';
-
+import { toast } from 'react-toastify';
 export default function CartPage() {
-  const [cart, setCart] = useState([]); // 購物車內容
+  const [cart, setCart] = useState([]); 
   const [total, setTotal] = useState(0); // 總價
 
   // 加載購物車內容
@@ -17,7 +17,6 @@ export default function CartPage() {
         setCart(Array.isArray(data) ? data : []); // 確保 data 是數組
         calculateTotal(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('無法獲取購物車內容:', error);
         setCart([]); // 如果出錯，設置為空數組
       }
     };
@@ -36,7 +35,7 @@ export default function CartPage() {
           },
         }
       );
-      alert(response.data.message); // 結帳成功提示
+      toast.success('結帳成功');
       setCart([]); // 清空購物車
       setTotal(0); // 重置總價
     } catch (error) {
@@ -44,7 +43,7 @@ export default function CartPage() {
       alert('結帳失敗，請稍後再試');
     }
   };
-  
+
   // 計算總價
   const calculateTotal = (cartItems) => {
     if (!Array.isArray(cartItems)) {
@@ -58,32 +57,35 @@ export default function CartPage() {
     setTotal(totalPrice);
   };
 
+
   // 移除商品
   const handleRemove = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const updatedCart = await removeFromCart(id, token); // 從購物車移除商品
-      setCart(updatedCart);
-      calculateTotal(updatedCart);
+      const updatedCart = await removeFromCart(id, token);
+      setCart(Array.isArray(updatedCart) ? updatedCart : []); // 確保是數組
+      calculateTotal(Array.isArray(updatedCart) ? updatedCart : []);
     } catch (error) {
       console.error('移除商品失敗:', error);
     }
   };
+
 
   // 清空購物車
   const handleClearCart = async () => {
     const token = localStorage.getItem('token');
     try {
       for (let item of cart) {
-        await removeFromCart(item.id, token); // 移除每個商品
+        await removeFromCart(item.id, token);
       }
-      setCart([]);
-      setTotal(0);
+      setCart([]); // 清空購物車內容
+      setTotal(0); // 重置總價
       alert('購物車已清空');
     } catch (error) {
       console.error('清空購物車失敗:', error);
     }
   };
+
 
   if (cart.length === 0) {
     return (
@@ -103,7 +105,7 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-gray-700 mb-4">購物車</h1>
         <div className="max-w-4xl mx-auto bg-white p-4 rounded-lg shadow">
           <ul>
-            {cart.map((item) => (
+            {Array.isArray(cart) && cart.map((item) => (
               <li key={item.id} className="flex items-center justify-between py-4 border-b">
                 <div className="flex items-center">
                   <img src={item.image} alt={item.name} className="w-16 h-16 object-cover mr-4" />
@@ -121,6 +123,7 @@ export default function CartPage() {
                 </button>
               </li>
             ))}
+
           </ul>
           <div className="mt-4 text-right">
             <h2 className="text-xl font-bold text-gray-700">總價: ${total.toFixed(2)}</h2>
@@ -131,11 +134,11 @@ export default function CartPage() {
               清空購物車
             </button>
             <button
-  onClick={handleCheckout}
-  className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-700"
->
-  結帳
-</button>
+              onClick={handleCheckout}
+              className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-700"
+            >
+              結帳
+            </button>
           </div>
         </div>
       </div>

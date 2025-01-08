@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Header } from '../../components/Header';
 import { fetchGameDetails } from '../api/gameApi';
 import { addToCart } from '../api/cartApi';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export default function GameDetail() {
   const router = useRouter();
@@ -26,14 +28,29 @@ export default function GameDetail() {
     if (id) loadGameDetails();
   }, [id]);
 
+  //加入收藏
+  const handleAddToWishlist = async (gameId) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post('http://localhost:4000/wishlist', { id: gameId }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('已加入願望清單');
+    } catch (error) {
+      console.error('添加到收藏清單失敗:', error.response?.data || error.message);
+      toast.error('添加到收藏清單失敗');
+    }
+  };
+
+  //加入購物車
   const handleAddToCart = async () => {
     const token = localStorage.getItem('token');
     try {
       await addToCart(Number(id), token); // 確保 id 是數字類型
-      alert('商品已加入購物車');
+      toast.success('已加入購物車');
     } catch (error) {
       console.error('加入購物車失敗:', error.message);
-      alert('加入購物車失敗');
+      toast.error('加入購物車失敗');
     }
   };
 
@@ -58,6 +75,12 @@ export default function GameDetail() {
           className="bg-blue-500 text-white py-2 px-4 rounded mt-4 hover:bg-blue-700"
         >
           加入購物車
+        </button>
+        <button
+          onClick={() => handleAddToWishlist(Number(id))}
+          className="bg-red-500 text-white py-2 px-4 rounded mt-4 hover:bg-blue-700"
+        >
+          加入願望清單
         </button>
       </div>
     </>
