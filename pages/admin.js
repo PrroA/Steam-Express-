@@ -15,20 +15,11 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     console.log('發送請求的數據:', { name, price, description }); // 打印發送的數據
     console.log('Token:', token); // 打印 Token
-    
     try {
-      const response = await axios.post(
-        'http://localhost:4000/games',
-        { name, price, description },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.post('http://localhost:4000/games',{ name, price, description },
+        {headers: { Authorization: `Bearer ${token}` },});
       console.log('後端返回:', response.data); // 打印後端返回的數據
       toast.success('遊戲已添加');
-      setName('');
-      setPrice('');
-      setDescription('');
       router.push('/'); // 登入成功後跳轉
     } catch (error) {
         toast.error('添加遊戲失敗：' + (error.response?.data?.message || error.message));

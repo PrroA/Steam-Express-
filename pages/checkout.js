@@ -26,7 +26,7 @@ export default function CheckoutPage() {
     let total6 = arr6.forEach(item => item * 2);
     let total66 = arr6.map(item => item * 2);
     console.log(total66); // [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    console.log(total6); // undefined
+    console.log(total6);  // undefined
     let total7 = arr6.slice(2, 5);
     console.log(total7); // [3, 4, 5]
     let total8 = arr6.reverse();

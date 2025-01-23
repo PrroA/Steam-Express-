@@ -19,7 +19,7 @@ export default function GameDetail() {
         setGame(data); // 儲存遊戲資訊
       } catch (error) {
         console.error('無法獲取遊戲詳情:', error.message);
-        alert('無法獲取遊戲詳情');
+        toast.error('無法獲取遊戲詳情');
       } finally {
         setLoading(false); // 加載完成
       }

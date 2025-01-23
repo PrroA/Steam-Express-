@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import {Header} from '../components/Header';
-
+import {toast} from'react-toastify';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -15,10 +15,10 @@ export default function LoginPage() {
     try {
       const response = await axios.post('http://localhost:4000/login', { username, password });
       localStorage.setItem('token', response.data.token); // 保存 JWT Token
-      alert('登入成功！');
+      toast.success('登入成功');
       router.push('/'); // 登入成功後跳轉
     } catch (error) {
-      alert('登入失敗，請檢查帳號或密碼');
+      toast.error(response.data.message);
     }
   };
 

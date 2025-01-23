@@ -4,11 +4,11 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+
 require('dotenv').config();
 
 const PORT = process.env.PORT || 4000;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
-
 
 // 錯誤統一處理
 app.use((err, req, res, next) => {
@@ -59,6 +59,7 @@ const games = [
   { id: 6, name: 'Dark Souls III', price: '$14.99', description: 'A dark fantasy RPG.', image: '/vercel.svg' },
   { id: 7, name: 'The Last of Us Remastered', price: '$19.99', description: 'A survival horror game.', image: '/vercel.svg' },
   { id: 8, name: 'one piece', price: '$19.99', description: 'A Japanese game.', image: '/vercel.svg' },
+  { id: 9, name: 'Dragon Ball Super', price: '$19.99', description: 'A Japanese anime.', image: '/vercel.svg' },
 ];
 
 // 用戶註冊
@@ -81,16 +82,15 @@ app.post('/register', async (req, res) => {
 // 用戶登入
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((u) => u.username === username);
+  const user = users.find((u) => u.username === username); 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ message: '無效的帳號或密碼' });
-    
   }
 
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role }, // 添加user到 
     SECRET_KEY,
-    { expiresIn: '1d' }
+    { expiresIn: '1d' },
   );
   console.log('生成的 Token:', token); // 打印 Token
   res.json({ token });
@@ -146,8 +146,6 @@ const authenticate = (req, res, next) => {
     res.status(403).json({ message: 'Token 無效或已過期' });
   }
 };
-
-
 // 獲取遊戲列表
 app.get('/games', (req, res) => {
   const { query } = req.query;
@@ -186,7 +184,7 @@ app.post('/cart', authenticate, (req, res) => {
   if (!carts[userId]) {
     carts[userId] = [];
   }
-
+  
   const cartItem = carts[userId].find((item) => item.id === id);
   if (cartItem) {
     cartItem.quantity += 1; // 如果商品已存在，增加數量
@@ -210,11 +208,12 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   const { quantity } = req.body; // 從請求主體中提取商品數量
 
   const cart = carts[userId]; // 獲取該用戶的購物車
+  
   if (!cart) {
     return res.status(404).json({ message: '購物車不存在' });
   }
-
   const item = cart.find((i) => i.id == id); // 查找購物車中對應 ID 的商品
+
   if (!item) {
     return res.status(404).json({ message: '商品未找到' });
   }
@@ -224,7 +223,6 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   } else {
     item.quantity = quantity; // 更新商品數量
   }
-
   res.status(200).json({ message: '購物車已更新', cart: carts[userId] });
 });
 
@@ -238,7 +236,7 @@ app.delete('/cart/:id', authenticate, (req, res) => {
   if (!cart) {
     return res.status(404).json({ message: '購物車不存在' });
   }
-
+  
   carts[userId] = cart.filter((item) => item.id != id);
   res.status(200).json({ message: '商品已移除', cart: carts[userId] });
 });
@@ -345,6 +343,7 @@ app.post('/games', authenticate, isAdmin, (req, res) => {
   console.log('接收到的請求內容:', req.body); // 打印請求內容
   console.log('請求用戶:', req.user); // 打印用戶信息
   const { name, price, description } = req.body;
+
   if (!name || !price || !description) {
     return res.status(400).json({ message: '請提供完整的遊戲信息' });
   }

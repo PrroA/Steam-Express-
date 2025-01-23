@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
+import { toast } from'react-toastify';
+import e from 'express';
+
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
 
   useEffect(() => {
-    const loadWishlist = async () => {
+      const loadWishlist = async () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.get('http://localhost:4000/wishlist', {
@@ -27,9 +30,10 @@ export default function WishlistPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist((prev) => prev.filter((game) => game.id !== gameId));
-      alert('已從收藏清單移除');
+      toast.success('已從收藏清單移除');
     } catch (error) {
       console.error('移除收藏失敗:', error.response?.data || error.message);
+      toast.error('移除收藏失敗',error.response?.data || error.message);
     }
   };
 
@@ -38,11 +42,10 @@ export default function WishlistPage() {
     try {
       await addToCart(gameId, token);
       setWishlist((prev) => prev.filter((game) => game.id !== gameId));
-
-      alert('商品已加入購物車');
+      toast.success('已加入購物車');
     } catch (error) {
       console.error('加入購物車失敗:', error.message);
-      alert('加入購物車失敗');
+      toast.error('加入購物車失敗');
     }
   };
 
