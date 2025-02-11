@@ -57,7 +57,7 @@ export default function LoginPage() {
               註冊帳號
             </Link>
             <Link href="/ResetPassword" className="text-blue-400 hover:underline">
-              忘記密碼？
+              忘記密碼?
             </Link>
           </div>
         </form>
