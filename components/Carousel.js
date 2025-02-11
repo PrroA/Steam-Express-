@@ -1,4 +1,4 @@
 export function Carousel() {
-    return <div>Carousel Component</div>;
+    return <div> </div>;
   }
   

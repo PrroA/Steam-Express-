@@ -7,7 +7,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function App({ Component, pageProps }) {
   return (
-    
     <Provider store={store}>
           <ToastContainer />
       <CartProvider>

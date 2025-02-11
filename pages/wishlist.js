@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
-import { toast } from'react-toastify';
-import e from 'express';
+import { toast } from 'react-toastify';
+import { FaHeartBroken } from 'react-icons/fa';
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      const loadWishlist = async () => {
+    const loadWishlist = async () => {
       const token = localStorage.getItem('token');
       try {
         const response = await axios.get('http://localhost:4000/wishlist', {
@@ -17,7 +18,9 @@ export default function WishlistPage() {
         });
         setWishlist(response.data);
       } catch (error) {
-        console.error('無法獲取收藏清單:', error.response?.data || error.message);
+        console.error('Unable to get wishlist:', error.response?.data || error.message);
+      } finally {
+        setLoading(false);
       }
     };
     loadWishlist();
@@ -33,7 +36,7 @@ export default function WishlistPage() {
       toast.success('已從收藏清單移除');
     } catch (error) {
       console.error('移除收藏失敗:', error.response?.data || error.message);
-      toast.error('移除收藏失敗',error.response?.data || error.message);
+      toast.error('移除收藏失敗');
     }
   };
 
@@ -49,12 +52,29 @@ export default function WishlistPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
+          <div className="w-12 h-12 border-4 border-blue-500 border-dotted rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-400">加載中...</p>
+        </div>
+      </>
+    );
+  }
+
   if (wishlist.length === 0) {
     return (
       <>
         <Header />
-        <div className="p-6 bg-gray-100 min-h-screen text-center">
-          <h1 className="text-2xl font-bold text-gray-700">你的收藏清單是空的</h1>
+        <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
+          <FaHeartBroken size={80} className="text-gray-600 mb-4" />
+          <h1 className="text-2xl font-bold">你的收藏清單是空的</h1>
+          <p className="text-gray-400">快去發掘喜愛的遊戲吧！</p>
+          <a href="/" className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition">
+            返回商店
+          </a>
         </div>
       </>
     );
@@ -63,27 +83,32 @@ export default function WishlistPage() {
   return (
     <>
       <Header />
-      <div className="p-6 bg-gray-100 min-h-screen">
-        <h1 className="text-2xl font-bold text-gray-700 mb-4">收藏清單</h1>
-        <div className="max-w-4xl mx-auto bg-white p-4 rounded-lg shadow">
+      <div className="p-6 bg-gray-900 min-h-screen text-white">
+        <h1 className="text-3xl font-bold mb-6 text-center">❤️ 我的收藏</h1>
+
+        <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
           {wishlist.map((game) => (
-            <div key={game.id} className="border-b py-4 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold text-gray-700">{game.name}</h2>
-                <p className="text-sm text-gray-500">{game.description}</p>
+            <div key={game.id} className="border-b py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <img src={game.image} alt={game.name} className="w-16 h-16 rounded shadow" />
+                <div>
+                  <h2 className="text-lg font-bold">{game.name}</h2>
+                  <p className="text-gray-300">{game.description}</p>
+                  <p className="text-yellow-400 font-bold">價格: {game.price}</p>
+                </div>
               </div>
-              <div>
+              <div className="flex space-x-2">
                 <button
                   onClick={() => handleAddToCart(game.id)}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition"
                 >
-                  加入購物車
+                  🛒 加入購物車
                 </button>
                 <button
                   onClick={() => handleRemoveFromWishlist(game.id)}
-                  className="bg-red-500 text-white px-4 py-2 rounded ml-2 hover:bg-red-700"
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 transition"
                 >
-                  移除
+                  ❌ 移除
                 </button>
               </div>
             </div>

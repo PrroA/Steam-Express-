@@ -96,7 +96,6 @@ app.post('/login', async (req, res) => {
   res.json({ token });
 });
 
-
 // 忘記密碼生成 token
 app.post('/forgot-password', (req, res) => {
   const { username } = req.body;
@@ -213,7 +212,6 @@ app.patch('/cart/:id', authenticate, (req, res) => {
     return res.status(404).json({ message: '購物車不存在' });
   }
   const item = cart.find((i) => i.id == id); // 查找購物車中對應 ID 的商品
-
   if (!item) {
     return res.status(404).json({ message: '商品未找到' });
   }
@@ -223,7 +221,7 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   } else {
     item.quantity = quantity; // 更新商品數量
   }
-  res.status(200).json({ message: '購物車已更新', cart: carts[userId] });
+    res.status(200).json({ message: '購物車已更新', cart: carts[userId] });
 });
 
 
@@ -247,7 +245,6 @@ app.post('/checkout', authenticate, (req, res) => {
   if (!carts[userId] || carts[userId].length === 0) {
     return res.status(400).json({ message: '購物車為空，無法結帳' });
   }
-
   if (!orders[userId]) {
     orders[userId] = [];
   }
@@ -321,9 +318,9 @@ app.delete('/wishlist/:id', authenticate, (req, res) => {
     if (wishlists[userId]) {
     wishlists[userId] = wishlists[userId].filter((id) => id !== gameId);
   }
-
   res.status(200).json({ message: '已移除收藏', wishlist: wishlists[userId] });
 });
+
 //交易紀錄
 app.get('/transactions', authenticate, (req, res) => {
   const userId = req.user.id;
@@ -352,14 +349,12 @@ app.post('/games', authenticate, isAdmin, (req, res) => {
     name,
     price,
     description,
-    // image: '/window.svg', 
+    image: '/window.svg',
   };
   games.push(newGame);
   console.log('新增的遊戲:', newGame); // 打印新增的遊戲
   res.status(201).json({ message: '遊戲已添加', game: newGame });
 });
-
-
 
 // 刪除遊戲
 app.delete('/games/:id', authenticate, isAdmin, (req, res) => {

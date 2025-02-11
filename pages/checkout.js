@@ -1,4 +1,3 @@
-import { LazyResult } from 'postcss';
 import { useCart } from '../context/CartContext';
 import { Header } from '../components/Header';
 export default function CheckoutPage() {
@@ -24,6 +23,7 @@ export default function CheckoutPage() {
     console.log(total5); // [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]
     let arr6 = [1,2,3,4,5,6,7,8,9,10];
     let total6 = arr6.forEach(item => item * 2);
+    console.log(total6); // undefined
     let total66 = arr6.map(item => item * 2);
     console.log(total66); // [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     console.log(total6);  // undefined
@@ -43,8 +43,8 @@ export default function CheckoutPage() {
     let arr9 = [1,2,3,4,5,6,7,8,9,10];
     let total12 = arr9.includes(5);
     console.log(total12); // true
-    console.log(arr9.indexOf(5)); // 4
-    const arr10 = [1,2,3,4,5,6,7,8,9,10];
+    console.log(arr9.indexOf(5)); // 5
+    const arr10 = [1,2,3,4,5,6,7,8,9,10]; 
     const total13 = arr10.join('+');
     console.log(total13); // `1+2+3+4+5+6+7+8+9+10`
     const arr11 = [1,2,3,4,5,6,7,8,9,10];

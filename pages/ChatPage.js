@@ -13,7 +13,6 @@ export default function ChatPage() {
     socket.on('chatHistory', (chatHistory) => {
       setMessages(chatHistory);
     });
-
     // 接收新訊息
     socket.on('receiveMessage', (newMessage) => {
       setMessages((prevMessages) => [...prevMessages, newMessage]);
@@ -35,6 +34,7 @@ export default function ChatPage() {
     }
   };
 
+
   return (
     <>
       <Header />
@@ -42,7 +42,10 @@ export default function ChatPage() {
         <h1 className="text-2xl font-bold mb-4">即時聊天</h1>
         <div className="flex-1 bg-white p-4 rounded-lg shadow overflow-y-auto">
           {messages.map((msg, index) => (
-            <div key={index} className="mb-2">
+            <div 
+            key={index} 
+            className="mb-2"
+            >
               <span className="font-bold">{msg.user}:</span>
               <span className="ml-2">{msg.text}</span>
               <span className="ml-4 text-gray-500 text-sm">{msg.timestamp}</span>
