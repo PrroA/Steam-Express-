@@ -1,11 +1,12 @@
+require("dotenv").config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-
-require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // 引入 Stripe SDK (測試用)
+app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
@@ -29,7 +30,6 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-app.use(express.json());
 
 // 模擬數據結構
 const users = [
@@ -193,13 +193,19 @@ app.post('/cart', authenticate, (req, res) => {
 
   res.status(201).json({ message: 'Added to cart', cart: carts[userId] });
 });
-// 歷史訂單
+// 獲取歷史訂單
 app.get('/orders', authenticate, (req, res) => {
   const userId = req.user.id;
-  console.log('獲取訂單的用戶 ID:', userId); // 調試輸出
-  console.log('返回的訂單:', orders[userId]); // 調試輸出
-  res.json(orders[userId] || []);
+  console.log('📌 [DEBUG] 獲取訂單 - 用戶 ID:', userId);
+
+  if (!orders[userId]) {
+    orders[userId] = []; // 確保 orders[userId] 至少是空陣列
+  }
+
+  console.log('📌 [DEBUG] 返回的訂單:', orders[userId]); // 調試輸出
+  res.status(200).json(orders[userId]);
 });
+
 //更改購物車商品數量
 app.patch('/cart/:id', authenticate, (req, res) => {
   const userId = req.user.id; // 從驗證中間件獲取用戶 ID
@@ -240,18 +246,22 @@ app.delete('/cart/:id', authenticate, (req, res) => {
 });
 
 // 結帳
+const { v4: uuidv4 } = require('uuid'); // 用 UUID 來生成唯一 ID
+
 app.post('/checkout', authenticate, (req, res) => {
   const userId = req.user.id;
+  
   if (!carts[userId] || carts[userId].length === 0) {
     return res.status(400).json({ message: '購物車為空，無法結帳' });
   }
+
   if (!orders[userId]) {
-    orders[userId] = [];
+    orders[userId] = []; // 確保 `orders[userId]` 存在
   }
 
-  // 保存訂單數據
+  // 生成唯一訂單 ID
   const newOrder = {
-    id: new Date().getTime(), // 訂單唯一 ID
+    id: uuidv4(),
     items: carts[userId],
     total: carts[userId].reduce((sum, item) => sum + parseFloat(item.price.replace('$', '')) * item.quantity, 0),
     date: new Date().toISOString(),
@@ -259,24 +269,30 @@ app.post('/checkout', authenticate, (req, res) => {
   };
 
   orders[userId].push(newOrder);
-  console.log('新訂單:', newOrder); // 調試輸出
-  console.log('所有訂單:', orders); // 調試輸出
+  console.log('✅ [DEBUG] 新訂單:', newOrder);
+
   carts[userId] = []; // 清空購物車
   res.status(200).json({ message: '結帳成功！', order: newOrder });
 });
+
 
 // 支付模擬
 app.post('/pay', authenticate, (req, res) => {
   const userId = req.user.id;
   const { orderId } = req.body;
 
-  // 查找訂單
+  console.log('📌 [DEBUG] 付款請求 - 訂單 ID:', orderId);
+  
   const order = orders[userId]?.find((o) => o.id === orderId);
   if (!order) {
     return res.status(404).json({ message: '訂單未找到' });
   }
   
-  // 模擬支付
+  if (order.status === '已付款') {
+    return res.status(400).json({ message: '訂單已付款，無法重複支付' });
+  }
+
+  // 生成交易紀錄
   const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   order.status = '已付款';
   order.paymentDetails = {
@@ -284,9 +300,10 @@ app.post('/pay', authenticate, (req, res) => {
     paidAt: new Date().toISOString(),
   };
 
-  console.log('更新的訂單:', order); // 調試輸出
+  console.log('✅ [DEBUG] 付款成功 - 更新的訂單:', order);
   res.status(200).json({ message: '支付成功', order });
 });
+
 
 // 願望清單
 const wishlists = {}; // 用戶收藏清單
@@ -366,6 +383,30 @@ app.delete('/games/:id', authenticate, isAdmin, (req, res) => {
   games.splice(index, 1);
   res.status(200).json({ message: '遊戲已刪除' });
 });
+
+// 創建付款請求
+app.post("/create-payment-intent", async (req, res) => {
+  try {
+    let { amount } = req.body;
+    
+    if (!amount || amount < 0.5) {
+      return res.status(400).json({ error: "金額不可低於 $0.50 USD" });
+    }
+
+    amount = Math.round(amount * 100); // Stripe 以「分」為單位
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error("❌ Stripe 付款錯誤:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // 啟動服務
 app.listen(PORT, () => {

@@ -38,3 +38,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+
+啟用後端伺服器
+ nodemon server.js
+
+付款 信用卡Stripe 測試: 
+
+用測試信用卡號碼 4242 4242 4242 4242
+CVC 任意 (123)，過期日期 (12/34)
+ZIP 任意 (12345)
+
+帳號密碼 : admin admin 
+
+感謝您使用 GoGo 服務！
