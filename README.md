@@ -81,7 +81,7 @@ CVC: 123
 
 卡號: 4000 0000 0000 0002
 
-🎨 UI 設計與技術棧
+🎨 UI 設計與技術選擇
 
 ✅ Next.js (React + SSR)
 ✅ Express.js (RESTful API)
