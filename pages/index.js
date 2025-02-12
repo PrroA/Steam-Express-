@@ -7,13 +7,25 @@ export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(''); // 搜索狀態
+  const [sortOrder, setSortOrder] = useState('default'); // 預設排序方式
 
   useEffect(() => {
     const fetchGames = async () => {
       try {
         const response = await fetch(`http://localhost:4000/games?query=${searchQuery}`);
         const data = await response.json();
-        setGames(data);
+
+        // 先更新遊戲數據
+        let sortedGames = [...data];
+
+        // 應用價格排序
+        if (sortOrder === 'low-to-high') {
+          sortedGames.sort((a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')));
+        } else if (sortOrder === 'high-to-low') {
+          sortedGames.sort((a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')));
+        }
+
+        setGames(sortedGames);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching games:', error);
@@ -21,22 +33,34 @@ export default function Home() {
       }
     };
     fetchGames();
-  }, [searchQuery]); // 搜索變化時觸發
+  }, [searchQuery, sortOrder]); // 監聽 `searchQuery` 和 `sortOrder` 變化
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
       <Header />
       <Carousel />
 
-      {/* 搜索框 */}
-      <div className="p-4 max-w-2xl mx-auto">
+      {/* 搜索 & 排序 */}
+      <div className="p-4 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        {/* 搜索框 */}
         <input
           type="text"
           placeholder="🔍 搜索遊戲..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+          className="w-full md:w-1/2 p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
         />
+
+        {/* 價格排序篩選 */}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+        >
+          <option value="default">預設排序</option>
+          <option value="low-to-high">價格：低 ➝ 高</option>
+          <option value="high-to-low">價格：高 ➝ 低</option>
+        </select>
       </div>
 
       {/* 加載中效果 */}
