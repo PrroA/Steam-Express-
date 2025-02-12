@@ -31,7 +31,7 @@ const isAdmin = (req, res, next) => {
 };
 
 
-// 模擬數據結構
+// 模擬帳號
 const users = [
   {
     id: 1,
@@ -72,7 +72,6 @@ app.post('/register', async (req, res) => {
   if (existingUser) {
     return res.status(400).json({ message: '帳號已存在' });
   }
-
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = { id: users.length + 1, username, password: hashedPassword };
   users.push(newUser);
@@ -407,6 +406,38 @@ app.post("/create-payment-intent", async (req, res) => {
   }
 });
 
+// Get profile data
+app.get('/profile', authenticate, (req, res) => {
+  const userId = req.user.id;
+  const user = users.find((u) => u.id === userId);
+
+  if (!user) {
+    return res.status(404).json({ message: '用戶未找到' });
+  }
+
+  res.json({
+    id: user.id,
+    username: user.username,
+    email: user.email || "未提供",
+    registeredAt: user.registeredAt || "未知",
+  });
+});
+
+// update profile data
+app.put('/profile', authenticate, (req, res) => {
+  const userId = req.user.id;
+  const { username, email } = req.body;
+
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ message: '資料更新失敗' });
+  }
+
+  user.username = username || user.username;
+  user.email = email || user.email;
+
+  res.json({ message: "個人資料更新成功", user });
+});
 
 // 啟動服務
 app.listen(PORT, () => {

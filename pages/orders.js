@@ -171,7 +171,7 @@ function CheckoutForm({ clientSecret, orderId }) {
     if (error) {
       setMessage(error.message);
     } else if (paymentIntent.status === "succeeded") {
-      setMessage("🎉 付款成功！即將跳轉...");
+      setMessage("🎉 付款成功！感謝您的購買 🎉 即將跳轉至首頁...");
 
       // 更新後端訂單狀態
       await fetch("http://localhost:4000/pay", {

@@ -60,6 +60,9 @@ export function Header() {
         <Link href="/admin" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">
           新增遊戲
         </Link>
+        <Link href="/profile" className="bg-blue-500 py-1 px-3 rounded hover:bg-green-700"> 
+          個人資料
+          </Link>
       </nav>
     </header>
   );

@@ -67,9 +67,9 @@ export default function TransactionsPage() {
               
               <p className="text-gray-300">
                 訂單 ID: 
-                <Link href={`/orders/${txn.orderId}`} className="text-blue-400 hover:underline ml-1">
+                <p href ={`/orders/${txn.orderId}`} className="text-blue-400 hover:underline ml-1">
                   {txn.orderId}
-                </Link>
+                </p>
               </p>
 
               <p className="text-yellow-400 font-bold">總金額: ${txn.total.toFixed(2)}</p>
