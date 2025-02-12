@@ -1,55 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+🎮 遊戲商城 (Game Store)
 
-## Getting Started
+這是一個使用 Next.js + Express + Stripe 構建的遊戲商城，支援 用戶註冊、登入、購物車、結帳、支付、願望清單、訂單管理 等功能。
 
-First, run the development server:
+🚀 功能特點
 
-```bash
+✅ 用戶管理 (註冊 / 登入 / JWT 驗證)✅ 遊戲瀏覽與篩選 (價格排序 / 搜索)✅ 購物車 (添加 / 移除 / 結帳)✅ Stripe 付款 (模擬支付)✅ 訂單管理 (歷史訂單 / 付款)✅ 願望清單 (收藏 / 移除)✅ 管理員後台 (遊戲管理)
+
+📌 環境設置
+
+1️⃣ 安裝專案依賴
+
+確保已安裝 Node.js 18+，然後執行：
+
+npm install
+
+或
+
+yarn install
+
+2️⃣ 建立 .env 環境變數文件
+
+請在 server 目錄下建立 .env 文件，並填入以下內容：
+
+PORT=4000
+SECRET_KEY=your_secret_key
+STRIPE_SECRET_KEY=sk_test_xxxxxxxx
+JWT_SECRET=your_jwt_secret
+
+🔹 STRIPE_SECRET_KEY 需從 Stripe Dashboard 獲取。
+
+3️⃣ 啟動後端 Express 伺服器
+
+cd server
+node server.js
+
+或使用 nodemon 自動監測變更：
+
+nodemon server.js
+
+4️⃣ 啟動前端 Next.js 應用程式
+
 npm run dev
-# or
+
+或
+
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🏗️ 目錄結構
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+📦 game-store
+├── 📂 server             # Express 後端 API
+│   ├── server.js        # 主要後端邏輯
+│   ├── routes           # API 路由 (用戶、購物車、支付等)
+│   ├── .env             # 環境變數
+│   ├── models           # 數據結構 (用戶、訂單等)
+│   ├── middleware       # JWT 驗證
+│
+├── 📂 frontend          # Next.js 前端
+│   ├── pages            # Next.js 頁面 (首頁、購物車、結帳等)
+│   ├── components       # UI 元件 (Header、GameCard、Footer 等)
+│   ├── context          # 全域狀態管理 (購物車)
+│   ├── public           # 靜態資源 (圖片)
+│   ├── styles          # TailwindCSS
+│   ├── next.config.js   # Next.js 配置 (允許外部圖片)
+│   ├── package.json    # 依賴管理
+│
+├── .gitignore          # 忽略 Git 提交的文件
+├── README.md           # 專案說明文件
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+💳 Stripe 付款測試
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+🔹 測試信用卡號 (付款成功)：
 
-## Learn More
+卡號: 4242 4242 4242 4242
+有效期限: 12/34
+CVC: 123
 
-To learn more about Next.js, take a look at the following resources:
+🔹 測試信用卡號 (付款失敗)：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+卡號: 4000 0000 0000 0002
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+🎨 UI 設計與技術棧
 
-## Deploy on Vercel
+✅ Next.js (React + SSR)
+✅ Express.js (RESTful API)
+✅ Stripe (支付模擬)
+✅ TailwindCSS (前端 UI)
+✅ React Context API (購物車管理)
+✅ JWT + bcrypt (用戶認證)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+🎯 未來計畫
+MongoDB (未來可擴充)
+UI 改善 (未來可擴充)
+未來功能更佳完善 (未來可擴充)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
 
-啟用後端伺服器
- node server.js || nodemon server.js
 
-pay Stripe test: 
-
-card number: 4242 4242 4242 4242
-
-CVC any (123)，date (12/34)
-
-ZIP any (12345)
-
-Account & Password : admin , admin 
-
-感謝您使用 GoGo 服務！
+📌 歡迎貢獻！有任何問題可以提交 Issue 或 Pull Request！ 🚀

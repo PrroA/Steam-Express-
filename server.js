@@ -46,7 +46,7 @@ const users = [
     role: 'user',// for user
   },
 ];
-
+const reviews = {}; // 儲存評論 { gameId: [{ content: "Great game!", createdAt: Date }] }
 const carts = {}; // 用戶購物車 { userId: [cartItems] }
 const orders = {}; // 用戶訂單 { userId: [orderItems] }
 const resetTokens = {}; // 密碼重置 token { token: { username, expires } }
@@ -355,7 +355,7 @@ app.get('/transactions', authenticate, (req, res) => {
 app.post('/games', authenticate, isAdmin, (req, res) => {
   console.log('接收到的請求內容:', req.body); // 打印請求內容
   console.log('請求用戶:', req.user); // 打印用戶信息
-  const { name, price, description } = req.body;
+  const { name, price, description ,image } = req.body;
 
   if (!name || !price || !description) {
     return res.status(400).json({ message: '請提供完整的遊戲信息' });
@@ -365,7 +365,7 @@ app.post('/games', authenticate, isAdmin, (req, res) => {
     name,
     price,
     description,
-    image: '/window.svg',
+    image,
   };
   games.push(newGame);
   console.log('新增的遊戲:', newGame); // 打印新增的遊戲
@@ -437,6 +437,32 @@ app.put('/profile', authenticate, (req, res) => {
   user.email = email || user.email;
 
   res.json({ message: "個人資料更新成功", user });
+});
+
+// 取得某遊戲的所有評論
+app.get('/reviews/:gameId', (req, res) => {
+  const { gameId } = req.params;
+  res.json(reviews[gameId] || []);
+});
+
+// 提交新評論
+app.post('/reviews', authenticate, (req, res) => {
+  const { gameId, content } = req.body;
+  if (!gameId || !content) {
+    return res.status(400).json({ message: '缺少必要資訊' });
+  }
+
+  if (!reviews[gameId]) {
+    reviews[gameId] = [];
+  }
+
+  const newReview = {
+    content,
+    createdAt: new Date().toISOString(),
+  };
+
+  reviews[gameId].push(newReview);
+  res.status(201).json(newReview);
 });
 
 // 啟動服務

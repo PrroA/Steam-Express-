@@ -21,7 +21,7 @@ export default function AdminPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success('✅ 遊戲已添加');
+      toast.success('遊戲已添加');
       router.push('/');
     } catch (error) {
       toast.error('❌ 添加遊戲失敗：' + (error.response?.data?.message || error.message));

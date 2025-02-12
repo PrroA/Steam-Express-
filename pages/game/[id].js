@@ -11,6 +11,9 @@ export default function GameDetail() {
   const { id } = router.query;
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]); // 儲存遊戲評論
+  const [newReview, setNewReview] = useState(''); // 新評論內容
+  const [isSubmitting, setIsSubmitting] = useState(false); // 評論提交狀態
 
   useEffect(() => {
     const loadGameDetails = async () => {
@@ -28,7 +31,49 @@ export default function GameDetail() {
     if (id) loadGameDetails();
   }, [id]);
 
-  // 加入願望清單
+  // 遊戲評論
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!id) return;
+      try {
+        const response = await axios.get(`http://localhost:4000/reviews/${id}`);
+        setReviews(response.data);
+      } catch (error) {
+        console.error('無法加載評論:', error.message);
+      }
+    };
+    fetchReviews();
+  }, [id]);
+
+  // 提交評論
+  const handleSubmitReview = async () => {
+    if (!newReview.trim()) {
+      toast.error('評論內容不可為空');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.post(
+        'http://localhost:4000/reviews',
+        { gameId: Number(id), content: newReview },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 更新評論列表
+      setReviews([...reviews, response.data]);
+      setNewReview('');
+      toast.success('感謝你的評論！');
+    } catch (error) {
+      console.error('評論失敗:', error.response?.data || error.message);
+      toast.error('評論失敗');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  // ✅ 加入願望清單
   const handleAddToWishlist = async () => {
     const token = localStorage.getItem('token');
     try {
@@ -53,6 +98,8 @@ export default function GameDetail() {
       toast.error('加入購物車失敗');
     }
   };
+
+
 
   if (loading) {
     return (
@@ -102,6 +149,42 @@ export default function GameDetail() {
             >
               ❤️ 加入願望清單
             </button>
+          </div>
+
+          {/* 評論區 */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold">💬 評論</h2>
+
+            {/* 新增評論 */}
+            <div className="mt-4">
+              <textarea
+                value={newReview}
+                onChange={(e) => setNewReview(e.target.value)}
+                placeholder="寫下你的評論......"
+                className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+              ></textarea>
+              <button
+                onClick={handleSubmitReview}
+                disabled={isSubmitting}
+                className="mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
+              >
+                {isSubmitting ? '提交中...' : '發表評論'}
+              </button>
+            </div>
+
+            {/* 顯示評論列表 */}
+            {reviews.length === 0 ? (
+              <p className="mt-4 text-gray-400">暫無評論，成為第一個評論的人！</p>
+            ) : (
+              <ul className="mt-4 space-y-4">
+                {reviews.map((review, index) => (
+                  <li key={index} className="p-4 bg-gray-700 rounded shadow">
+                    <p className="text-white">{review.content}</p>
+                    <p className="text-sm text-gray-400 mt-1">🕒 {new Date(review.createdAt).toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
