@@ -1,19 +1,18 @@
-import Link from 'next/link';
-import { useState } from 'react';
+import Link from "next/link";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion"; // 動畫
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
+    <header className="bg-gray-900 text-white p-4 flex justify-between items-center">
       {/* Logo */}
-      <Link href="/" className="text-xl font-bold">
+      <Link href="/" className="text-2xl font-bold tracking-widest">
         Steam Clone
       </Link>
-
-      {/* Hamburger Menu for Mobile */}
       <button
-        className="md:hidden bg-gray-700 p-2 rounded"
+        className="bg-gray-700 p-2 rounded focus:outline-none"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         <svg
@@ -24,46 +23,45 @@ export function Header() {
           stroke="currentColor"
           className="w-6 h-6"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 6h16M4 12h16m-7 6h7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
         </svg>
       </button>
 
-      {/* Navigation */}
-      <nav
-        className={`flex-col md:flex-row flex gap-4 items-center absolute md:static top-full left-0 w-full md:w-auto bg-gray-800 md:bg-transparent p-4 md:p-0 z-10 transition-all ${
-          isMenuOpen ? 'block' : 'hidden md:flex'
-        }`}
-      >
-        <Link href="/login">
-          <button className="bg-blue-500 py-1 px-3 rounded hover:bg-blue-700">
-            登入/註冊
-          </button>
-        </Link>
-        <Link href="/cart">
-          <button className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">
-            購物車
-          </button>
-        </Link>
-        <Link href="/orders" className="bg-blue-500 py-1 px-3 rounded hover:bg-green-700">
-          查看訂單
-        </Link>
-        <Link href="/wishlist" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">
-          願望清單
-        </Link>
-        <Link href="/transactions" className="bg-blue-500 py-1 px-3 rounded hover:bg-green-700">
-          交易記錄
-        </Link>
-        <Link href="/admin" className="bg-green-500 py-1 px-3 rounded hover:bg-green-700">
-          新增遊戲
-        </Link>
-        <Link href="/profile" className="bg-blue-500 py-1 px-3 rounded hover:bg-green-700"> 
-          個人資料
-          </Link>
-      </nav>
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.nav
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", stiffness: 100 }}
+            className="fixed top-0 left-0 h-full w-64 bg-gray-900 shadow-lg p-6 flex flex-col gap-4 z-50"
+          >
+            <button
+              className="text-white self-end text-2xl mb-4 focus:outline-none"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              ✖
+            </button>
+
+            <NavItem href="/login" label="🔑 登入/註冊" />
+            <NavItem href="/cart" label="🛒 購物車" />
+            <NavItem href="/orders" label="📦 訂單" />
+            <NavItem href="/wishlist" label="❤️ 願望清單" />
+            <NavItem href="/transactions" label="💰 交易記錄" />
+            <NavItem href="/admin" label="🛠️ 新增遊戲" />
+            <NavItem href="/profile" label="👤 個人資料" />
+            <NavItem href="/ChatPage" label="💬 客服中心" />
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
+const NavItem = ({ href, label }) => (
+  <Link
+    href={href}
+    className="bg-gray-700 hover:bg-blue-500 text-white py-2 px-4 rounded-lg transition-all"
+  >
+    {label}
+  </Link>
+);

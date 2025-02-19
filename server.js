@@ -1,16 +1,23 @@
 require("dotenv").config();
 const express = require('express');
+const http = require("http"); // HTTP 伺服器
+const { Server } = require("socket.io"); 
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // 引入 Stripe SDK (測試用)
+const { v4: uuidv4 } = require("uuid"); 
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
-
+const server = http.createServer(app); // 使用 HTTP 伺服器
+const io = new Server(server, {
+  cors: { origin: "http://localhost:3000", credentials: true },
+});
 // 錯誤統一處理
 app.use((err, req, res, next) => {
   console.error('Global Error:', err);
@@ -46,6 +53,7 @@ const users = [
     role: 'user',// for user
   },
 ];
+const messages = []; // 儲存聊天訊息
 const reviews = {}; // 儲存評論 { gameId: [{ content: "Great game!", createdAt: Date }] }
 const carts = {}; // 用戶購物車 { userId: [cartItems] }
 const orders = {}; // 用戶訂單 { userId: [orderItems] }
@@ -244,8 +252,7 @@ app.delete('/cart/:id', authenticate, (req, res) => {
   res.status(200).json({ message: '商品已移除', cart: carts[userId] });
 });
 
-// 結帳
-const { v4: uuidv4 } = require('uuid'); // 用 UUID 來生成唯一 ID
+
 
 app.post('/checkout', authenticate, (req, res) => {
   const userId = req.user.id;
@@ -465,7 +472,42 @@ app.post('/reviews', authenticate, (req, res) => {
   res.status(201).json(newReview);
 });
 
-// 啟動服務
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// 客服聊天室 (dev)
+io.on("connection", (socket) => {
+  console.log("用戶連線");
+
+  // 發送歷史聊天紀錄
+  socket.emit("chatHistory", messages);
+
+  // 監聽新訊息
+  socket.on("sendMessage", (message) => {
+    const newMessage = {
+      user: message.user || "我",
+      text: message.text,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    messages.push(newMessage); // 儲存訊息
+    io.emit("receiveMessage", newMessage);
+  });
+  
+  setTimeout(() => {
+    const autoReply = {
+      user: "客服中心",
+      text: "此功能還在開發中 敬請期待",
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    io.emit("receiveMessage", autoReply); // 廣播機器人回覆
+  }, 1000); // 延遲 1 秒回應，模擬真實對話
+
+  // 監聽用戶斷開連線
+  socket.on("disconnect", () => {
+    console.log("WebSocket斷線");
+  });
+});
+
+// 啟動伺服器
+server.listen(PORT, () => {
+  console.log("伺服器正在運行...")
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

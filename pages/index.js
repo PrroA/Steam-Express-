@@ -6,25 +6,20 @@ import { GameCard } from '../components/GameCard';
 export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(''); // 搜索狀態
-  const [sortOrder, setSortOrder] = useState('default'); // 預設排序方式
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [sortOrder, setSortOrder] = useState('default');
 
   useEffect(() => {
     const fetchGames = async () => {
       try {
         const response = await fetch(`http://localhost:4000/games?query=${searchQuery}`);
         const data = await response.json();
-
-        // 先更新遊戲數據
         let sortedGames = [...data];
-
-        // 應用價格排序
         if (sortOrder === 'low-to-high') {
           sortedGames.sort((a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')));
         } else if (sortOrder === 'high-to-low') {
           sortedGames.sort((a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')));
         }
-
         setGames(sortedGames);
         setLoading(false);
       } catch (error) {
@@ -33,16 +28,14 @@ export default function Home() {
       }
     };
     fetchGames();
-  }, [searchQuery, sortOrder]); // 監聽 `searchQuery` 和 `sortOrder` 變化
+  }, [searchQuery, sortOrder]);
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
       <Header />
       <Carousel />
-
-      {/* 搜索 & 排序 */}
       <div className="p-4 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-        {/* 搜索框 */}
+
         <input
           type="text"
           placeholder="🔍 搜索遊戲..."
@@ -50,8 +43,6 @@ export default function Home() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full md:w-1/2 p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
         />
-
-        {/* 價格排序篩選 */}
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
@@ -62,8 +53,6 @@ export default function Home() {
           <option value="high-to-low">價格：高 ➝ 低</option>
         </select>
       </div>
-
-      {/* 加載中效果 */}
       {loading ? (
         <div className="text-center p-10">
           <div className="w-10 h-10 border-4 border-blue-500 border-dotted rounded-full animate-spin mx-auto"></div>

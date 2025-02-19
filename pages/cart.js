@@ -72,7 +72,7 @@ export default function CartPage() {
       await axios.post('http://localhost:4000/checkout', {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success('結帳成功');
+      toast.success('請至（查看訂單）進行付款');
       setCart([]);
       setTotal(0);
     } catch (error) {

@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white text-center py-6">
       <div className="container mx-auto">
-        <h2 className="text-lg font-bold">{`Proa`} | 王奕軒 </h2>
+        <h2 className="text-lg font-bold">{`Proa`} | 王奕軒  | 網站持續優化中 </h2>
         <p className="text-sm text-gray-400">歡迎聯絡我，更多資訊如下：</p>
         {/* 社群連結 */}
         <div className="flex justify-center space-x-6 mt-4">
