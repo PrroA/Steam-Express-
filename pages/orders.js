@@ -4,6 +4,9 @@ import { Header } from "../components/Header";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import { toast } from "react-toastify";
+import { Pie } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // Stripe 公開金鑰（測試環境）
 const stripePromise = loadStripe("pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB");
@@ -11,7 +14,7 @@ const stripePromise = loadStripe("pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcY
 export default function CheckoutPage() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [clientSecret, setClientSecret] = useState(null); 
+  const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -33,12 +36,9 @@ export default function CheckoutPage() {
       const res = await fetch("http://localhost:4000/orders", {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
-
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
       const data = await res.json();
       setOrders(data);
-
       const unpaidOrder = data.find(order => order.status === "未付款");
       if (unpaidOrder) setSelectedOrder(unpaidOrder);
     } catch (error) {
@@ -49,11 +49,11 @@ export default function CheckoutPage() {
     }
   };
 
-  // 獲取付款 clientSecret
+  // 付款
   const fetchClientSecret = async () => {
+    if (!selectedOrder) return;
     setLoading(true);
     setError(null);
-
     try {
       const res = await fetch("http://localhost:4000/create-payment-intent", {
         method: "POST",
@@ -66,18 +66,35 @@ export default function CheckoutPage() {
       const data = await res.json();
       setClientSecret(data.clientSecret);
     } catch (error) {
-      console.error("❌ 付款請求失敗:", error);
+      console.error("付款請求失敗:", error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // 已付款 / 未付款訂單數量
+  const getChartData = () => {
+    const paidOrders = orders.filter(order => order.status === "已付款").length;
+    const unpaidOrders = orders.filter(order => order.status === "未付款").length;
+
+    return {
+      labels: ["已付款", "未付款"],
+      datasets: [
+        {
+          data: [paidOrders, unpaidOrders],
+          backgroundColor: ["#4CAF50", "#FF5252"],
+          hoverBackgroundColor: ["#45a049", "#e57373"],
+        },
+      ],
+    };
+  };
+
   return (
     <>
       <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white">
-        <h1 className="text-3xl font-bold mb-6">🛒 確認付款</h1>
+        <h1 className="text-3xl font-bold mb-6">🛒 訂單概覽</h1>
 
         {loading && <p className="text-gray-400">正在載入訂單資訊...</p>}
         {error && <p className="text-red-400">⚠️ {error}</p>}
@@ -88,7 +105,7 @@ export default function CheckoutPage() {
             <select
               value={selectedOrder?.id || ""}
               onChange={e => setSelectedOrder(orders.find(o => o.id === e.target.value))}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-gray-700 text-white"
             >
               {orders.map(order => (
                 <option key={order.id} value={order.id}>
@@ -100,18 +117,25 @@ export default function CheckoutPage() {
         )}
 
         <p className="text-xl text-yellow-400">總金額: ${selectedOrder?.total.toFixed(2) || "0.00"}</p>
-
         {clientSecret && (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <CheckoutForm clientSecret={clientSecret} orderId={selectedOrder.id} />
+            <CheckoutForm clientSecret={clientSecret} orderId={selectedOrder?.id} />
           </Elements>
+        )}
+        {orders.length > 0 && (
+          <div className="mt-10 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center">
+          <h2 className="text-2xl font-bold mb-4 text-center">📊 訂單狀態統計</h2>
+          <div className="w-60 h-60"> 
+          <Pie data={getChartData()}/>
+          </div>
+          </div>
         )}
       </div>
     </>
   );
 }
 
-// ✅ 付款表單組件
+
 function CheckoutForm({ clientSecret, orderId }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -126,6 +150,12 @@ function CheckoutForm({ clientSecret, orderId }) {
 
     if (!stripe || !elements) {
       setMessage("付款系統未載入，請稍後再試");
+      setLoading(false);
+      return;
+    }
+
+    if (!orderId) {
+      setMessage("⚠️ 無效的訂單 ID，請重新選擇訂單");
       setLoading(false);
       return;
     }
@@ -160,10 +190,10 @@ function CheckoutForm({ clientSecret, orderId }) {
       <CardElement className="p-4 bg-gray-700 rounded" />
       <button
         type="submit"
-        className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 mt-4 w-full"
+        className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 mt-4 w-full transition"
         disabled={loading || !stripe || !elements}
       >
-        {loading ? "付款中..." : "確認付款"}
+        {loading ? "付款中..." : "💳 確認付款"}
       </button>
       {message && <p className="mt-4 text-yellow-400">{message}</p>}
     </form>

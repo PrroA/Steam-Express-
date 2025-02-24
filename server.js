@@ -54,10 +54,11 @@ const users = [
   },
 ];
 const messages = []; // 儲存聊天訊息
-const reviews = {}; // 儲存評論 { gameId: [{ content: "Great game!", createdAt: Date }] }
-const carts = {}; // 用戶購物車 { userId: [cartItems] }
-const orders = {}; // 用戶訂單 { userId: [orderItems] }
-const resetTokens = {}; // 密碼重置 token { token: { username, expires } }
+const reviews = {}; // 儲存評論 
+const carts = {}; // 用戶購物車 
+const orders = {}; // 用戶訂單 
+const wishlists = {}; // 用戶收藏清單
+const resetTokens = {}; // 密碼重置
 const games = [
   { id: 1, name: 'Cyberpunk 2077', price: '$59.99', description: 'A futuristic RPG.', image: '/vercel.svg' },
   { id: 2, name: 'Elden Ring', price: '$49.99', description: 'An open-world adventure.', image: '/vercel.svg' },
@@ -95,11 +96,10 @@ app.post('/login', async (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role }, // 添加user到 
+    { id: user.id, username: user.username, role: user.role },
     SECRET_KEY,
     { expiresIn: '1d' },
   );
-  console.log('生成的 Token:', token); // 打印 Token
   res.json({ token });
 });
 
@@ -179,8 +179,8 @@ app.get('/cart', authenticate, (req, res) => {
 
 // 添加商品到購物車
 app.post('/cart', authenticate, (req, res) => {
-  const userId = req.user.id; // 確保 `authenticate` 中正確設置 `req.user`
-  const { id } = req.body; // 確保請求體包含 `id`
+  const userId = req.user.id;
+  const { id } = req.body; 
 
   const game = games.find((g) => g.id === id);
   if (!game) {
@@ -203,13 +203,10 @@ app.post('/cart', authenticate, (req, res) => {
 // 獲取歷史訂單
 app.get('/orders', authenticate, (req, res) => {
   const userId = req.user.id;
-  console.log('📌 [DEBUG] 獲取訂單 - 用戶 ID:', userId);
 
   if (!orders[userId]) {
-    orders[userId] = []; // 確保 orders[userId] 至少是空陣列
+    orders[userId] = []; 
   }
-
-  console.log('📌 [DEBUG] 返回的訂單:', orders[userId]); // 調試輸出
   res.status(200).json(orders[userId]);
 });
 
@@ -261,10 +258,6 @@ app.post('/checkout', authenticate, (req, res) => {
     return res.status(400).json({ message: '購物車為空，無法結帳' });
   }
 
-  if (!orders[userId]) {
-    orders[userId] = []; // 確保 `orders[userId]` 存在
-  }
-
   // 生成唯一訂單 ID
   const newOrder = {
     id: uuidv4(),
@@ -287,7 +280,7 @@ app.post('/pay', authenticate, (req, res) => {
   const userId = req.user.id;
   const { orderId } = req.body;
 
-  console.log('📌 [DEBUG] 付款請求 - 訂單 ID:', orderId);
+  console.log('訂單 ID:', orderId);
   
   const order = orders[userId]?.find((o) => o.id === orderId);
   if (!order) {
@@ -306,13 +299,12 @@ app.post('/pay', authenticate, (req, res) => {
     paidAt: new Date().toISOString(),
   };
 
-  console.log('✅ [DEBUG] 付款成功 - 更新的訂單:', order);
+  console.log('付款成功:', order);
   res.status(200).json({ message: '支付成功', order });
 });
 
 
-// 願望清單
-const wishlists = {}; // 用戶收藏清單
+
 
 app.post('/wishlist', authenticate, (req, res) => {
   const userId = req.user.id;
@@ -362,6 +354,7 @@ app.get('/transactions', authenticate, (req, res) => {
 app.post('/games', authenticate, isAdmin, (req, res) => {
   console.log('接收到的請求內容:', req.body); // 打印請求內容
   console.log('請求用戶:', req.user); // 打印用戶信息
+
   const { name, price, description ,image } = req.body;
 
   if (!name || !price || !description) {
@@ -408,7 +401,7 @@ app.post("/create-payment-intent", async (req, res) => {
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    console.error("❌ Stripe 付款錯誤:", error);
+    console.error("付款失敗:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -467,7 +460,6 @@ app.post('/reviews', authenticate, (req, res) => {
     content,
     createdAt: new Date().toISOString(),
   };
-
   reviews[gameId].push(newReview);
   res.status(201).json(newReview);
 });
@@ -497,8 +489,8 @@ io.on("connection", (socket) => {
       text: "此功能還在開發中 敬請期待",
       timestamp: new Date().toLocaleTimeString(),
     };
-    io.emit("receiveMessage", autoReply); // 廣播機器人回覆
-  }, 1000); // 延遲 1 秒回應，模擬真實對話
+    io.emit("receiveMessage", autoReply); // 自動回覆
+  }, 1000); 
 
   // 監聽用戶斷開連線
   socket.on("disconnect", () => {
@@ -509,5 +501,5 @@ io.on("connection", (socket) => {
 // 啟動伺服器
 server.listen(PORT, () => {
   console.log("伺服器正在運行...")
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

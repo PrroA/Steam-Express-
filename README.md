@@ -90,6 +90,9 @@ CVC: 123
 ✅ React Context API (購物車管理)
 ✅ JWT + bcrypt (用戶認證)
 
+Test 新增遊戲URL :
+https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg
+
 🎯 未來計畫
 MongoDB (未來可擴充)
 UI 改善 (未來可擴充)

@@ -129,7 +129,7 @@ export default function GameDetail() {
         <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
           {/* 遊戲標題 & 圖片 */}
           <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
-          <img src={game.image} alt={game.name} className="w-full h-64 object-cover rounded-lg shadow" />
+          <img src={game.image} alt={game.name} className="w-full h-64 rounded-lg shadow" />
 
           {/* 遊戲資訊 */}
           <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
