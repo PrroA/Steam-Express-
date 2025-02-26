@@ -37,7 +37,6 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-
 // 模擬帳號
 const users = [
   {
@@ -116,6 +115,7 @@ app.post('/forgot-password', (req, res) => {
     expires: Date.now() + 15 * 60 * 1000, // 15 分鐘有效
   };
   res.json({ message: '重設密碼的連結已發送', resetToken });
+
 });
 
 // 重設密碼
@@ -251,27 +251,39 @@ app.delete('/cart/:id', authenticate, (req, res) => {
 
 
 
-app.post('/checkout', authenticate, (req, res) => {
-  const userId = req.user.id;
-  
-  if (!carts[userId] || carts[userId].length === 0) {
-    return res.status(400).json({ message: '購物車為空，無法結帳' });
+app.post('/checkout', authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id; 
+    if (!userId) {
+      return res.status(401).json({ message: '未授權的請求' });
+    }
+
+    if (!carts[userId] || carts[userId].length === 0) {
+      return res.status(400).json({ message: '購物車為空，無法結帳' });
+    }
+    if (!orders[userId]) {
+      orders[userId] = [];
+    }
+
+    const newOrder = {
+      id: uuidv4(),
+      items: carts[userId],
+      total: carts[userId].reduce((sum, item) => {
+        const price = parseFloat((item.price || '0').replace('$', ''));
+        return sum + (isNaN(price) ? 0 : price * item.quantity);
+      }, 0),
+      date: new Date().toISOString(),
+      status: '未付款',
+    };
+
+    orders[userId].push(newOrder); // 現在 orders[userId] 一定存在
+    carts[userId] = []; // 清空購物車
+
+    res.status(200).json({ message: '結帳成功！', order: newOrder });
+  } catch (error) {
+    console.error('結帳錯誤:', error);
+    res.status(500).json({ message: '伺服器錯誤，請稍後再試' });
   }
-
-  // 生成唯一訂單 ID
-  const newOrder = {
-    id: uuidv4(),
-    items: carts[userId],
-    total: carts[userId].reduce((sum, item) => sum + parseFloat(item.price.replace('$', '')) * item.quantity, 0),
-    date: new Date().toISOString(),
-    status: '未付款',
-  };
-
-  orders[userId].push(newOrder);
-  console.log('✅ [DEBUG] 新訂單:', newOrder);
-
-  carts[userId] = []; // 清空購物車
-  res.status(200).json({ message: '結帳成功！', order: newOrder });
 });
 
 
@@ -389,7 +401,7 @@ app.post("/create-payment-intent", async (req, res) => {
     let { amount } = req.body;
     
     if (!amount || amount < 0.5) {
-      return res.status(400).json({ error: "金額不可低於 $0.50 USD" });
+      returnres.status(400).json({ error: "金額不可低於 $0.50 USD" });
     }
 
     amount = Math.round(amount * 100); // Stripe 以「分」為單位
