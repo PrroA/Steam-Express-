@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 ChartJS.register(ArcElement, Tooltip, Legend);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 // Stripe 公開金鑰（測試環境）
 const stripePromise = loadStripe("pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB");
@@ -33,7 +34,7 @@ export default function CheckoutPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:4000/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -55,7 +56,7 @@ export default function CheckoutPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:4000/create-payment-intent", {
+      const res = await fetch(`${API_BASE_URL}/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: selectedOrder.total }),
@@ -169,7 +170,7 @@ function CheckoutForm({ clientSecret, orderId }) {
     } else if (paymentIntent.status === "succeeded") {
       setMessage("🎉 付款成功！感謝您的購買 🎉 即將跳轉至首頁...");
 
-      await fetch("http://localhost:4000/pay", {
+      await fetch(`${API_BASE_URL}/pay`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

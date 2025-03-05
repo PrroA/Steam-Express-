@@ -16,7 +16,7 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     try {
       const response = await axios.post(
-        'http://localhost:4000/games',
+        'https://game-platform-one-rouge.vercel.app/games',
         { name, price, description, image },
         { headers: { Authorization: `Bearer ${token}` } }
       );

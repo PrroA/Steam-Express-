@@ -12,7 +12,7 @@ const { v4: uuidv4 } = require("uuid");
 
 app.use(express.json());
 
-const PORT = process.env.PORT || 4000;
+
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
 const io = new Server(server, {
@@ -25,9 +25,10 @@ app.use((err, req, res, next) => {
 });
 // 跨域處理
 app.use(cors({
-  origin: ['http://localhost:3000'], // 設定跨域允許的來源
-  credentials: true,
+  origin: ["http://localhost:3000", "https://game-platform-one-rouge.vercel.app"], // 允許本地開發和 Vercel
+  credentials: true
 }));
+
 
 // 中間件：用於檢查是否為管理員
 const isAdmin = (req, res, next) => {
@@ -505,11 +506,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// 啟動伺服器
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log("伺服器正在運行...")
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`✅ 伺服器運行中: http://localhost:${PORT}`);
 });
+
 
 // 匯出 Express 應用程式，讓 Vercel Serverless Functions 可用
 module.exports = app;

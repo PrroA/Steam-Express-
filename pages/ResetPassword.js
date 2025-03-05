@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:4000/forgot-password', { username });
+      await axios.post(`${API_BASE_URL}/forgot-password`, { username });
       setMessage('重設密碼的連結已發送到您的郵箱');
       setTimeout(() => {
         router.push('/ConfirmResetPassword'); // 導向到重設密碼頁面

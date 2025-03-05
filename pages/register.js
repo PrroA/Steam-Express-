@@ -2,6 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { Header} from '../components/Header';
 import { toast } from 'react-toastify';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 export default function RegisterPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -9,7 +11,7 @@ export default function RegisterPage() {
     const handleRegister = async () => {
         console.log(username, password);
         try {
-            const response = await axios.post('http://localhost:4000/register', { username, password });
+            const response = await axios.post(`${API_BASE_URL}/register`, { username, password });
             toast.success(response.data.message); 
         } catch (error) {
             toast.error(error.response?.data?.message || '註冊失敗'); 

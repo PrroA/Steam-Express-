@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function Home() {
   const [games, setGames] = useState([]);
@@ -12,7 +13,7 @@ export default function Home() {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/games?query=${searchQuery}`);
+        const response = await fetch(`${API_BASE_URL}/games?query=${searchQuery}`);
         const data = await response.json();
         let sortedGames = [...data];
         if (sortOrder === 'low-to-high') {
@@ -29,6 +30,7 @@ export default function Home() {
     };
     fetchGames();
   }, [searchQuery, sortOrder]);
+  console.log("API_BASE_URL:", API_BASE_URL);
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { Header } from "../components/Header";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function ChatPage() {
   const [message, setMessage] = useState("");
@@ -9,7 +10,7 @@ export default function ChatPage() {
   const user = "你"; 
 
   useEffect(() => {
-    const newSocket = io("http://localhost:4000");
+    const newSocket = io(`${API_BASE_URL}`);
     setSocket(newSocket);
 
     newSocket.off("chatHistory").on("chatHistory", (chatHistory) => {

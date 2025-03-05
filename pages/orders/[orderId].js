@@ -8,12 +8,13 @@ export default function OrderDetail() {
   const { orderId } = router.query; // 動態路由參數
   const [order, setOrder] = useState(null); // 儲存訂單資訊
   const [loading, setLoading] = useState(true); // 控制加載狀態
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
   useEffect(() => {
     const loadOrder = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get(`http://localhost:4000/orders/${orderId}`, {
+        const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrder(response.data); // 儲存訂單資訊

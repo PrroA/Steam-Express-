@@ -5,6 +5,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaShoppingCart } from 'react-icons/fa';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 export default function CartPage() {
   const [cart, setCart] = useState([]); 
   const [total, setTotal] = useState(0); // 總價
@@ -69,7 +71,7 @@ export default function CartPage() {
   const handleCheckout = async () => {
     const token = localStorage.getItem('token');
     try {
-      await axios.post('http://localhost:4000/checkout', {}, {
+      await axios.post(`${API_BASE_URL}/checkout`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('請至（查看訂單）進行付款');

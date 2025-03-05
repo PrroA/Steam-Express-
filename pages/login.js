@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Header } from '../components/Header';
 import { toast } from 'react-toastify';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -13,7 +14,7 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:4000/login', { username, password });
+      const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
       localStorage.setItem('token', response.data.token); // 保存 JWT Token
       toast.success('✅ 登入成功');
       router.push('/'); // 登入成功後跳轉

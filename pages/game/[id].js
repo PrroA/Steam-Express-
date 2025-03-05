@@ -6,6 +6,8 @@ import { addToCart } from '../api/cartApi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 export default function GameDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -36,7 +38,7 @@ export default function GameDetail() {
     const fetchReviews = async () => {
       if (!id) return;
       try {
-        const response = await axios.get(`http://localhost:4000/reviews/${id}`);
+        const response = await axios.get(`${API_BASE_URL}/reviews/${id}`);
         setReviews(response.data);
       } catch (error) {
         console.error('無法加載評論:', error.message);
@@ -57,7 +59,7 @@ export default function GameDetail() {
 
     try {
       const response = await axios.post(
-        'http://localhost:4000/reviews',
+        `${API_BASE_URL}/reviews`,
         { gameId: Number(id), content: newReview },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -77,7 +79,7 @@ export default function GameDetail() {
   const handleAddToWishlist = async () => {
     const token = localStorage.getItem('token');
     try {
-      await axios.post('http://localhost:4000/wishlist', { id: Number(id) }, {
+      await axios.post(`${API_BASE_URL}/wishlist`, { id: Number(id) }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('已加入願望清單');

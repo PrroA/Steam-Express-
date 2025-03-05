@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { Header } from '../components/Header';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function ConfirmResetPasswordPage() {
   const [resetToken, setResetToken] = useState('');
@@ -17,7 +18,7 @@ export default function ConfirmResetPasswordPage() {
     }
 
     try {
-      const response = await axios.post('http://localhost:4000/confirm-reset-password', {
+      const response = await axios.post(`${API_BASE_URL}/confirm-reset-password`, {
         resetToken,
         newPassword,
       });

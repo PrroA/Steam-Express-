@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
 import { toast } from 'react-toastify';
 import { FaHeartBroken } from 'react-icons/fa';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
@@ -13,7 +14,7 @@ export default function WishlistPage() {
     const loadWishlist = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('http://localhost:4000/wishlist', {
+        const response = await axios.get(`${API_BASE_URL}/wishlist`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setWishlist(response.data);
@@ -29,7 +30,7 @@ export default function WishlistPage() {
   const handleRemoveFromWishlist = async (gameId) => {
     const token = localStorage.getItem('token');
     try {
-      await axios.delete(`http://localhost:4000/wishlist/${gameId}`, {
+      await axios.delete(`${API_BASE_URL}/wishlist/${gameId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist((prev) => prev.filter((game) => game.id !== gameId));

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Header } from "../components/Header";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function ProfilePage() {
     const [user, setUser] = useState(null);
@@ -10,7 +11,7 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchProfile = async () => {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:4000/profile", {
+            const res = await fetch(`${API_BASE_URL}/profile`, {
                 method: "GET",
                 headers: { "Authorization": `Bearer ${token}` },
             });
@@ -29,7 +30,7 @@ export default function ProfilePage() {
 
     const handleUpdateProfile = async () => {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:4000/profile", {
+        const res = await fetch(`${API_BASE_URL}/profile`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",

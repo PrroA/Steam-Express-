@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Header } from '../components/Header';
 import Link from 'next/link';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
@@ -12,7 +13,7 @@ export default function TransactionsPage() {
     const loadTransactions = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('http://localhost:4000/transactions', {
+        const response = await axios.get(`${API_BASE_URL}/transactions`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setTransactions(response.data);
