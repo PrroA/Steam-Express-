@@ -13,9 +13,11 @@ console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("🎮 Welcome to the Steam Express API!");
+console.log("🚀 正在運行 `server.js`...");
+app.get('/test', (req, res) => {
+  res.send("✅ `server.js` 正在正確運行！");
 });
+
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
 const io = new Server(server, {
