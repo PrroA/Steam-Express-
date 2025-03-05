@@ -29,6 +29,7 @@ export default function WishlistPage() {
 
   const handleRemoveFromWishlist = async (gameId) => {
     const token = localStorage.getItem('token');
+    console.log("Test")
     try {
       await axios.delete(`${API_BASE_URL}/wishlist/${gameId}`, {
         headers: { Authorization: `Bearer ${token}` },
