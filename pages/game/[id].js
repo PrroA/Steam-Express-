@@ -141,13 +141,13 @@ export default function GameDetail() {
               onClick={handleAddToCart}
               className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 transition"
             >
-              🛒 加入購物車
+              加入購物車
             </button>
             <button
               onClick={handleAddToWishlist}
               className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-400 transition"
             >
-              ❤️ 加入願望清單
+              加入願望清單
             </button>
           </div>
 

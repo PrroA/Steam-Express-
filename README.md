@@ -24,7 +24,7 @@ yarn install
 
 PORT=4000
 SECRET_KEY=your_secret_key
-STRIPE_SECRET_KEY=sk_test_xxxxxxxx
+STRIPE_SECRET_KEY=sk_test_51Qr9qRRoY6RFAeUcIHJ28TsN0NPdPjYUeisowE8yxfWcR01Rjr3ByWQzmkSxqTksOX1THRgVpH5rIaclSwGq3Jax007oxuhrIc
 JWT_SECRET=your_jwt_secret
 
 🔹 STRIPE_SECRET_KEY 需從 Stripe Dashboard 獲取。
@@ -32,7 +32,7 @@ JWT_SECRET=your_jwt_secret
 3️⃣ 啟動後端 Express 伺服器
 
 cd server
-node server.js
+node server.js 
 
 或使用 nodemon 自動監測變更：
 
@@ -76,6 +76,7 @@ yarn dev
 卡號: 4242 4242 4242 4242
 有效期限: 12/34
 CVC: 123
+ZIP: 12345 
 
 🔹 測試信用卡號 (付款失敗)：
 

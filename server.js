@@ -66,8 +66,6 @@ const games = [
   { id: 5, name: 'The Elder Scrolls V: Skyrim', price: '$19.99', description: 'A fantasy RPG.', image: '/vercel.svg' },
   { id: 6, name: 'Dark Souls III', price: '$14.99', description: 'A dark fantasy RPG.', image: '/vercel.svg' },
   { id: 7, name: 'The Last of Us Remastered', price: '$19.99', description: 'A survival horror game.', image: '/vercel.svg' },
-  { id: 8, name: 'one piece', price: '$19.99', description: 'A Japanese game.', image: '/vercel.svg' },
-  { id: 9, name: 'Dragon Ball Super', price: '$19.99', description: 'A Japanese anime.', image: '/vercel.svg' },
 ];
 
 // 用戶註冊
@@ -401,9 +399,9 @@ app.post("/create-payment-intent", async (req, res) => {
     let { amount } = req.body;
     
     if (!amount || amount < 0.5) {
-      returnres.status(400).json({ error: "金額不可低於 $0.50 USD" });
+      return res.status(400).json({ error: "金額不可低於 $0.50 USD" });
     }
-
+    
     amount = Math.round(amount * 100); // Stripe 以「分」為單位
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -422,7 +420,6 @@ app.post("/create-payment-intent", async (req, res) => {
 app.get('/profile', authenticate, (req, res) => {
   const userId = req.user.id;
   const user = users.find((u) => u.id === userId);
-
   if (!user) {
     return res.status(404).json({ message: '用戶未找到' });
   }
@@ -444,10 +441,8 @@ app.put('/profile', authenticate, (req, res) => {
   if (!user) {
     return res.status(404).json({ message: '資料更新失敗' });
   }
-
   user.username = username || user.username;
   user.email = email || user.email;
-
   res.json({ message: "個人資料更新成功", user });
 });
 
@@ -515,3 +510,4 @@ server.listen(PORT, () => {
   console.log("伺服器正在運行...")
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
