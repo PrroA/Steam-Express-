@@ -511,3 +511,5 @@ server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
+// 匯出 Express 應用程式，讓 Vercel Serverless Functions 可用
+module.exports = app;
