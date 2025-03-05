@@ -7,12 +7,15 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // 引入 Stripe SDK (測試用)
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
+console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
 
 app.use(express.json());
 
-
+app.get("/", (req, res) => {
+  res.send("🎮 Welcome to the Steam Express API!");
+});
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
 const io = new Server(server, {
@@ -53,6 +56,7 @@ const users = [
     role: 'user',// for user
   },
 ];
+
 const messages = []; // 儲存聊天訊息
 const reviews = {}; // 儲存評論 
 const carts = {}; // 用戶購物車 
@@ -510,7 +514,4 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`✅ 伺服器運行中: http://localhost:${PORT}`);
 });
-
-
-// 匯出 Express 應用程式，讓 Vercel Serverless Functions 可用
 module.exports = app;
