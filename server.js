@@ -12,10 +12,19 @@ const { v4: uuidv4 } = require("uuid");
 console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
 
 app.use(cors({
-  origin: [
-    "https://gogo-m2kws419k-proas-projects-960997a7.vercel.app/", 
-    "http://localhost:3000"
-  ], 
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "http://localhost:3000", // 本地開發
+      "https://gogo-ten-red.vercel.app" // 固定的 Production URL
+    ];
+    
+    // 如果是 vercel.app 的動態網址也允許
+    if (origin && (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app"))) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 
