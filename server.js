@@ -10,12 +10,15 @@ const crypto = require('crypto');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
 console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
-const cors = require("cors");
 
 app.use(cors({
-  origin: ["https://gogo-m2kws419k-proas-projects-960997a7.vercel.app/", "http://localhost:3000"], // 允許本地開發 & Vercel
+  origin: [
+    "https://gogo-m2kws419k-proas-projects-960997a7.vercel.app/", 
+    "http://localhost:3000"
+  ], 
   credentials: true
 }));
+
 
 
 app.use(express.json());
@@ -35,12 +38,6 @@ app.use((err, req, res, next) => {
   console.error('Global Error:', err);
   res.status(err.status || 500).json({ message: err.message || '伺服器內部錯誤' });
 });
-// 跨域處理
-app.use(cors({
-  origin: ["http://localhost:3000", "https://game-platform-one-rouge.vercel.app"], // 允許本地開發和 Vercel
-  credentials: true
-}));
-
 
 // 中間件：用於檢查是否為管理員
 const isAdmin = (req, res, next) => {
@@ -167,12 +164,18 @@ const authenticate = (req, res, next) => {
 // 獲取遊戲列表
 app.get('/games', (req, res) => {
   const { query } = req.query;
+  console.log("收到請求: /games?query=", query); // Debug Log
+  
   if (query) {
-    const filteredGames = games.filter((game) => game.name.toLowerCase().includes(query.toLowerCase()));
+    const filteredGames = games.filter(game =>
+      game.name.toLowerCase().includes(query.toLowerCase())
+    );
     return res.json(filteredGames);
   }
-  res.json(games);
+  
+  res.json(games); // 確保有正確返回 JSON
 });
+
 
 app.get('/games/:id', (req, res) => {
   const gameId = parseInt(req.params.id);
