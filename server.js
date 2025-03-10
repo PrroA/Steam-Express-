@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require('express');
 const http = require("http"); // HTTP 伺服器
-// const { Server } = require("socket.io"); 
+const { Server } = require("socket.io"); 
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
