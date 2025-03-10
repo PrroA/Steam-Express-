@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['upload.wikimedia.org'], //允許 domain 的圖片
+    domains: ['upload.wikimedia.org'],
+  },
+  experimental: {
+    optimizeCss: true, // ✅ 優化 CSS 載入
   },
 };
 

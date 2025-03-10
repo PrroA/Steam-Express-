@@ -10,6 +10,13 @@ const crypto = require('crypto');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
 console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
+const cors = require("cors");
+
+app.use(cors({
+  origin: ["https://gogo-m2kws419k-proas-projects-960997a7.vercel.app/", "http://localhost:3000"], // 允許本地開發 & Vercel
+  credentials: true
+}));
+
 
 app.use(express.json());
 
