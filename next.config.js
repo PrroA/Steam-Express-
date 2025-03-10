@@ -2,9 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['upload.wikimedia.org'], //允許domain的圖片
+    domains: ['upload.wikimedia.org'], //允許 domain 的圖片
   },
 };
 
-
-export default nextConfig;
+module.exports = nextConfig;
