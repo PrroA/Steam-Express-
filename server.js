@@ -11,15 +11,15 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
 console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
 
+const allowedOrigins = [
+  "http://localhost:3000", 
+  "https://gogo-ten-red.vercel.app", // Vercel Production URL
+  "https://steam-express.onrender.com" // 允許 Render 自己的請求
+];
+
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000", // 本地開發
-      "https://gogo-ten-red.vercel.app" // 固定的 Production URL
-    ];
-    
-    // 如果是 vercel.app 的動態網址也允許
-    if (origin && (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app"))) {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -27,9 +27,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
-
-
 app.use(express.json());
 
 console.log("🚀 正在運行 `server.js`...");
