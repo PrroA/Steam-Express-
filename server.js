@@ -478,39 +478,39 @@ app.post('/reviews', authenticate, (req, res) => {
   res.status(201).json(newReview);
 });
 
-// // 客服聊天室 (dev)
-// io.on("connection", (socket) => {
-//   console.log("用戶連線");
+// 客服聊天室 (dev)
+io.on("connection", (socket) => {
+  console.log("用戶連線");
 
-//   // 發送歷史聊天紀錄
-//   socket.emit("chatHistory", messages);
+  // 發送歷史聊天紀錄
+  socket.emit("chatHistory", messages);
 
-//   // 監聽新訊息
-//   socket.on("sendMessage", (message) => {
-//     const newMessage = {
-//       user: message.user || "我",
-//       text: message.text,
-//       timestamp: new Date().toLocaleTimeString(),
-//     };
+  // 監聽新訊息
+  socket.on("sendMessage", (message) => {
+    const newMessage = {
+      user: message.user || "我",
+      text: message.text,
+      timestamp: new Date().toLocaleTimeString(),
+    };
 
-//     messages.push(newMessage); // 儲存訊息
-//     io.emit("receiveMessage", newMessage);
-//   });
+    messages.push(newMessage); // 儲存訊息
+    io.emit("receiveMessage", newMessage);
+  });
   
-//   setTimeout(() => {
-//     const autoReply = {
-//       user: "客服中心",
-//       text: "此功能還在開發中 敬請期待",
-//       timestamp: new Date().toLocaleTimeString(),
-//     };
-//     io.emit("receiveMessage", autoReply); // 自動回覆
-//   }, 1000); 
+  setTimeout(() => {
+    const autoReply = {
+      user: "客服中心",
+      text: "此功能還在開發中 敬請期待",
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    io.emit("receiveMessage", autoReply); // 自動回覆
+  }, 1000); 
 
-//   // 監聽用戶斷開連線
-//   socket.on("disconnect", () => {
-//     console.log("WebSocket斷線");
-//   });
-// });
+  // 監聽用戶斷開連線
+  socket.on("disconnect", () => {
+    console.log("WebSocket斷線");
+  });
+});
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
