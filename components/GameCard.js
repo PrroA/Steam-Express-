@@ -4,13 +4,15 @@ import Link from 'next/link';
 export function GameCard({ game }) {
   return (
     <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-      <Image
-        src={game.image || '/public/vercel.svg'} // 默認圖片
-        alt={game.name}
-        width={300}
-        height={200}
-        className="rounded-lg"
-      />
+      <div className="w-full h-[200px] relative"> {/* 設定固定高度，讓圖片統一 */}
+        <Image
+          src={game.image || '/public/vercel.svg'} // 預設圖片
+          alt={game.name}
+          layout="fill" // 讓圖片填滿容器
+          objectFit="cover" // 確保圖片不會變形，會自動裁切
+          className="rounded-lg"
+        />
+      </div>
       <h3 className="text-lg font-bold mt-4">{game.name}</h3>
       <p className="text-gray-400">{game.price}</p>
       <Link href={`/game/${game.id}`}>
