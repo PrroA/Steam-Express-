@@ -68,12 +68,12 @@ const wishlists = {}; // 用戶收藏清單
 const resetTokens = {}; // 密碼重置
 const games = [
   { id: 1, name: 'Cyberpunk 2077', price: '$59.99', description: 'A futuristic RPG.', image: '/cp2077_game-thumbnail.webp' },
-  { id: 2, name: 'Elden Ring', price: '$49.99', description: 'An open-world adventure.', image: '/vercel.svg' },
-  { id: 3, name: 'Hogwarts Legacy', price: '$39.99', description: 'A magical experience.', image: '/vercel.svg' },
-  { id: 4, name: 'The Witcher 3', price: '$29.99', description: 'A legendary RPG.', image: '/vercel.svg' },
-  { id: 5, name: 'The Elder Scrolls V: Skyrim', price: '$19.99', description: 'A fantasy RPG.', image: '/vercel.svg' },
-  { id: 6, name: 'Dark Souls III', price: '$14.99', description: 'A dark fantasy RPG.', image: '/vercel.svg' },
-  { id: 7, name: 'The Last of Us Remastered', price: '$19.99', description: 'A survival horror game.', image: '/vercel.svg' },
+  { id: 2, name: 'Elden Ring', price: '$49.99', description: 'An open-world adventure.', image: '/elden.jpg' },
+  { id: 3, name: 'Hogwarts Legacy', price: '$39.99', description: 'A magical experience.', image: '/Hogwarts.jpg' },
+  { id: 4, name: 'The Witcher 3', price: '$29.99', description: 'A legendary RPG.', image: '/Witcher3.jpg' },
+  { id: 5, name: 'GTA V', price: '$19.99', description: 'A fantasy RPG.', image: '/GTA.png' },
+  { id: 6, name: 'Dark Souls III', price: '$14.99', description: 'A dark fantasy RPG.', image: '/DarkSouls3.jpeg' },
+  { id: 7, name: 'The Last of Us Remastered', price: '$19.99', description: 'A survival horror game.', image: '/TheLast.avif' },
 ];
 
 // 用戶註冊
