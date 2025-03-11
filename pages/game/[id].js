@@ -101,7 +101,9 @@ export default function GameDetail() {
     }
   };
 
-
+  const GotoCart = () => {
+    router.push('/cart');
+  };
 
   if (loading) {
     return (
@@ -131,6 +133,7 @@ export default function GameDetail() {
         <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
           {/* 遊戲標題 & 圖片 */}
           <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
+
           <img src={game.image} alt={game.name} className="w-full h-64 rounded-lg shadow" />
 
           {/* 遊戲資訊 */}
@@ -150,6 +153,12 @@ export default function GameDetail() {
               className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-400 transition"
             >
               加入願望清單
+            </button>
+            <button
+              onClick={GotoCart}
+              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
+            >
+              前往購物車
             </button>
           </div>
 

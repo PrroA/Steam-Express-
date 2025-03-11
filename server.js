@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require('express');
-const http = require("http"); // HTTP 伺服器
+const http = require("http");
 const { Server } = require("socket.io"); 
 const app = express();
 const cors = require('cors');
@@ -9,12 +9,12 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
-console.log("🔑 STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
 
+// 設定跨域
 const allowedOrigins = [
   "http://localhost:3000", 
-  "https://gogo-ten-red.vercel.app", // Vercel Production URL
-  "https://steam-express.onrender.com" // 允許 Render 自己的請求
+  "https://gogo-ten-red.vercel.app", 
+  "https://steam-express.onrender.com" 
 ];
 
 app.use(cors({
@@ -30,9 +30,6 @@ app.use(cors({
 app.use(express.json());
 
 console.log("🚀 正在運行 `server.js`...");
-app.get('/test', (req, res) => {
-  res.send("✅ `server.js` 正在正確運行！");
-});
 
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
@@ -61,12 +58,6 @@ const users = [
     password: bcrypt.hashSync('admin', 10),
     role: 'admin',//管理員
   },
-  {
-    id: 2,
-    username: 'user1',
-    password: bcrypt.hashSync('user1', 10),
-    role: 'user',// for user
-  },
 ];
 
 const messages = []; // 儲存聊天訊息
@@ -76,7 +67,7 @@ const orders = {}; // 用戶訂單
 const wishlists = {}; // 用戶收藏清單
 const resetTokens = {}; // 密碼重置
 const games = [
-  { id: 1, name: 'Cyberpunk 2077', price: '$59.99', description: 'A futuristic RPG.', image: '/vercel.svg' },
+  { id: 1, name: 'Cyberpunk 2077', price: '$59.99', description: 'A futuristic RPG.', image: '/cp2077_game-thumbnail.webp' },
   { id: 2, name: 'Elden Ring', price: '$49.99', description: 'An open-world adventure.', image: '/vercel.svg' },
   { id: 3, name: 'Hogwarts Legacy', price: '$39.99', description: 'A magical experience.', image: '/vercel.svg' },
   { id: 4, name: 'The Witcher 3', price: '$29.99', description: 'A legendary RPG.', image: '/vercel.svg' },
@@ -170,7 +161,7 @@ const authenticate = (req, res, next) => {
 // 獲取遊戲列表
 app.get('/games', (req, res) => {
   const { query } = req.query;
-  console.log("收到請求: /games?query=", query); // Debug Log
+  console.log("收到請求: /games?query=", query); 
   
   if (query) {
     const filteredGames = games.filter(game =>
@@ -178,8 +169,7 @@ app.get('/games', (req, res) => {
     );
     return res.json(filteredGames);
   }
-  
-  res.json(games); // 確保有正確返回 JSON
+  res.json(games); 
 });
 
 
@@ -532,4 +522,5 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`✅ 伺服器運行中: http://localhost:${PORT}`);
 });
+
 module.exports = app;

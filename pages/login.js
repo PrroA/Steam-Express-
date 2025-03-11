@@ -32,7 +32,7 @@ export default function LoginPage() {
 
           <input
             type="text"
-            placeholder="👤 帳號"
+            placeholder="👤 帳號 admin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full border border-gray-600 bg-gray-700 text-white px-4 py-2 rounded mb-4 focus:border-blue-500"
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
           <input
             type="password"
-            placeholder="🔒 密碼"
+            placeholder="🔒 密碼 admin" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border border-gray-600 bg-gray-700 text-white px-4 py-2 rounded mb-4 focus:border-blue-500"

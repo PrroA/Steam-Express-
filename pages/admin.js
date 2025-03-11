@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Header } from '../components/Header';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     try {
       const response = await axios.post(
-        'https://game-platform-one-rouge.vercel.app/games',
+        `${API_BASE_URL}/games`,
         { name, price, description, image },
         { headers: { Authorization: `Bearer ${token}` } }
       );
