@@ -7,6 +7,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const OpenAI = require("openai");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require("uuid"); 
 
@@ -30,6 +31,9 @@ app.use(cors({
 app.use(express.json());
 
 console.log("🚀 正在運行 `server.js`...");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
@@ -121,7 +125,6 @@ app.post('/forgot-password', (req, res) => {
     expires: Date.now() + 15 * 60 * 1000, // 15 分鐘有效
   };
   res.json({ message: '重設密碼的連結已發送', resetToken });
-
 });
 
 // 重設密碼
@@ -149,7 +152,6 @@ const authenticate = (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: '未提供 Token' });
   }
-
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
     req.user = decoded;
@@ -162,7 +164,6 @@ const authenticate = (req, res, next) => {
 app.get('/games', (req, res) => {
   const { query } = req.query;
   console.log("收到請求: /games?query=", query); 
-  
   if (query) {
     const filteredGames = games.filter(game =>
       game.name.toLowerCase().includes(query.toLowerCase())
@@ -287,7 +288,7 @@ app.post('/checkout', authenticate, async (req, res) => {
       status: '未付款',
     };
 
-    orders[userId].push(newOrder); // 現在 orders[userId] 一定存在
+    orders[userId].push(newOrder); 
     carts[userId] = []; // 清空購物車
 
     res.status(200).json({ message: '結帳成功！', order: newOrder });
@@ -500,7 +501,7 @@ io.on("connection", (socket) => {
     };
 
     messages.push(newMessage); // 儲存訊息
-    io.emit("receiveMessage", newMessage);
+    io.emit("receiveMessage", newMessage); 
   });
   
   setTimeout(() => {
@@ -517,6 +518,33 @@ io.on("connection", (socket) => {
     console.log("WebSocket斷線");
   });
 });
+
+app.post("/gpt-reply", async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: "缺少 message" });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "你是一位親切的遊戲客服助手。" },
+        { role: "user", content: message },
+      ],
+    });
+
+    const reply = completion.choices?.[0]?.message?.content;
+    res.json({ reply: reply || "（GPT 沒有回覆內容）" });
+  } catch (err) {
+    console.error("🔥 GPT API 錯誤：", err.response?.data || err.message || err);
+    res.status(500).json({ error: "GPT 回覆失敗" });
+  }
+});
+
+
+
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {

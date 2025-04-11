@@ -50,7 +50,7 @@ export function Header() {
             <NavItem href="/transactions" label="💰 交易記錄" />
             <NavItem href="/admin" label="🛠️ 新增遊戲" />
             {/* <NavItem href="/profile" label="👤 個人資料" /> */}
-            {/* <NavItem href="/ChatPage" label="💬 客服中心" /> */}
+            <NavItem href="/ChatPage" label="💬 科普中心" />
           </motion.nav>
         )}
       </AnimatePresence>

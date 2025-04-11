@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { Header } from "../components/Header";
-import { text } from "body-parser";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 const possibleKeywords = ["艾爾登", "Elden", "薩爾達", "Zelda", "Cyberpunk", "2077", "霍格華茲", "Hogwarts"];
@@ -28,6 +27,7 @@ export default function ChatPage() {
     newSocket.off("receiveMessage").on("receiveMessage", (newMessage) => {
       setMessages((prev) => [...prev, newMessage]);
     });
+
     return () => {
       newSocket.disconnect();
     };
@@ -65,6 +65,7 @@ export default function ChatPage() {
       try {
         const res = await fetch(`${API_BASE_URL}/games?query=${encodeURIComponent(matchedKeyword)}`);
         const data = await res.json();
+  
         const aiReply = {
           user: "AI助手",
           text:
@@ -73,13 +74,15 @@ export default function ChatPage() {
               : `找不到和「${matchedKeyword}」相關的遊戲唷～`,
           timestamp: new Date().toLocaleTimeString(),
         };
+  
         socket.emit("sendMessage", aiReply);
       } catch (err) {
         console.error("查詢錯誤:", err);
       }
       return;
     }
-    
+  
+    // 2️⃣ 呼叫 GPT 取得 AI 回覆
     try {
       const res = await fetch(`${API_BASE_URL}/gpt-reply`, {
         method: "POST",
@@ -87,13 +90,13 @@ export default function ChatPage() {
         body: JSON.stringify({ message: trimmedMessage }),
       });
       
+      
       const data = await res.json();
       const reply = data?.reply;
       
       const aiReply = {
         user: "AI助手",
-        text: reply || "抱歉，您的額度不足，請充值 🫠",
-        
+        text: reply || "抱歉，我一時無法理解你的問題 🫠",
         timestamp: new Date().toLocaleTimeString(),
       };
       

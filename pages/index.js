@@ -3,6 +3,7 @@ import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+console.log("實際請求 API：", `${API_BASE_URL}/gpt-reply`);
 
 export default function Home() {
   const [games, setGames] = useState([]);
@@ -30,7 +31,6 @@ export default function Home() {
     };
     fetchGames();
   }, [searchQuery, sortOrder]);
-  console.log("API_BASE_URL:", API_BASE_URL);
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">

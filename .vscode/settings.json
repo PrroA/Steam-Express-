@@ -1,4 +1,9 @@
 {
     "CodeGPT.apiKey": "CodeGPT Plus Beta",
-    "favorites.resources": []
+    "favorites.resources": [
+        {
+            "filePath": "server.js",
+            "group": "Default"
+        }
+    ]
 }
