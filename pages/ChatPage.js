@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { Header } from "../components/Header";
-import { text } from "body-parser";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 const possibleKeywords = ["艾爾登", "Elden", "薩爾達", "Zelda", "Cyberpunk", "2077", "霍格華茲", "Hogwarts"];
@@ -36,6 +35,7 @@ export default function ChatPage() {
   // 自動滾到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
   }, [messages]);
 
   // 初次 focus 輸入框
