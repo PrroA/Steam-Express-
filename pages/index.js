@@ -1,36 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
+import debounce from 'lodash.debounce'; 
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
-console.log("實際請求 API：", `${API_BASE_URL}/gpt-reply`);
+console.log("實際請求 API：", `${API_BASE_URL}/games`);
 
 export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(''); 
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
+  const fetchGames = async (query) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/games?query=${query}`);
+      const data = await response.json();
+      let sortedGames = [...data];
+      if (sortOrder === 'low-to-high') {
+        sortedGames.sort((a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')));
+      } else if (sortOrder === 'high-to-low') {
+        sortedGames.sort((a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')));
+      }
+      setGames(sortedGames);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      setLoading(false);
+    }
+  };
+  const debouncedFetchGames = useMemo(() => debounce(fetchGames, 300), [sortOrder]);
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/games?query=${searchQuery}`);
-        const data = await response.json();
-        let sortedGames = [...data];
-        if (sortOrder === 'low-to-high') {
-          sortedGames.sort((a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')));
-        } else if (sortOrder === 'high-to-low') {
-          sortedGames.sort((a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')));
-        }
-        setGames(sortedGames);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching games:', error);
-        setLoading(false);
-      }
+    setLoading(true);
+    debouncedFetchGames(searchQuery);
+    return () => {
+      debouncedFetchGames.cancel();
     };
-    fetchGames();
-  }, [searchQuery, sortOrder]);
+  }, [searchQuery, sortOrder, debouncedFetchGames]);
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">

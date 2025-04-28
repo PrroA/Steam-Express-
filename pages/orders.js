@@ -78,7 +78,6 @@ export default function CheckoutPage() {
   const getChartData = () => {
     const paidOrders = orders.filter(order => order.status === "已付款").length;
     const unpaidOrders = orders.filter(order => order.status === "未付款").length;
-
     return {
       labels: ["已付款", "未付款"],
       datasets: [
@@ -180,7 +179,7 @@ function CheckoutForm({ clientSecret, orderId }) {
       });
 
       toast.success("感謝你的購買!");
-      setTimeout(() => router.push("/"), 2000);
+      setTimeout(() => router.push("/"), 1000);
     }
 
     setLoading(false);

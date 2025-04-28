@@ -21,7 +21,7 @@ export function Header() {
           viewBox="0 0 24 24"
           strokeWidth={2}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="w-6 h-6" 
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
         </svg>
@@ -48,7 +48,7 @@ export function Header() {
             <NavItem href="/orders" label="📦 訂單" />
             <NavItem href="/wishlist" label="❤️ 願望清單" />
             <NavItem href="/transactions" label="💰 交易記錄" />
-            <NavItem href="/admin" label="🛠️ 新增遊戲" />
+            {/* <NavItem href="/admin" label="🛠️ 新增遊戲" /> */}
             {/* <NavItem href="/profile" label="👤 個人資料" /> */}
             <NavItem href="/ChatPage" label="💬 科普中心" />
           </motion.nav>
