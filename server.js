@@ -131,7 +131,6 @@ app.post('/forgot-password', (req, res) => {
 app.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   const resetTokenData = resetTokens[token];
-
   if (!resetTokenData || Date.now() > resetTokenData.expires) {
     return res.status(400).json({ message: 'Token 無效或已過期' });
   }
@@ -140,12 +139,10 @@ app.post('/reset-password', async (req, res) => {
   if (!user) {
     return res.status(404).json({ message: '用戶不存在' });
   }
-
   user.password = await bcrypt.hash(newPassword, 10);
   delete resetTokens[token];
   res.json({ message: '密碼更新成功！' });
 });
-
 // 中間件：用於驗證 JWT Token
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -193,7 +190,6 @@ app.get('/cart', authenticate, (req, res) => {
 app.post('/cart', authenticate, (req, res) => {
   const userId = req.user.id;
   const { id } = req.body; 
-
   const game = games.find((g) => g.id === id);
   if (!game) {
     return res.status(404).json({ message: 'Game not found' });
@@ -227,7 +223,6 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   const userId = req.user.id; // 從驗證中間件獲取用戶 ID
   const { id } = req.params; // 提取商品 ID
   const { quantity } = req.body; // 從請求主體中提取商品數量
-
   const cart = carts[userId]; // 獲取該用戶的購物車
   
   if (!cart) {
