@@ -7,6 +7,7 @@ import { FaShoppingCart } from 'react-icons/fa';
 import { FaPlus, FaMinus } from 'react-icons/fa'; // 新增圖示
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { calculateTotalPrice } from '../utils/cartUtils';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function CartPage() {
@@ -31,16 +32,10 @@ export default function CartPage() {
 
   // 計算總價
   const calculateTotal = (cartItems) => {
-    if (!Array.isArray(cartItems)) {
-      setTotal(0);
-      return;
-    }
-
-    const totalPrice = cartItems.reduce((sum, item) => {
-      return sum + parseFloat(item.price.replace('$', '')) * item.quantity;
-    }, 0);
+    const totalPrice = calculateTotalPrice(cartItems);
     setTotal(totalPrice);
   };
+
   // 移除商品
   const handleRemove = async (id) => {
     const token = localStorage.getItem('token');
