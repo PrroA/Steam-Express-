@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import { Header } from '../components/Header';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function ForgotPasswordPage() {
   const [username, setUsername] = useState('');
@@ -27,7 +27,10 @@ export default function ForgotPasswordPage() {
     <>
       <Header />
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <form onSubmit={handleForgotPassword} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 w-96">
+        <form
+          onSubmit={handleForgotPassword}
+          className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 w-96"
+        >
           <h1 className="text-3xl font-bold mb-6 text-blue-400 text-center">忘記密碼？</h1>
           <p className="text-gray-400 text-center mb-4">請輸入您的帳號，我們將發送密碼重設連結</p>
           <input

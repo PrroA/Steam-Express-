@@ -1,36 +1,38 @@
-require("dotenv").config();
+require('dotenv').config();
 const express = require('express');
-const http = require("http");
-const { Server } = require("socket.io"); 
+const http = require('http');
+const { Server } = require('socket.io');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 // const OpenAI = require("openai");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const { v4: uuidv4 } = require("uuid"); 
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { v4: uuidv4 } = require('uuid');
 
 // 設定跨域
 const allowedOrigins = [
-  "http://localhost:3000", 
-  "https://gogo-ten-red.vercel.app", 
-  "https://steam-express.onrender.com" 
+  'http://localhost:3000',
+  'https://gogo-ten-red.vercel.app',
+  'https://steam-express.onrender.com',
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-console.log("🚀 正在運行 `server.js`...");
+console.log('🚀 正在運行 `server.js`...');
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY,
 // });
@@ -38,7 +40,7 @@ console.log("🚀 正在運行 `server.js`...");
 const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const server = http.createServer(app); // 使用 HTTP 伺服器
 const io = new Server(server, {
-  cors: { origin: "http://localhost:3000", credentials: true },
+  cors: { origin: 'http://localhost:3000', credentials: true },
 });
 // 錯誤統一處理
 app.use((err, req, res, next) => {
@@ -60,24 +62,60 @@ const users = [
     id: 1,
     username: 'admin',
     password: bcrypt.hashSync('admin', 10),
-    role: 'admin',//管理員
+    role: 'admin', //管理員
   },
 ];
 
 const messages = []; // 儲存聊天訊息
-const reviews = {}; // 儲存評論 
-const carts = {}; // 用戶購物車 
-const orders = {}; // 用戶訂單 
+const reviews = {}; // 儲存評論
+const carts = {}; // 用戶購物車
+const orders = {}; // 用戶訂單
 const wishlists = {}; // 用戶收藏清單
 const resetTokens = {}; // 密碼重置
 const games = [
-  { id: 1, name: 'Cyberpunk 2077', price: '$59.99', description: 'A futuristic RPG.', image: '/cp2077_game-thumbnail.webp' },
-  { id: 2, name: 'Elden Ring', price: '$49.99', description: 'An open-world adventure.', image: '/elden.jpg' },
-  { id: 3, name: 'Hogwarts Legacy', price: '$39.99', description: 'A magical experience.', image: '/Hogwarts.jpg' },
-  { id: 4, name: 'The Witcher 3', price: '$29.99', description: 'A legendary RPG.', image: '/Witcher3.jpg' },
+  {
+    id: 1,
+    name: 'Cyberpunk 2077',
+    price: '$59.99',
+    description: 'A futuristic RPG.',
+    image: '/cp2077_game-thumbnail.webp',
+  },
+  {
+    id: 2,
+    name: 'Elden Ring',
+    price: '$49.99',
+    description: 'An open-world adventure.',
+    image: '/elden.jpg',
+  },
+  {
+    id: 3,
+    name: 'Hogwarts Legacy',
+    price: '$39.99',
+    description: 'A magical experience.',
+    image: '/Hogwarts.jpg',
+  },
+  {
+    id: 4,
+    name: 'The Witcher 3',
+    price: '$29.99',
+    description: 'A legendary RPG.',
+    image: '/Witcher3.jpg',
+  },
   { id: 5, name: 'GTA V', price: '$19.99', description: 'A fantasy RPG.', image: '/GTA.png' },
-  { id: 6, name: 'Dark Souls III', price: '$14.99', description: 'A dark fantasy RPG.', image: '/DarkSouls3.jpeg' },
-  { id: 7, name: 'The Last of Us Remastered', price: '$19.99', description: 'A survival horror game.', image: '/TheLast.avif' },
+  {
+    id: 6,
+    name: 'Dark Souls III',
+    price: '$14.99',
+    description: 'A dark fantasy RPG.',
+    image: '/DarkSouls3.jpeg',
+  },
+  {
+    id: 7,
+    name: 'The Last of Us Remastered',
+    price: '$19.99',
+    description: 'A survival horror game.',
+    image: '/TheLast.avif',
+  },
 ];
 
 // 用戶註冊
@@ -93,22 +131,22 @@ app.post('/register', async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = { id: users.length + 1, username, password: hashedPassword };
   users.push(newUser);
-  res.status(201).json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } });
+  res
+    .status(201)
+    .json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } });
 });
 
 // 用戶登入
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((u) => u.username === username); 
+  const user = users.find((u) => u.username === username);
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ message: '無效的帳號或密碼' });
   }
 
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    SECRET_KEY,
-    { expiresIn: '1d' },
-  );
+  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, {
+    expiresIn: '1d',
+  });
   res.json({ token });
 });
 
@@ -160,16 +198,15 @@ const authenticate = (req, res, next) => {
 // 獲取遊戲列表
 app.get('/games', (req, res) => {
   const { query } = req.query;
-  console.log("收到請求: /games?query=", query); 
+  console.log('收到請求: /games?query=', query);
   if (query) {
-    const filteredGames = games.filter(game =>
+    const filteredGames = games.filter((game) =>
       game.name.toLowerCase().includes(query.toLowerCase())
     );
     return res.json(filteredGames);
   }
-  res.json(games); 
+  res.json(games);
 });
-
 
 app.get('/games/:id', (req, res) => {
   const gameId = parseInt(req.params.id);
@@ -178,7 +215,7 @@ app.get('/games/:id', (req, res) => {
     return res.status(404).json({ message: '遊戲未找到' });
   }
   res.json(game);
-  console.log(id); 
+  console.log(id);
 });
 
 // 獲取購物車內容
@@ -189,7 +226,7 @@ app.get('/cart', authenticate, (req, res) => {
 // 添加商品到購物車
 app.post('/cart', authenticate, (req, res) => {
   const userId = req.user.id;
-  const { id } = req.body; 
+  const { id } = req.body;
   const game = games.find((g) => g.id === id);
   if (!game) {
     return res.status(404).json({ message: 'Game not found' });
@@ -198,7 +235,7 @@ app.post('/cart', authenticate, (req, res) => {
   if (!carts[userId]) {
     carts[userId] = [];
   }
-  
+
   const cartItem = carts[userId].find((item) => item.id === id);
   if (cartItem) {
     cartItem.quantity += 1; // 如果商品已存在，增加數量
@@ -213,7 +250,7 @@ app.get('/orders', authenticate, (req, res) => {
   const userId = req.user.id;
 
   if (!orders[userId]) {
-    orders[userId] = []; 
+    orders[userId] = [];
   }
   res.status(200).json(orders[userId]);
 });
@@ -224,7 +261,7 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   const { id } = req.params; // 提取商品 ID
   const { quantity } = req.body; // 從請求主體中提取商品數量
   const cart = carts[userId]; // 獲取該用戶的購物車
-  
+
   if (!cart) {
     return res.status(404).json({ message: '購物車不存在' });
   }
@@ -238,9 +275,8 @@ app.patch('/cart/:id', authenticate, (req, res) => {
   } else {
     item.quantity = quantity; // 更新商品數量
   }
-    res.status(200).json({ message: '購物車已更新', cart: carts[userId] });
+  res.status(200).json({ message: '購物車已更新', cart: carts[userId] });
 });
-
 
 // 刪除購物車商品
 app.delete('/cart/:id', authenticate, (req, res) => {
@@ -251,16 +287,14 @@ app.delete('/cart/:id', authenticate, (req, res) => {
   if (!cart) {
     return res.status(404).json({ message: '購物車不存在' });
   }
-  
+
   carts[userId] = cart.filter((item) => item.id != id);
   res.status(200).json({ message: '商品已移除', cart: carts[userId] });
 });
 
-
-
 app.post('/checkout', authenticate, async (req, res) => {
   try {
-    const userId = req.user?.id; 
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: '未授權的請求' });
     }
@@ -283,7 +317,7 @@ app.post('/checkout', authenticate, async (req, res) => {
       status: '未付款',
     };
 
-    orders[userId].push(newOrder); 
+    orders[userId].push(newOrder);
     carts[userId] = []; // 清空購物車
 
     res.status(200).json({ message: '結帳成功！', order: newOrder });
@@ -293,19 +327,18 @@ app.post('/checkout', authenticate, async (req, res) => {
   }
 });
 
-
 // 支付模擬
 app.post('/pay', authenticate, (req, res) => {
   const userId = req.user.id;
   const { orderId } = req.body;
 
   console.log('訂單 ID:', orderId);
-  
+
   const order = orders[userId]?.find((o) => o.id === orderId);
   if (!order) {
     return res.status(404).json({ message: '訂單未找到' });
   }
-  
+
   if (order.status === '已付款') {
     return res.status(400).json({ message: '訂單已付款，無法重複支付' });
   }
@@ -321,9 +354,6 @@ app.post('/pay', authenticate, (req, res) => {
   console.log('付款成功:', order);
   res.status(200).json({ message: '支付成功', order });
 });
-
-
-
 
 app.post('/wishlist', authenticate, (req, res) => {
   const userId = req.user.id;
@@ -349,7 +379,7 @@ app.get('/wishlist', authenticate, (req, res) => {
 app.delete('/wishlist/:id', authenticate, (req, res) => {
   const userId = req.user.id;
   const gameId = parseInt(req.params.id);
-    if (wishlists[userId]) {
+  if (wishlists[userId]) {
     wishlists[userId] = wishlists[userId].filter((id) => id !== gameId);
   }
   res.status(200).json({ message: '已移除收藏', wishlist: wishlists[userId] });
@@ -374,7 +404,7 @@ app.post('/games', authenticate, isAdmin, (req, res) => {
   console.log('接收到的請求內容:', req.body); // 打印請求內容
   console.log('請求用戶:', req.user); // 打印用戶信息
 
-  const { name, price, description ,image } = req.body;
+  const { name, price, description, image } = req.body;
 
   if (!name || !price || !description) {
     return res.status(400).json({ message: '請提供完整的遊戲信息' });
@@ -403,24 +433,24 @@ app.delete('/games/:id', authenticate, isAdmin, (req, res) => {
 });
 
 // 創建付款請求
-app.post("/create-payment-intent", async (req, res) => {
+app.post('/create-payment-intent', async (req, res) => {
   try {
     let { amount } = req.body;
-    
+
     if (!amount || amount < 0.5) {
-      return res.status(400).json({ error: "金額不可低於 $0.50 USD" });
+      return res.status(400).json({ error: '金額不可低於 $0.50 USD' });
     }
-    
+
     amount = Math.round(amount * 100); // Stripe 以「分」為單位
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount,
-      currency: "usd",
+      currency: 'usd',
     });
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    console.error("付款失敗:", error);
+    console.error('付款失敗:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -436,8 +466,8 @@ app.get('/profile', authenticate, (req, res) => {
   res.json({
     id: user.id,
     username: user.username,
-    email: user.email || "未提供",
-    registeredAt: user.registeredAt || "未知",
+    email: user.email || '未提供',
+    registeredAt: user.registeredAt || '未知',
   });
 });
 
@@ -452,7 +482,7 @@ app.put('/profile', authenticate, (req, res) => {
   }
   user.username = username || user.username;
   user.email = email || user.email;
-  res.json({ message: "個人資料更新成功", user });
+  res.json({ message: '個人資料更新成功', user });
 });
 
 // 取得某遊戲的所有評論
@@ -481,65 +511,62 @@ app.post('/reviews', authenticate, (req, res) => {
 });
 
 // 客服聊天室 (dev)
-io.on("connection", (socket) => {
-  console.log("用戶連線");
+io.on('connection', (socket) => {
+  console.log('用戶連線');
 
   // 發送歷史聊天紀錄
-  socket.emit("chatHistory", messages);
+  socket.emit('chatHistory', messages);
 
   // 監聽新訊息
-  socket.on("sendMessage", (message) => {
+  socket.on('sendMessage', (message) => {
     const newMessage = {
-      user: message.user || "我",
+      user: message.user || '我',
       text: message.text,
       timestamp: new Date().toLocaleTimeString(),
     };
 
     messages.push(newMessage); // 儲存訊息
-    io.emit("receiveMessage", newMessage); 
+    io.emit('receiveMessage', newMessage);
   });
-  
+
   setTimeout(() => {
     const autoReply = {
-      user: "客服中心",
-      text: "此功能還在開發中 敬請期待",
+      user: '客服中心',
+      text: '此功能還在開發中 敬請期待',
       timestamp: new Date().toLocaleTimeString(),
     };
-    io.emit("receiveMessage", autoReply); // 自動回覆
-  }, 1000); 
+    io.emit('receiveMessage', autoReply); // 自動回覆
+  }, 1000);
 
   // 監聽用戶斷開連線
-  socket.on("disconnect", () => {
-    console.log("WebSocket斷線");
+  socket.on('disconnect', () => {
+    console.log('WebSocket斷線');
   });
 });
 
-app.post("/gpt-reply", async (req, res) => {
+app.post('/gpt-reply', async (req, res) => {
   const { message } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: "缺少 message" });
+    return res.status(400).json({ error: '缺少 message' });
   }
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: 'gpt-3.5-turbo',
       messages: [
-        { role: "system", content: "你是一位親切的遊戲客服助手。" },
-        { role: "user", content: message },
+        { role: 'system', content: '你是一位親切的遊戲客服助手。' },
+        { role: 'user', content: message },
       ],
     });
 
     const reply = completion.choices?.[0]?.message?.content;
-    res.json({ reply: reply || "（GPT 沒有回覆內容）" });
+    res.json({ reply: reply || '（GPT 沒有回覆內容）' });
   } catch (err) {
-    console.error("🔥 GPT API 錯誤：", err.response?.data || err.message || err);
-    res.status(500).json({ error: "GPT 回覆失敗" });
+    console.error('🔥 GPT API 錯誤：', err.response?.data || err.message || err);
+    res.status(500).json({ error: 'GPT 回覆失敗' });
   }
 });
-
-
-
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {

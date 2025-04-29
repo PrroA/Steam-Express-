@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Header } from '../components/Header';
 import { toast } from 'react-toastify';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
           <input
             type="password"
-            placeholder="🔒 密碼 admin" 
+            placeholder="🔒 密碼 admin"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border border-gray-600 bg-gray-700 text-white px-4 py-2 rounded mb-4 focus:border-blue-500"

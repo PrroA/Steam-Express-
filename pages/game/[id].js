@@ -5,8 +5,9 @@ import { fetchGameDetails } from '../api/gameApi';
 import { addToCart } from '../api/cartApi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Link from 'next/link';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function GameDetail() {
   const router = useRouter();
@@ -79,9 +80,13 @@ export default function GameDetail() {
   const handleAddToWishlist = async () => {
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_BASE_URL}/wishlist`, { id: Number(id) }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `${API_BASE_URL}/wishlist`,
+        { id: Number(id) },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       toast.success('已加入願望清單');
     } catch (error) {
       console.error('添加到收藏清單失敗:', error.response?.data || error.message);
@@ -119,9 +124,9 @@ export default function GameDetail() {
       <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
         <p className="text-xl font-bold text-red-500">遊戲未找到</p>
         <p className="text-gray-400">請檢查遊戲 ID 或稍後再試。</p>
-        <a href="/" className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition">
+        <Link href="/" className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition">
           返回商店
-        </a>
+        </Link>
       </div>
     );
   }
@@ -191,7 +196,9 @@ export default function GameDetail() {
                 {reviews.map((review, index) => (
                   <li key={index} className="p-4 bg-gray-700 rounded shadow">
                     <p className="text-white">{review.content}</p>
-                    <p className="text-sm text-gray-400 mt-1">🕒 {new Date(review.createdAt).toLocaleString()}</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      🕒 {new Date(review.createdAt).toLocaleString()}
+                    </p>
                   </li>
                 ))}
               </ul>

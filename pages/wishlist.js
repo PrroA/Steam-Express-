@@ -4,7 +4,9 @@ import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
 import { toast } from 'react-toastify';
 import { FaHeartBroken } from 'react-icons/fa';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+import Link from 'next/link';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
@@ -26,7 +28,7 @@ export default function WishlistPage() {
     };
     loadWishlist();
   }, []);
-  
+
   const handleRemoveFromWishlist = async (gameId) => {
     const token = localStorage.getItem('token');
     try {
@@ -73,9 +75,12 @@ export default function WishlistPage() {
           <FaHeartBroken size={80} className="text-gray-600 mb-4" />
           <h1 className="text-2xl font-bold">你的收藏清單是空的</h1>
           <p className="text-gray-400">快去發掘喜愛的遊戲吧！</p>
-          <a href="/" className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition">
+          <Link
+            href="/"
+            className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition"
+          >
             返回商店
-          </a>
+          </Link>
         </div>
       </>
     );

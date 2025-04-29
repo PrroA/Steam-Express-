@@ -2,10 +2,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
-import debounce from 'lodash.debounce'; 
+import debounce from 'lodash.debounce';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
-console.log("實際請求 API：", `${API_BASE_URL}/games`);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+console.log('實際請求 API：', `${API_BASE_URL}/games`);
 
 export default function Home() {
   const [games, setGames] = useState([]);
@@ -18,9 +18,13 @@ export default function Home() {
       const data = await response.json();
       let sortedGames = [...data];
       if (sortOrder === 'low-to-high') {
-        sortedGames.sort((a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')));
+        sortedGames.sort(
+          (a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', ''))
+        );
       } else if (sortOrder === 'high-to-low') {
-        sortedGames.sort((a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')));
+        sortedGames.sort(
+          (a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', ''))
+        );
       }
       setGames(sortedGames);
       setLoading(false);
@@ -44,7 +48,6 @@ export default function Home() {
       <Header />
       <Carousel />
       <div className="p-4 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-
         <input
           type="text"
           placeholder="🔍 搜索遊戲..."

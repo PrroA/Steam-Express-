@@ -8,7 +8,7 @@ export default function OrderDetail() {
   const { orderId } = router.query; // 動態路由參數
   const [order, setOrder] = useState(null); // 儲存訂單資訊
   const [loading, setLoading] = useState(true); // 控制加載狀態
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -55,7 +55,9 @@ export default function OrderDetail() {
           <ul className="mt-4">
             {order.items.map((item) => (
               <li key={item.id} className="flex justify-between py-2">
-                <span>{item.name} x {item.quantity}</span>
+                <span>
+                  {item.name} x {item.quantity}
+                </span>
                 <span>${(parseFloat(item.price.replace('$', '')) * item.quantity).toFixed(2)}</span>
               </li>
             ))}

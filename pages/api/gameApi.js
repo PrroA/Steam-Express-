@@ -13,5 +13,3 @@ export const fetchGameDetails = async (id) => {
   const response = await axios.get(`${BASE_URL}/games/${id}`);
   return response.data;
 };
-
-

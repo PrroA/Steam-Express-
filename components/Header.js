@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // 動畫
+import Link from 'next/link';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // 動畫
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,7 +21,7 @@ export function Header() {
           viewBox="0 0 24 24"
           strokeWidth={2}
           stroke="currentColor"
-          className="w-6 h-6" 
+          className="w-6 h-6"
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
         </svg>
@@ -30,10 +30,10 @@ export function Header() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.nav
-            initial={{ x: "-100%" }}
+            initial={{ x: '-100%' }}
             animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", stiffness: 100 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 100 }}
             className="fixed top-0 left-0 h-full w-64 bg-gray-900 shadow-lg p-6 flex flex-col gap-4 z-50"
           >
             <button

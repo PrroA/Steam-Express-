@@ -9,7 +9,7 @@ export function Carousel() {
   // let total3 = arr3 !== 0.3;
   // let arr4 = arr3.toFixed(2);
   // let total4 = arr4 === 0.3;
-  // console.log(total3); // true  
+  // console.log(total3); // true
   // console.log(total4); // true
   // let arr5 = [1,2,3,4,5,6,7,8,9,10];
   // let total5 = arr5.map(item => item * 20);
@@ -37,7 +37,7 @@ export function Carousel() {
   // let total12 = arr9.includes(5);
   // console.log(total12); // true
   // console.log(arr9.indexOf(5)); // 5
-  // const arr10 = [1,2,3,4,5,6,7,8,9,10]; 
+  // const arr10 = [1,2,3,4,5,6,7,8,9,10];
   // const total13 = arr10.join('+');
   // console.log(total13); // `1+2+3+4+5+6+7+8+9+10`
   // const arr11 = [1,2,3,4,5,6,7,8,9,10];
@@ -55,6 +55,5 @@ export function Carousel() {
   // const arr15 = [1,2,3,4,5,6,7,8,9,10];
   // const total18 = arr15.join('-');
   // console.log(total18); // "1-2-3-4-5-6-7-8-9-10"
-    return <div> </div>;
-  }
-  
+  return <div> </div>;
+}

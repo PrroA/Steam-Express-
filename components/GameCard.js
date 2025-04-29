@@ -6,10 +6,10 @@ export function GameCard({ game }) {
     <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow flex flex-col h-[350px]">
       <div className="w-full h-[200px] relative">
         <Image
-          src={game.image || '/public/vercel.svg'} 
+          src={game.image || '/public/vercel.svg'}
           alt={game.name}
-          layout="fill" 
-          objectFit="cover" 
+          layout="fill"
+          objectFit="cover"
           className="rounded-lg"
         />
       </div>

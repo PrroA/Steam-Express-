@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Header } from '../components/Header';
 import Link from 'next/link';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
@@ -46,9 +46,12 @@ export default function TransactionsPage() {
           <FaFileInvoiceDollar size={80} className="text-gray-600 mb-4" />
           <h1 className="text-2xl font-bold">目前沒有交易記錄</h1>
           <p className="text-gray-400">去買一些遊戲來看看吧！</p>
-          <a href="/" className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition">
+          <Link
+            href="/"
+            className="mt-4 bg-blue-500 py-2 px-4 rounded hover:bg-blue-700 transition"
+          >
             返回商店
-          </a>
+          </Link>
         </div>
       </>
     );
@@ -65,10 +68,10 @@ export default function TransactionsPage() {
             <div key={txn.transactionId} className="border-b py-4">
               <h2 className="text-lg font-bold">交易 ID: {txn.transactionId}</h2>
               <p className="text-gray-400">支付時間: {new Date(txn.paidAt).toLocaleString()}</p>
-              
+
               <p className="text-gray-300">
-                訂單 ID: 
-                <p href ={`/orders/${txn.orderId}`} className="text-blue-400 hover:underline ml-1">
+                訂單 ID:
+                <p href={`/orders/${txn.orderId}`} className="text-blue-400 hover:underline ml-1">
                   {txn.orderId}
                 </p>
               </p>

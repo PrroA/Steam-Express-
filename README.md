@@ -28,7 +28,7 @@ JWT_SECRET=your_jwt_secret
 3️⃣ 啟動後端 Express 伺服器
 
 cd server
-node server.js 
+node server.js
 
 或使用 nodemon 自動監測變更：
 
@@ -45,7 +45,7 @@ npm run dev
 卡號: 4242 4242 4242 4242
 有效期限: 12/34
 CVC: 123
-ZIP: 12345 
+ZIP: 12345
 
 🔹 測試信用卡號 (付款失敗)：
 
@@ -67,7 +67,5 @@ https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg
 MongoDB (未來可擴充)
 UI 改善 (未來可擴充)
 未來功能更佳完善 (未來可擴充)
-
-
 
 📌 歡迎貢獻！有任何問題可以提交 Issue 或 Pull Request！ 🚀
