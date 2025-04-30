@@ -9,8 +9,8 @@ jest.mock('next/router', () => ({
 describe('CartPage Component', () => {
   beforeEach(() => {
     useRouter.mockReturnValue({
-      push: jest.fn(), 
-      pathname: '/',   
+      push: jest.fn(),
+      pathname: '/',
     });
   });
 

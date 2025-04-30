@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
+import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { FaHeartBroken } from 'react-icons/fa';
 import Link from 'next/link';
@@ -96,7 +97,7 @@ export default function WishlistPage() {
           {wishlist.map((game) => (
             <div key={game.id} className="border-b py-4 flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <img src={game.image} alt={game.name} className="w-16 h-16 rounded shadow" />
+                <Image src={game.image} alt={game.name} className="w-16 h-16 rounded shadow" />
                 <div>
                   <h2 className="text-lg font-bold">{game.name}</h2>
                   <p className="text-gray-300">{game.description}</p>

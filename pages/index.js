@@ -5,7 +5,6 @@ import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
-console.log('實際請求 API：', `${API_BASE_URL}/games`);
 
 export default function Home() {
   const [games, setGames] = useState([]);
@@ -33,7 +32,7 @@ export default function Home() {
       setLoading(false);
     }
   };
-  const debouncedFetchGames = useMemo(() => debounce(fetchGames, 300), [sortOrder]);
+  const debouncedFetchGames = useMemo(() => debounce(fetchGames, 300), [fetchGames]);
 
   useEffect(() => {
     setLoading(true);

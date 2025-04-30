@@ -5,6 +5,7 @@ import { fetchGameDetails } from '../api/gameApi';
 import { addToCart } from '../api/cartApi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
@@ -139,7 +140,7 @@ export default function GameDetail() {
           {/* 遊戲標題 & 圖片 */}
           <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
 
-          <img src={game.image} alt={game.name} className="w-full h-64 rounded-lg shadow" />
+          <Image src={game.image} alt={game.name} className="w-full h-64 rounded-lg shadow" />
 
           {/* 遊戲資訊 */}
           <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>

@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaShoppingCart } from 'react-icons/fa';
+import Image from 'next/image';
 import { FaPlus, FaMinus } from 'react-icons/fa'; // 新增圖示
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -159,7 +160,7 @@ export default function CartPage() {
                 className="flex items-center justify-between p-4 bg-gray-700 rounded-lg"
               >
                 <div className="flex items-center space-x-4">
-                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded" />
+                  <Image src={item.image} alt={item.name} className="w-16 h-16 rounded" />
                   <div>
                     <h2 className="text-lg font-bold">{item.name}</h2>
                     <div className="flex items-center space-x-2 my-2">

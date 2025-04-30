@@ -23,7 +23,6 @@ export default async function handler(req, res) {
         { role: 'user', content: message },
       ],
     });
-    console.log('🧠 GPT API 回傳：', JSON.stringify(completion, null, 2));
 
     const reply = completion.choices?.[0]?.message?.content;
 

@@ -111,7 +111,6 @@ export default function ChatPage() {
       };
 
       socket.emit('sendMessage', aiReply);
-      console.log('送出給 GPT 的訊息：', trimmedMessage);
     } catch (err) {
       console.error('GPT 回覆錯誤:', err);
     }

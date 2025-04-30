@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Header } from '../components/Header';
+import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
@@ -49,7 +50,7 @@ export default function AdminPage() {
           {/* 圖片預覽 */}
           {preview && (
             <div className="mb-4">
-              <img
+              <Image
                 src={preview}
                 alt="封面預覽"
                 className="w-full h-40 object-cover rounded shadow"
