@@ -64,6 +64,7 @@ jobs:
           echo "Deploying to Vercel..."
           npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
 
+
       - name: Simulate Render Deployment (Optional)
         if: github.event_name == 'push'
         run: |
