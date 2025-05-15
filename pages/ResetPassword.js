@@ -14,12 +14,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     try {
       await axios.post(`${API_BASE_URL}/forgot-password`, { username });
-      setMessage('🔗 重設密碼的連結已發送到您的郵箱 📩');
+      setMessage('重設密碼的連結已發送到您的郵箱 📩');
       setTimeout(() => {
         router.push('/ConfirmResetPassword');
       }, 3000);
     } catch (error) {
-      setMessage(error.response?.data?.message || '❌ 請求失敗，請稍後再試');
+      setMessage(error.response?.data?.message || '請求失敗，請稍後再試');
     }
   };
 

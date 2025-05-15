@@ -16,10 +16,10 @@ export default function LoginPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
       localStorage.setItem('token', response.data.token); // 保存 JWT Token
-      toast.success('✅ 登入成功');
+      toast.success('✅登入成功');
       router.push('/'); // 登入成功後跳轉
     } catch (error) {
-      toast.error('❌ ' + (error.response?.data?.message || '登入失敗，請檢查帳號或密碼'));
+      toast.error('❌' + (error.response?.data?.message || '登入失敗，請檢查帳號或密碼'));
     }
   };
 

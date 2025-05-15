@@ -25,7 +25,6 @@ export default function GameDetail() {
         const data = await fetchGameDetails(id);
         setGame(data);
       } catch (error) {
-        console.error('無法獲取遊戲詳情:', error.message);
         toast.error('無法獲取遊戲詳情');
       } finally {
         setLoading(false);
@@ -71,7 +70,6 @@ export default function GameDetail() {
       setNewReview('');
       toast.success('感謝你的評論！');
     } catch (error) {
-      console.error('評論失敗:', error.response?.data || error.message);
       toast.error('評論失敗');
     } finally {
       setIsSubmitting(false);
@@ -139,9 +137,14 @@ export default function GameDetail() {
         <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
           {/* 遊戲標題 & 圖片 */}
           <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
-
-          <Image src={game.image} alt={game.name} className="w-full h-64 rounded-lg shadow" />
-
+          <Image
+            src={game.image || '/public/vercel.svg'}
+            alt={game.name}
+            width={400}
+            height={300}
+            className="w-full h-64 rounded-lg shadow"
+            priority={true}
+          />
           {/* 遊戲資訊 */}
           <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
           <p className="text-gray-300 mt-2">{game.description}</p>

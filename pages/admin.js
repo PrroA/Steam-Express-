@@ -51,9 +51,11 @@ export default function AdminPage() {
           {preview && (
             <div className="mb-4">
               <Image
-                src={preview}
+                src={preview || '/public/vercel.svg'}
                 alt="封面預覽"
-                className="w-full h-40 object-cover rounded shadow"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                style={{ objectFit: 'cover' }}
               />
             </div>
           )}

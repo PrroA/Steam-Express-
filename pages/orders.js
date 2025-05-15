@@ -21,6 +21,30 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // 付款
+  const fetchClientSecret = async () => {
+    if (!selectedOrder) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/create-payment-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: selectedOrder.total }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      const data = await res.json();
+      setClientSecret(data.clientSecret);
+    } catch (error) {
+      console.error('付款請求失敗:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -52,30 +76,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // 付款
-  const fetchClientSecret = async () => {
-    if (!selectedOrder) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE_URL}/create-payment-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: selectedOrder.total }),
-      });
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
-      const data = await res.json();
-      setClientSecret(data.clientSecret);
-    } catch (error) {
-      console.error('付款請求失敗:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // 已付款 / 未付款訂單數量
   const getChartData = () => {
     const paidOrders = orders.filter((order) => order.status === '已付款').length;
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold mb-6">🛒 訂單概覽</h1>
 
         {loading && <p className="text-gray-400">正在載入訂單資訊...</p>}
-        {error && <p className="text-red-400">⚠️ {error}</p>}
+        {error && <p className="text-red-400">{error}</p>}
 
         {orders.length > 0 && (
           <div className="mb-4">
@@ -128,7 +128,7 @@ export default function CheckoutPage() {
         )}
         {orders.length > 0 && (
           <div className="mt-10 bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <h2 className="text-2xl font-bold mb-4 text-center">📊 訂單狀態統計</h2>
+            <h2 className="text-2xl font-bold mb-4 text-center">訂單狀態統計</h2>
             <div className="w-60 h-60">
               <Pie data={getChartData()} />
             </div>
@@ -158,7 +158,7 @@ function CheckoutForm({ clientSecret, orderId }) {
     }
 
     if (!orderId) {
-      setMessage('⚠️ 無效的訂單 ID，請重新選擇訂單');
+      setMessage('無效的訂單 ID，請重新選擇訂單');
       setLoading(false);
       return;
     }
@@ -170,7 +170,7 @@ function CheckoutForm({ clientSecret, orderId }) {
     if (error) {
       setMessage(error.message);
     } else if (paymentIntent.status === 'succeeded') {
-      setMessage('🎉 付款成功！感謝您的購買 🎉 即將跳轉至首頁...');
+      setMessage('付款成功！感謝您的購買  即將跳轉至首頁...');
 
       await fetch(`${API_BASE_URL}/pay`, {
         method: 'POST',
@@ -196,7 +196,7 @@ function CheckoutForm({ clientSecret, orderId }) {
         className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 mt-4 w-full transition"
         disabled={loading || !stripe || !elements}
       >
-        {loading ? '付款中...' : '💳 確認付款'}
+        {loading ? '付款中...' : '確認付款'}
       </button>
       {message && <p className="mt-4 text-yellow-400">{message}</p>}
     </form>

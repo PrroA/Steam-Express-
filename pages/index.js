@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
@@ -11,11 +11,32 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
-  const fetchGames = async (query) => {
+  const fetchGames = useCallback(async (query) => {
     try {
       const response = await fetch(`${API_BASE_URL}/games?query=${query}`);
       const data = await response.json();
-      let sortedGames = [...data];
+      setGames(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      setLoading(false);
+    }
+  }, []);
+  const debouncedFetchGames = useMemo(() => {
+    return debounce(fetchGames, 300);
+  }, [fetchGames]);
+
+  useEffect(() => {
+    setLoading(true);
+    debouncedFetchGames(searchQuery);
+    return () => {
+      debouncedFetchGames.cancel();
+    };
+  }, [searchQuery, debouncedFetchGames]);
+
+  useEffect(() => {
+    if (sortOrder !== 'default' && games.length > 0) {
+      const sortedGames = [...games];
       if (sortOrder === 'low-to-high') {
         sortedGames.sort(
           (a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', ''))
@@ -26,21 +47,8 @@ export default function Home() {
         );
       }
       setGames(sortedGames);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching games:', error);
-      setLoading(false);
     }
-  };
-  const debouncedFetchGames = useMemo(() => debounce(fetchGames, 300), [fetchGames]);
-
-  useEffect(() => {
-    setLoading(true);
-    debouncedFetchGames(searchQuery);
-    return () => {
-      debouncedFetchGames.cancel();
-    };
-  }, [searchQuery, sortOrder, debouncedFetchGames]);
+  }, [sortOrder, games]);
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">

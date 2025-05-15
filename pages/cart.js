@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { FaPlus, FaMinus } from 'react-icons/fa'; // 新增圖示
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+
 import { calculateTotalPrice } from '../utils/cartUtils';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
@@ -15,7 +16,6 @@ export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0); // 總價
-
   // 加載購物車內容
   useEffect(() => {
     const loadCart = async () => {
@@ -36,7 +36,6 @@ export default function CartPage() {
     const totalPrice = calculateTotalPrice(cartItems);
     setTotal(totalPrice);
   };
-
   // 移除商品
   const handleRemove = async (id) => {
     const token = localStorage.getItem('token');
@@ -67,7 +66,6 @@ export default function CartPage() {
       const results = await Promise.all(
         cart.map((item) => removeFromCart(item.id, token).catch((error) => ({ error, item })))
       );
-
       // 檢查是否有失敗的請求
       const failedItems = results.filter((result) => result.error);
       if (failedItems.length > 0) {
@@ -76,7 +74,6 @@ export default function CartPage() {
       } else {
         toast.success('購物車已清空');
       }
-
       // 更新購物車狀態
       setCart([]);
       setTotal(0);
@@ -160,7 +157,13 @@ export default function CartPage() {
                 className="flex items-center justify-between p-4 bg-gray-700 rounded-lg"
               >
                 <div className="flex items-center space-x-4">
-                  <Image src={item.image} alt={item.name} className="w-16 h-16 rounded" />
+                  <Image
+                    src={item.image || '/public/vercel.svg'}
+                    alt={item.name}
+                    width={64}
+                    height={64}
+                    className="rounded"
+                  />{' '}
                   <div>
                     <h2 className="text-lg font-bold">{item.name}</h2>
                     <div className="flex items-center space-x-2 my-2">

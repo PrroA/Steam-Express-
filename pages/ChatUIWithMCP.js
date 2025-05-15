@@ -92,8 +92,6 @@ export default function ChatPage() {
       }
       return;
     }
-
-    // 2️⃣ 呼叫 GPT 取得 AI 回覆
     try {
       const res = await fetch(`${API_BASE_URL}/gpt-reply`, {
         method: 'POST',

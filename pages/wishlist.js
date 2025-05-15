@@ -97,7 +97,13 @@ export default function WishlistPage() {
           {wishlist.map((game) => (
             <div key={game.id} className="border-b py-4 flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Image src={game.image} alt={game.name} className="w-16 h-16 rounded shadow" />
+                <Image
+                  src={game.image || '/public/vercel.svg'}
+                  alt={game.name}
+                  width={64}
+                  height={64}
+                  className="rounded shadow"
+                />
                 <div>
                   <h2 className="text-lg font-bold">{game.name}</h2>
                   <p className="text-gray-300">{game.description}</p>

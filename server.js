@@ -17,7 +17,6 @@ const allowedOrigins = [
   'https://gogo-ten-red.vercel.app',
   'https://steam-express.onrender.com',
 ];
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -55,6 +54,14 @@ const isAdmin = (req, res, next) => {
   }
   next();
 };
+// Interval 保持Rander不休眠
+const KEEP_ALIVE_INTERVAL = 1000 * 60 * 15; // 10 分鐘
+setInterval(() => {
+  console.log('🚀 發送 Keep-Alive 請求');
+  fetch('https://gogo-amber.vercel.app/')
+    .then((res) => console.log('Keep-Alive 成功:', res.status))
+    .catch((err) => console.error('Keep-Alive 失敗:', err));
+}, KEEP_ALIVE_INTERVAL);
 
 // 模擬帳號
 const users = [
@@ -117,7 +124,6 @@ const games = [
     image: '/TheLast.avif',
   },
 ];
-
 // 用戶註冊
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -133,7 +139,8 @@ app.post('/register', async (req, res) => {
   users.push(newUser);
   res
     .status(201)
-    .json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } });
+    .json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } })
+    .end();
 });
 
 // 用戶登入
@@ -143,7 +150,6 @@ app.post('/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ message: '無效的帳號或密碼' });
   }
-
   const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, {
     expiresIn: '1d',
   });
@@ -160,7 +166,7 @@ app.post('/forgot-password', (req, res) => {
   const resetToken = crypto.randomBytes(10).toString('hex');
   resetTokens[resetToken] = {
     username,
-    expires: Date.now() + 15 * 60 * 1000, // 15 分鐘有效
+    expires: Date.now() + 15 * 60 * 1000, // 15 分鐘後過期
   };
   res.json({ message: '重設密碼的連結已發送', resetToken });
 });
@@ -217,7 +223,6 @@ app.get('/games/:id', (req, res) => {
   res.json(game);
   console.log(id);
 });
-
 // 獲取購物車內容
 app.get('/cart', authenticate, (req, res) => {
   res.json(carts[req.user.id] || []);
@@ -282,7 +287,6 @@ app.patch('/cart/:id', authenticate, (req, res) => {
 app.delete('/cart/:id', authenticate, (req, res) => {
   const userId = req.user.id;
   const { id } = req.params;
-
   const cart = carts[userId];
   if (!cart) {
     return res.status(404).json({ message: '購物車不存在' });
@@ -436,13 +440,10 @@ app.delete('/games/:id', authenticate, isAdmin, (req, res) => {
 app.post('/create-payment-intent', async (req, res) => {
   try {
     let { amount } = req.body;
-
     if (!amount || amount < 0.5) {
       return res.status(400).json({ error: '金額不可低於 $0.50 USD' });
     }
-
     amount = Math.round(amount * 100); // Stripe 以「分」為單位
-
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount,
       currency: 'usd',
@@ -471,11 +472,9 @@ app.get('/profile', authenticate, (req, res) => {
   });
 });
 
-// update profile data
 app.put('/profile', authenticate, (req, res) => {
   const userId = req.user.id;
   const { username, email } = req.body;
-
   const user = users.find((u) => u.id === userId);
   if (!user) {
     return res.status(404).json({ message: '資料更新失敗' });

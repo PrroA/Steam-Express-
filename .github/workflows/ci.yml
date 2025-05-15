@@ -20,10 +20,47 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Format (格式檢查)
+        run: npm run format
 
       - name: Lint (語法檢查)
         run: npm run lint
 
       - name: Test (單元測試)
         run: npm test
+
+      - name: Build (編譯檢查)
+        run: npm run build
+
+      - name: Check .env Variables
+        run: |
+          echo "Checking .env variables..."
+          if [ ! -f .env ]; then
+            echo "❌ Error: .env file not found!";
+            exit 1;
+          fi
+          if ! grep -q "NEXT_PUBLIC_API_BASE_URL" .env; then
+            echo "❌ Error: Missing NEXT_PUBLIC_API_BASE_URL in .env!";
+            exit 1;
+          fi
+          if ! grep -q "STRIPE_SECRET_KEY" .env; then
+            echo "❌ Error: Missing STRIPE_SECRET_KEY in .env!";
+            exit 1;
+          fi
+          echo "✅ All necessary environment variables are set."
+
+      - name: Deploy to Vercel (Conditional Deploy)
+        if: github.event_name == 'push'
+        run: |
+          echo "Deploying to Vercel..."
+          npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Simulate Render Deployment (Optional)
+        if: github.event_name == 'push'
+        run: |
+          echo "Simulating Render Deployment..."
+          npm run start & # 背景啟動
+          sleep 5 # 等待伺服器啟動
+          curl -I http://localhost:4000/games || echo "❌ Failed to connect to server"
