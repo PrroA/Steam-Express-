@@ -56,7 +56,7 @@ const isAdmin = (req, res, next) => {
   next();
 };
 // Interval 保持Rander不休眠
-const KEEP_ALIVE_INTERVAL = 1000 * 60 * 10  // 10 分鐘
+const KEEP_ALIVE_INTERVAL = 1000 * 60 * 10  // 10 
 setInterval(() => {
   console.log('🚀 發送 Keep-Alive 請求');
   fetch('https://steam-express.onrender.com/games')
