@@ -22,7 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ✅ 用 GitHub Secrets 生成 .env
+      - name: Run npm audit fix (force)
+        run: npm audit fix --force || echo "npm audit fix failed or requires manual intervention"
+
       - name: Create .env file from secrets
         run: |
           echo "NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}" >> .env
