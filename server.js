@@ -47,7 +47,7 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || '伺服器內部錯誤' });
 });
 
-// 中間件：用於檢查是否為管理員
+// 檢查是否為管理員
 const isAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: '您無權限執行此操作' });
@@ -55,10 +55,10 @@ const isAdmin = (req, res, next) => {
   next();
 };
 // Interval 保持Rander不休眠
-const KEEP_ALIVE_INTERVAL = 1000 * 60 * 15; // 10 分鐘
+const KEEP_ALIVE_INTERVAL = 1000 * 60 * 10  // 10 分鐘
 setInterval(() => {
   console.log('🚀 發送 Keep-Alive 請求');
-  fetch('https://gogo-amber.vercel.app/')
+  fetch('https://steam-express.onrender.com/games')
     .then((res) => console.log('Keep-Alive 成功:', res.status))
     .catch((err) => console.error('Keep-Alive 失敗:', err));
 }, KEEP_ALIVE_INTERVAL);
@@ -320,10 +320,8 @@ app.post('/checkout', authenticate, async (req, res) => {
       date: new Date().toISOString(),
       status: '未付款',
     };
-
     orders[userId].push(newOrder);
     carts[userId] = []; // 清空購物車
-
     res.status(200).json({ message: '結帳成功！', order: newOrder });
   } catch (error) {
     console.error('結帳錯誤:', error);
@@ -335,7 +333,6 @@ app.post('/checkout', authenticate, async (req, res) => {
 app.post('/pay', authenticate, (req, res) => {
   const userId = req.user.id;
   const { orderId } = req.body;
-
   console.log('訂單 ID:', orderId);
 
   const order = orders[userId]?.find((o) => o.id === orderId);
@@ -448,7 +445,6 @@ app.post('/create-payment-intent', async (req, res) => {
       amount: amount,
       currency: 'usd',
     });
-
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error('付款失敗:', error);
