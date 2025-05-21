@@ -47,7 +47,6 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || '伺服器內部錯誤' });
 });
 
-
 // 檢查是否為管理員
 const isAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
@@ -56,7 +55,7 @@ const isAdmin = (req, res, next) => {
   next();
 };
 // Interval 保持Rander不休眠
-const KEEP_ALIVE_INTERVAL = 1000 * 60 * 10  // 10 
+const KEEP_ALIVE_INTERVAL = 1000 * 60 * 10; // 10
 setInterval(() => {
   console.log('🚀 發送 Keep-Alive 請求');
   fetch('https://steam-express.onrender.com/games')
@@ -248,13 +247,11 @@ app.post('/cart', authenticate, (req, res) => {
   } else {
     carts[userId].push({ ...game, quantity: 1 }); // 新商品，設置數量為 1
   }
-
   res.status(201).json({ message: 'Added to cart', cart: carts[userId] });
 });
 // 獲取歷史訂單
 app.get('/orders', authenticate, (req, res) => {
   const userId = req.user.id;
-
   if (!orders[userId]) {
     orders[userId] = [];
   }
