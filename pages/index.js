@@ -32,7 +32,9 @@ export default function Home() {
       debouncedFetchGames.cancel();
     };
   }, [searchQuery, debouncedFetchGames]);
-
+useEffect(() => {
+  console.log('🔍 API_BASE_URL is', API_BASE_URL);
+}, []);
   useEffect(() => {
     if (sortOrder !== 'default' && games.length > 0) {
       const sortedGames = [...games];
