@@ -15,6 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const allowedOrigins = [
   'http://localhost:3000',
   'https://gogo-ten-red.vercel.app',
+  'https://gogo-amber.vercel.app',
   'https://steam-express.onrender.com',
 ];
 app.use(
