@@ -319,7 +319,7 @@ export default function ElevatorPage() {
           </ul>
         </div>
       </div>
-      {isComplete && <div style={{ marginTop: 20, color: '#4ade80', fontWeight: 'bold' }}>✅ 模擬完成！</div>}
+      {isComplete && <div style={{ marginTop: 20, color: '#4ade80', fontWeight: 'bold' }}>模擬結束！</div>}
     </main>
   );
 }
