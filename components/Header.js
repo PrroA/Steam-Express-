@@ -51,7 +51,7 @@ export function Header() {
             {/* <NavItem href="/admin" label="🛠️ 新增遊戲" /> */}
             {/* <NavItem href="/profile" label="👤 個人資料" /> */}
             <NavItem href="/ChatPage" label="💬 科普中心" />
-            <NavItem href="/elevator" label="🛗 電梯模擬" />
+            <NavItem href="/elevator" label=" 電梯模擬" />
           </motion.nav>
         )}
       </AnimatePresence>
