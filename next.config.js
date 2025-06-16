@@ -6,7 +6,7 @@ const securityHeaders = [
   {
     key: 'Content-Security-Policy',
     value: isDev
-      ? "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src 'self' http://localhost:4000;"
+      ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src 'self' http://localhost:4000;"
       : "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; connect-src 'self';",
   },
   {
