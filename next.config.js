@@ -6,8 +6,8 @@ const securityHeaders = [
   {
     key: 'Content-Security-Policy',
     value: isDev
-      ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src 'self' http://localhost:4000;"
-      : "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; connect-src 'self';",
+      ? `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:4000;`
+      : `default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://your-api-domain.com;`,
   },
   {
     key: 'Strict-Transport-Security',
