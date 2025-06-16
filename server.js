@@ -31,7 +31,7 @@ app.use(
 );
 app.use(express.json());
 
-console.log('🚀 正在運行 `server.js`...');
+console.log('Web sevrer is running' + new Date());
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY,
 // });
@@ -457,7 +457,6 @@ app.get('/profile', authenticate, (req, res) => {
   if (!user) {
     return res.status(404).json({ message: '用戶未找到' });
   }
-
   res.json({
     id: user.id,
     username: user.username,
@@ -502,7 +501,6 @@ app.post('/reviews', authenticate, (req, res) => {
   reviews[gameId].push(newReview);
   res.status(201).json(newReview);
 });
-
 // 客服聊天室 (dev)
 io.on('connection', (socket) => {
   console.log('用戶連線');
@@ -517,11 +515,9 @@ io.on('connection', (socket) => {
       text: message.text,
       timestamp: new Date().toLocaleTimeString(),
     };
-
     messages.push(newMessage); // 儲存訊息
     io.emit('receiveMessage', newMessage);
   });
-
   setTimeout(() => {
     const autoReply = {
       user: '客服中心',
@@ -552,7 +548,6 @@ app.post('/gpt-reply', async (req, res) => {
         { role: 'user', content: message },
       ],
     });
-
     const reply = completion.choices?.[0]?.message?.content;
     res.json({ reply: reply || '（GPT 沒有回覆內容）' });
   } catch (err) {
@@ -563,7 +558,7 @@ app.post('/gpt-reply', async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`✅ 伺服器運行中: http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
 
 module.exports = app;

@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { Header } from '../../components/Header';
 import { fetchGameDetails } from '../api/gameApi';
 import { addToCart } from '../api/cartApi';
 import axios from 'axios';
@@ -131,85 +130,82 @@ export default function GameDetail() {
   }
 
   return (
-    <>
-      <Header />
-      <div className="p-6 bg-gray-900 min-h-screen text-white">
-        <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
-          {/* 遊戲標題 & 圖片 */}
-          <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
-          <Image
-            src={game.image || '/public/vercel.svg'}
-            alt={game.name}
-            width={400}
-            height={300}
-            className="w-full h-64 rounded-lg shadow"
-            priority={true}
-          />
-          {/* 遊戲資訊 */}
-          <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
-          <p className="text-gray-300 mt-2">{game.description}</p>
+    <div className="p-6 bg-gray-900 min-h-screen text-white">
+      <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+        {/* 遊戲標題 & 圖片 */}
+        <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
+        <Image
+          src={game.image || '/public/vercel.svg'}
+          alt={game.name}
+          width={400}
+          height={300}
+          className="w-full h-64 rounded-lg shadow"
+          priority={true}
+        />
+        {/* 遊戲資訊 */}
+        <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
+        <p className="text-gray-300 mt-2">{game.description}</p>
 
-          {/* 操作按鈕 */}
-          <div className="mt-6 flex space-x-4">
+        {/* 操作按鈕 */}
+        <div className="mt-6 flex space-x-4">
+          <button
+            onClick={handleAddToCart}
+            className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 transition"
+          >
+            加入購物車
+          </button>
+          <button
+            onClick={handleAddToWishlist}
+            className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-400 transition"
+          >
+            加入願望清單
+          </button>
+          <button
+            onClick={GotoCart}
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
+          >
+            前往購物車
+          </button>
+        </div>
+
+        {/* 評論區 */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold">💬 評論</h2>
+
+          {/* 新增評論 */}
+          <div className="mt-4">
+            <textarea
+              value={newReview}
+              onChange={(e) => setNewReview(e.target.value)}
+              placeholder="寫下你的評論......"
+              className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+            ></textarea>
             <button
-              onClick={handleAddToCart}
-              className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 transition"
+              onClick={handleSubmitReview}
+              disabled={isSubmitting}
+              className="mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
             >
-              加入購物車
-            </button>
-            <button
-              onClick={handleAddToWishlist}
-              className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-400 transition"
-            >
-              加入願望清單
-            </button>
-            <button
-              onClick={GotoCart}
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
-            >
-              前往購物車
+              {isSubmitting ? '提交中...' : '發表評論'}
             </button>
           </div>
 
-          {/* 評論區 */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold">💬 評論</h2>
-
-            {/* 新增評論 */}
-            <div className="mt-4">
-              <textarea
-                value={newReview}
-                onChange={(e) => setNewReview(e.target.value)}
-                placeholder="寫下你的評論......"
-                className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
-              ></textarea>
-              <button
-                onClick={handleSubmitReview}
-                disabled={isSubmitting}
-                className="mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
-              >
-                {isSubmitting ? '提交中...' : '發表評論'}
-              </button>
-            </div>
-
-            {/* 顯示評論列表 */}
-            {reviews.length === 0 ? (
-              <p className="mt-4 text-gray-400">暫無評論，成為第一個評論的人！</p>
-            ) : (
-              <ul className="mt-4 space-y-4">
-                {reviews.map((review, index) => (
-                  <li key={index} className="p-4 bg-gray-700 rounded shadow">
-                    <p className="text-white">{review.content}</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      🕒 {new Date(review.createdAt).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* 顯示評論列表 */}
+          {reviews.length === 0 ? (
+            <p className="mt-4 text-gray-400">暫無評論，成為第一個評論的人！</p>
+          ) : (
+            <ul className="mt-4 space-y-4">
+              {reviews.map((review, index) => (
+                <li key={index} className="p-4 bg-gray-700 rounded shadow">
+                  <p className="text-white">{review.content}</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    🕒 {new Date(review.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

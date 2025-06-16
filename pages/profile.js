@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Header } from '../components/Header';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function ProfilePage() {
@@ -50,7 +49,6 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white">
         <h1 className="text-3xl font-bold mb-6">👤 個人資料</h1>
 

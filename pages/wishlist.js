@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Header } from '../components/Header';
 import { addToCart } from './api/cartApi';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
@@ -59,7 +58,6 @@ export default function WishlistPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
           <div className="w-12 h-12 border-4 border-blue-500 border-dotted rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-400">加載中...</p>
@@ -71,7 +69,6 @@ export default function WishlistPage() {
   if (wishlist.length === 0) {
     return (
       <>
-        <Header />
         <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
           <FaHeartBroken size={80} className="text-gray-600 mb-4" />
           <h1 className="text-2xl font-bold">你的收藏清單是空的</h1>
@@ -89,7 +86,6 @@ export default function WishlistPage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white">
         <h1 className="text-3xl font-bold mb-6 text-center">❤️ 我的收藏</h1>
 

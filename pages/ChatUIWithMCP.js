@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Header } from '../components/Header';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 const possibleKeywords = [
@@ -116,7 +115,6 @@ export default function ChatPage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center">
         <h1 className="text-2xl font-bold mb-4 text-white">💬 客服中心</h1>
         <div className="w-full max-w-2xl flex flex-col bg-gray-800 p-4 rounded-lg shadow-md h-[500px] overflow-y-auto">

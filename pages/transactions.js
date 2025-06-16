@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Header } from '../components/Header';
 import Link from 'next/link';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
@@ -29,7 +28,6 @@ export default function TransactionsPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
           <div className="w-12 h-12 border-4 border-blue-500 border-dotted rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-400">加載中...</p>
@@ -41,7 +39,6 @@ export default function TransactionsPage() {
   if (transactions.length === 0) {
     return (
       <>
-        <Header />
         <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
           <FaFileInvoiceDollar size={80} className="text-gray-600 mb-4" />
           <h1 className="text-2xl font-bold">目前沒有交易記錄</h1>
@@ -59,7 +56,6 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white">
         <h1 className="text-3xl font-bold mb-6 text-center">💰 交易記錄</h1>
 

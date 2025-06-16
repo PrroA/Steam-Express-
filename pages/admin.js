@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Header } from '../components/Header';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
@@ -39,7 +38,6 @@ export default function AdminPage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white flex flex-col items-center">
         <h1 className="text-3xl font-bold mb-6">🛠️ 管理界面</h1>
 

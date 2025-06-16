@@ -1,15 +1,13 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Header } from '../../components/Header';
 
 export default function OrderDetail() {
   const router = useRouter();
-  const { orderId } = router.query; // 動態路由參數
-  const [order, setOrder] = useState(null); // 儲存訂單資訊
-  const [loading, setLoading] = useState(true); // 控制加載狀態
+  const { orderId } = router.query;
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
-
   useEffect(() => {
     const loadOrder = async () => {
       const token = localStorage.getItem('token');
@@ -17,28 +15,25 @@ export default function OrderDetail() {
         const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOrder(response.data); // 儲存訂單資訊
+        setOrder(response.data);
       } catch (error) {
         console.error('無法獲取訂單詳情:', error.response?.data || error.message);
       } finally {
-        setLoading(false); // 加載完成
+        setLoading(false);
       }
     };
-
     if (orderId) loadOrder();
   }, [orderId]);
 
   if (loading) {
     return <div className="p-6 bg-gray-100 min-h-screen">加載中...</div>;
   }
-
   if (!order) {
     return <div className="p-6 bg-gray-100 min-h-screen">未找到訂單</div>;
   }
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-100 min-h-screen">
         <h1 className="text-2xl font-bold text-gray-700">訂單詳情</h1>
         <div className="max-w-4xl mx-auto bg-white p-4 rounded-lg shadow mt-4">

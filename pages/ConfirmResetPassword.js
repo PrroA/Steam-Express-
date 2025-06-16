@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
-import { Header } from '../components/Header';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function ConfirmResetPasswordPage() {
@@ -33,7 +32,6 @@ export default function ConfirmResetPasswordPage() {
 
   return (
     <>
-      <Header />
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md">
           <h1 className="text-2xl font-bold text-blue-500 mb-4 text-center">重設密碼</h1>

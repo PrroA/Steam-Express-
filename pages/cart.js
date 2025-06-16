@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { fetchCart, removeFromCart } from './api/cartApi'; // API 方法
-import { Header } from '../components/Header';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaShoppingCart } from 'react-icons/fa';
@@ -85,7 +84,7 @@ export default function CartPage() {
   const handleQuantityChange = async (id, change) => {
     const token = localStorage.getItem('token');
     const item = cart.find((item) => item.id === id);
-    const newQuantity = Math.max(1, item.quantity + change); // 確保數量不小於 1
+    const newQuantity = Math.max(1, item.quantity + change);
 
     try {
       const response = await axios.patch(
@@ -123,11 +122,9 @@ export default function CartPage() {
       toast.error('結帳失敗，請稍後再試');
     }
   };
-
   if (cart.length === 0) {
     return (
       <>
-        <Header />
         <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
           <FaShoppingCart size={80} className="text-gray-600 mb-4" />
           <h1 className="text-2xl font-bold">你的購物車是空的</h1>
@@ -145,7 +142,6 @@ export default function CartPage() {
 
   return (
     <>
-      <Header />
       <div className="p-6 bg-gray-900 min-h-screen text-white">
         <h1 className="text-3xl font-bold mb-6 text-center">🛒 購物車</h1>
 

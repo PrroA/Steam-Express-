@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Header } from '../components/Header';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
@@ -52,7 +51,6 @@ export default function Home() {
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
-      <Header />
       <Carousel />
       <div className="p-4 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
         <input

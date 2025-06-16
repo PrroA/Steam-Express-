@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Header } from '../components/Header';
 import { toast } from 'react-toastify';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
@@ -87,7 +86,6 @@ export default function RegisterPage() {
 
   return (
     <>
-      <Header />
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <form
           onSubmit={handleRegister}

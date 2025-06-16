@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
-import { Header } from '../components/Header';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
@@ -25,7 +24,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Header />
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <form
           onSubmit={handleForgotPassword}
