@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-
 const isDev = process.env.NODE_ENV === 'development';
 
 const ContentSecurityPolicy = isDev
@@ -7,14 +6,14 @@ const ContentSecurityPolicy = isDev
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' http://localhost:4000;
+    connect-src 'self' http://localhost:4000 ws://localhost:4000;
     object-src 'none';
   `
   : `
     default-src 'self';
-    script-src 'self' https://js.stripe.com;
+    script-src 'self' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' https://your-api-domain.com;
+    connect-src 'self' https://steam-express.onrender.com https://api.stripe.com;
     object-src 'none';
   `;
 
