@@ -2,12 +2,26 @@
 
 const isDev = process.env.NODE_ENV === 'development';
 
+const ContentSecurityPolicy = isDev
+  ? `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' http://localhost:4000;
+    object-src 'none';
+  `
+  : `
+    default-src 'self';
+    script-src 'self' https://js.stripe.com;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://your-api-domain.com;
+    object-src 'none';
+  `;
+
 const securityHeaders = [
   {
     key: 'Content-Security-Policy',
-    value: isDev
-      ? `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:4000;`
-      : `default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://your-api-domain.com;`,
+    value: ContentSecurityPolicy.replace(/\s{2,}/g, ' ').trim(),
   },
   {
     key: 'Strict-Transport-Security',
