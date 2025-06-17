@@ -1,4 +1,4 @@
-// next.config.js
+/** @type {import('next').NextConfig} */
 
 const ContentSecurityPolicy = `
   default-src 'self';
@@ -37,6 +37,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone', // ✅ 關鍵補充：確保 Vercel 使用 CSP headers
   images: {
     domains: ['upload.wikimedia.org'],
   },
