@@ -5,6 +5,7 @@ const ContentSecurityPolicy = `
   script-src 'self' https://js.stripe.com 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   connect-src 'self' https://steam-express.onrender.com;
+  frame-src https://js.stripe.com;
   object-src 'none';
 `;
 
@@ -37,7 +38,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone', // ✅ 關鍵補充：確保 Vercel 使用 CSP headers
+  output: 'standalone',
   images: {
     domains: ['upload.wikimedia.org'],
   },
