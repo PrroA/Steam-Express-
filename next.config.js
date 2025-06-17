@@ -1,13 +1,22 @@
 /** @type {import('next').NextConfig} */
 
-const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' https://js.stripe.com 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  connect-src 'self' https://steam-express.onrender.com;
-  frame-src https://js.stripe.com;
-  object-src 'none';
-`;
+const isDev = process.env.NODE_ENV === 'development';
+
+const ContentSecurityPolicy = isDev
+  ? `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' http://localhost:4000 https://steam-express.onrender.com;
+    object-src 'none';
+  `
+  : `
+    default-src 'self';
+    script-src 'self' https://js.stripe.com;
+    style-src 'self' 'unsafe-inline';
+    connect-src 'self' https://steam-express.onrender.com;
+    object-src 'none';
+  `;
 
 const securityHeaders = [
   {
