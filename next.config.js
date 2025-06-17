@@ -38,13 +38,14 @@ const nextConfig = {
   images: {
     domains: ['upload.wikimedia.org'],
   },
-  headers: async () => [
-    {
-      // ✅ 對所有 route 包含靜態資源生效
-      source: '/(.*)',
-      headers: securityHeaders,
-    },
-  ],
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
