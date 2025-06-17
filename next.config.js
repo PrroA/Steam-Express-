@@ -1,5 +1,3 @@
-/** @type {import('next').NextConfig} */
-
 const isDev = process.env.NODE_ENV === 'development';
 
 const ContentSecurityPolicy = isDev
@@ -7,14 +5,14 @@ const ContentSecurityPolicy = isDev
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' http://localhost:4000 https://steam-express.onrender.com;
+    connect-src 'self' http://localhost:4000 ws://localhost:4000;
     object-src 'none';
   `
   : `
     default-src 'self';
     script-src 'self' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' https://steam-express.onrender.com https://gogo-amber.vercel.app;
+    connect-src 'self' https://steam-express.onrender.com https://js.stripe.com;
     object-src 'none';
   `;
 
@@ -62,9 +60,5 @@ const nextConfig = {
     ];
   },
 };
-
-// Optional: print for debug
-console.log('[CSP] isDev:', isDev);
-console.log('[CSP] policy:', ContentSecurityPolicy);
 
 module.exports = nextConfig;
