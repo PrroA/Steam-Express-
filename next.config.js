@@ -1,3 +1,5 @@
+// next.config.js
+
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' https://js.stripe.com 'unsafe-inline';
