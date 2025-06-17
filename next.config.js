@@ -33,13 +33,14 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=()',
   },
+  {
+    key: 'X-Debug-Test',
+    value: 'yes-i-am-applied'
+  }
 ];
 
 const nextConfig = {
   reactStrictMode: true,
-  images: {
-    domains: ['upload.wikimedia.org'],
-  },
   async headers() {
     return [
       {
