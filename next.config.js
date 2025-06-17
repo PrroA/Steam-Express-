@@ -1,6 +1,6 @@
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' https://js.stripe.com;
+  script-src 'self' https://js.stripe.com 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   connect-src 'self' https://steam-express.onrender.com;
   object-src 'none';
@@ -38,14 +38,13 @@ const nextConfig = {
   images: {
     domains: ['upload.wikimedia.org'],
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: securityHeaders,
-      },
-    ];
-  },
+  headers: async () => [
+    {
+      // ✅ 對所有 route 包含靜態資源生效
+      source: '/(.*)',
+      headers: securityHeaders,
+    },
+  ],
 };
 
 module.exports = nextConfig;
