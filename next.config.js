@@ -35,12 +35,18 @@ const securityHeaders = [
   },
   {
     key: 'X-Debug-Test',
-    value: 'yes-i-am-applied'
+    value: 'headers-applied'
   }
 ];
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    domains: ['upload.wikimedia.org'],
+  },
+  experimental: {
+    optimizeCss: true,
+  },
   async headers() {
     return [
       {
