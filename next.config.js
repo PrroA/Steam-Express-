@@ -1,5 +1,3 @@
-/** @type {import('next').NextConfig} */
-
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' https://js.stripe.com;
@@ -33,19 +31,12 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=()',
   },
-  {
-    key: 'X-Debug-Test',
-    value: 'headers-applied'
-  }
 ];
 
 const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: ['upload.wikimedia.org'],
-  },
-  experimental: {
-    optimizeCss: true,
   },
   async headers() {
     return [
