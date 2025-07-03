@@ -14,9 +14,9 @@ export default function GameDetail() {
   const { id } = router.query;
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState([]); // 儲存遊戲評論
-  const [newReview, setNewReview] = useState(''); // 新評論內容
-  const [isSubmitting, setIsSubmitting] = useState(false); // 評論提交狀態
+  const [reviews, setReviews] = useState([]); 
+  const [newReview, setNewReview] = useState(''); 
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   useEffect(() => {
     const loadGameDetails = async () => {
@@ -85,8 +85,7 @@ export default function GameDetail() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      toast.success('已加入願望清單');
-    } catch (error) {
+        } catch (error) {
       console.error('添加到收藏清單失敗:', error.response?.data || error.message);
       toast.error('添加到收藏清單失敗');
     }
@@ -145,7 +144,6 @@ export default function GameDetail() {
         {/* 遊戲資訊 */}
         <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
         <p className="text-gray-300 mt-2">{game.description}</p>
-
         {/* 操作按鈕 */}
         <div className="mt-6 flex space-x-4">
           <button
@@ -171,7 +169,6 @@ export default function GameDetail() {
         {/* 評論區 */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold">💬 評論</h2>
-
           {/* 新增評論 */}
           <div className="mt-4">
             <textarea

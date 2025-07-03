@@ -16,9 +16,9 @@ const ELEVATOR_STATUS = {
 
 // 乘客狀態
 const PASSENGER_STATUS = {
-  WAITING: 'waiting', // 等待搭乘
-  IN_ELEVATOR: 'inElevator', // 在電梯內
-  DONE: 'done', // 已完成搭乘
+  WAITING: 'waiting', 
+  IN_ELEVATOR: 'inElevator', 
+  DONE: 'done', 
 };
 
 // 電梯
@@ -41,8 +41,6 @@ const createElevator = (id, waitingMap) => {
       if (this.status === ELEVATOR_STATUS.LOADING && this.statusTimer >= STOP_TIME) {
         return true;
       }
-
-      // 如果電梯移動到目標樓層且超過移動時間，可以停
       if (
         this.status === ELEVATOR_STATUS.MOVING &&
         this.statusTimer >= MOVE_TIME &&
@@ -185,8 +183,6 @@ const createElevator = (id, waitingMap) => {
     unload() {
       const leaving = this.passengers.filter((p) => p.to === this.floor);
       this.passengers = this.passengers.filter((p) => p.to !== this.floor);
-
-      // 只有當所有該樓層乘客下完，才移除目標樓層
       const stillGoingToThisFloor = this.passengers.some((p) => p.to === this.floor);
       if (!stillGoingToThisFloor) {
         this.targetFloors.delete(this.floor);
@@ -209,7 +205,7 @@ const createBuilding = () => {
     waitingMap.set(i, []);
   }
 
-  // 建立電梯時傳入 waitingMap
+
   const elevators = [createElevator(1, waitingMap), createElevator(2, waitingMap)];
   const people = [];
   const logs = [];
@@ -239,14 +235,14 @@ const createBuilding = () => {
       logs.push({ time, message: `👤 新乘客#${person.id} 在 ${from} 樓等待前往 ${to} 樓` });
     }
 
-    // 更新等待時間（只更新還在等待的乘客）
+
     people.forEach((person) => {
       if (person.status === PASSENGER_STATUS.WAITING) {
         person.waitTime++;
       }
     });
 
-    // 電梯運作
+
     elevators.forEach((elevator) => {
       if (elevator.move()) {
         logs.push({
@@ -256,12 +252,10 @@ const createBuilding = () => {
       }
 
       if (elevator.canStop()) {
-        // 只取還在等待的乘客
+
         const waitingList = (waitingMap.get(elevator.floor) || []).filter(
           (p) => p.status === PASSENGER_STATUS.WAITING
         );
-
-        // 處理停靠客人
         const leaving = elevator.unload();
         if (leaving.length > 0) {
           leaving.forEach((p) => {
@@ -331,7 +325,6 @@ export default function ElevatorPage() {
 
   useEffect(() => {
     buildingRef.current = createBuilding();
-
     const interval = setInterval(() => {
       const result = buildingRef.current.step();
       setLogs(result.logs);
@@ -404,8 +397,6 @@ export default function ElevatorPage() {
               </div>
             ))}
           </div>
-
-          {/* 運作日誌 */}
           <div className="w-[400px] max-h-[600px] overflow-y-auto bg-gray-800 p-4 rounded-lg shadow-md text-white text-sm font-mono">
             <ul>
               {logs.map((log, index) => (
@@ -416,8 +407,6 @@ export default function ElevatorPage() {
             </ul>
           </div>
         </div>
-
-        {/* 完成提示 */}
         {isComplete && (
           <div className="mt-6 text-center text-green-400 font-bold text-lg">✅ 完成！</div>
         )}
