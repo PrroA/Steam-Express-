@@ -7,18 +7,17 @@ import { toast } from 'react-toastify';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'; 
 export default function GameDetail() {
-  const router = useRouter();
-  const { id } = router.query;
-  const [game, setGame] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter(); 
+  const { id } = router.query; 
+  const [game, setGame] = useState(null); 
+  const [loading, setLoading] = useState(true); 
   const [reviews, setReviews] = useState([]); 
   const [newReview, setNewReview] = useState(''); 
   const [isSubmitting, setIsSubmitting] = useState(false); 
 
-  useEffect(() => {
+  useEffect(() => { 
     const loadGameDetails = async () => {
       try {
         const data = await fetchGameDetails(id);
@@ -85,7 +84,8 @@ export default function GameDetail() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-        } catch (error) {
+      toast.success('已加入願望清單');
+    } catch (error) {
       console.error('添加到收藏清單失敗:', error.response?.data || error.message);
       toast.error('添加到收藏清單失敗');
     }
@@ -133,14 +133,17 @@ export default function GameDetail() {
       <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
         {/* 遊戲標題 & 圖片 */}
         <h1 className="text-3xl font-bold mb-4">{game.name}</h1>
-        <Image
-          src={game.image || '/public/vercel.svg'}
-          alt={game.name}
-          width={400}
-          height={300}
-          className="w-full h-64 rounded-lg shadow"
-          priority={true}
-        />
+        {/* 圖片區塊，維持 16:9 比例且最大寬度不超過 480px */}
+        <div className="relative w-full max-w-md mx-auto aspect-video rounded-lg overflow-hidden bg-gray-700 mb-4">
+          <Image
+            src={game.image || '/public/vercel.svg'}
+            alt={game.name}
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            className="rounded-lg"
+            priority={true}
+          />
+        </div>
         {/* 遊戲資訊 */}
         <p className="text-xl font-bold text-yellow-400 mt-4">價格: {game.price}</p>
         <p className="text-gray-300 mt-2">{game.description}</p>
@@ -191,15 +194,20 @@ export default function GameDetail() {
             <p className="mt-4 text-gray-400">暫無評論，成為第一個評論的人！</p>
           ) : (
             <ul className="mt-4 space-y-4">
-              {reviews.map((review, index) => (
-                <li key={index} className="p-4 bg-gray-700 rounded shadow">
-                  <p className="text-white">{review.content}</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    🕒 {new Date(review.createdAt).toLocaleString()}
-                  </p>
-                </li>
-              ))}
-            </ul>
+  {reviews.map((review, index) => (
+    <li key={index} className="p-4 bg-gray-700 rounded shadow">
+      <div className="flex items-center mb-1">
+        <span className="text-blue-400 font-bold mr-2">
+          {review.username || '匿名'}
+        </span>
+        <span className="text-sm text-gray-400">
+          🕒 {new Date(review.createdAt).toLocaleString()}
+        </span>
+      </div>
+      <p className="text-white">{review.content}</p>
+    </li>
+  ))}
+</ul>
           )}
         </div>
       </div>

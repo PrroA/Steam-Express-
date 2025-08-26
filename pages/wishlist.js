@@ -16,15 +16,15 @@ export default function WishlistPage() {
     const loadWishlist = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get(`${API_BASE_URL}/wishlist`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setWishlist(response.data);
-      } catch (error) {
-        console.error('Unable to get wishlist:', error.response?.data || error.message);
-      } finally {
-        setLoading(false);
-      }
+        const response = await axios.get(`${API_BASE_URL}/wishlist`, { 
+          headers: { Authorization: `Bearer ${token}` }, 
+        }); 
+        setWishlist(response.data); 
+      } catch (error) { 
+        console.error('Unable to get wishlist:', error.response?.data || error.message); 
+      } finally { 
+        setLoading(false); 
+      }  
     };
     loadWishlist();
   }, []);

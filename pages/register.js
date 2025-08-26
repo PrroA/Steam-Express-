@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
+import { useRouter } from 'next/router';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export default function RegisterPage() {
+    const router = useRouter(); 
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -76,7 +78,7 @@ export default function RegisterPage() {
         password: formData.password,
       });
       toast.success('註冊成功！');
-      // 可以在這裡添加重定向到登入頁面的邏輯
+            router.push('/login');
     } catch (error) {
       toast.error(error.response?.data?.message || '註冊失敗');
     } finally {

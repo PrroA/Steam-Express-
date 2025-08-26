@@ -48,9 +48,9 @@ export function Header() {
             <NavItem href="/orders" label="📦 訂單" />
             <NavItem href="/wishlist" label="❤️ 願望清單" />
             <NavItem href="/transactions" label="💰 交易記錄" />
-            {/* <NavItem href="/admin" label="🛠️ 新增遊戲" /> */}
+            <NavItem href="/admin" label="🛠️ 新增遊戲" />
             {/* <NavItem href="/profile" label="👤 個人資料" /> */}
-            <NavItem href="/ChatPage" label="💬 科普中心" />
+            {/* <NavItem href="/ChatPage" label="💬 科普中心" /> */}
             {/* <NavItem href="/elevator" label=" 電梯模擬" /> */}
           </motion.nav>
         )}

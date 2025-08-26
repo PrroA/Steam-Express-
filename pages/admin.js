@@ -25,7 +25,8 @@ export default function AdminPage() {
       toast.success('遊戲已添加');
       router.push('/');
     } catch (error) {
-      toast.error('❌ 添加遊戲失敗：' + (error.response?.data?.message || error.message));
+      toast.error('❌ 添加遊戲失敗：因您不是管理員');
+      console.error(error.response?.data || error);
     }
   };
 

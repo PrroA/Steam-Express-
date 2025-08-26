@@ -13,24 +13,23 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
-      localStorage.setItem('token', response.data.token); // 保存 JWT Token
-      toast.success('✅登入成功');
-      router.push('/'); // 登入成功後跳轉
-    } catch (error) {
-      toast.error('❌' + (error.response?.data?.message || '登入失敗，請檢查帳號或密碼'));
+      const response = await axios.post(`${API_BASE_URL}/login`, { username, password }); 
+      localStorage.setItem('token', response.data.token); // 保存 JWT Token 
+      toast.success('登入成功'); 
+      router.push('/'); 
+    } catch (error) { 
+      toast.error('❌' + (error.response?.data?.message || '登入失敗，請檢查帳號或密碼')); 
     }
   };
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <form onSubmit={handleLogin} className="bg-gray-800 p-6 rounded-lg shadow-lg w-96">
-          <h1 className="text-2xl font-bold mb-6 text-white text-center">🔑 登入</h1>
-
-          <input
-            type="text"
-            placeholder="👤 帳號 admin"
+      <div className="flex items-center justify-center min-h-screen bg-gray-900"> 
+        <form onSubmit={handleLogin} className="bg-gray-800 p-6 rounded-lg shadow-lg w-96"> 
+          <h1 className="text-2xl font-bold mb-6 text-white text-center">🔑 登入</h1> 
+          <input 
+            type="text" 
+            placeholder="👤 帳號 admin" 
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full border border-gray-600 bg-gray-700 text-white px-4 py-2 rounded mb-4 focus:border-blue-500"
