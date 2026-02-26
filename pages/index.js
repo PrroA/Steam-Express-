@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
-import { fetchGames as fetchGamesList } from '../services/storeService';
+import { fetchGames as fetchGamesList } from '../services/storeService'
 
 export default function Home() {
   const [games, setGames] = useState([]);
