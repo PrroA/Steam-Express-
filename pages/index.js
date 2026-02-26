@@ -2,131 +2,115 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
+import { fetchGames as fetchGamesList } from '../services/storeService';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
-
-
-function Popup({ show, onClose, children }) {
-  if (!show) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-xl shadow-lg p-8 max-w-md w-full text-white relative">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl"
-          aria-label="關閉"
-        >
-          ×
-        </button>
-        {children}
-      </div>
-    </div>
-  );
-}
 export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
-    const [showPopup, setShowPopup] = useState(false);
-    useEffect(() => {
-    const timer = setTimeout(() => setShowPopup(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-  const fetchGames = useCallback(async (query) => {
-    try { 
-      const response = await fetch(`${API_BASE_URL}/games?query=${query}`); 
-      const data = await response.json(); 
-      setGames(data); 
-      setLoading(false); 
-    } catch (error) { 
-      console.error('Error fetching games:', error); 
-      setLoading(false); 
-    }
-  }, []);
-  const debouncedFetchGames = useMemo(() => { 
-    return debounce(fetchGames, 300); 
-  }, [fetchGames]); 
+  const [showTip, setShowTip] = useState(true);
 
-  useEffect(() => { 
-    setLoading(true); 
-    debouncedFetchGames(searchQuery); 
-    return () => { 
-      debouncedFetchGames.cancel(); 
-    }; 
-  }, [searchQuery, debouncedFetchGames]); 
-useEffect(() => { 
-  console.log('🔍 API_BASE_URL is', API_BASE_URL); 
-}, []); 
-  useEffect(() => { 
-    if (sortOrder !== 'default' && games.length > 0) { 
-      const sortedGames = [...games];
-      if (sortOrder === 'low-to-high') { 
-        sortedGames.sort(  
-          (a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', '')) 
-        ); 
-      } else if (sortOrder === 'high-to-low') { 
-        sortedGames.sort( 
-          (a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', '')) 
-        );
-      }
-      setGames(sortedGames);
+  const fetchGames = useCallback(async (query) => {
+    try {
+      const data = await fetchGamesList(query);
+      setGames(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      setLoading(false);
     }
-  }, [sortOrder, games]);
+  }, []);
+  const debouncedFetchGames = useMemo(() => {
+    return debounce(fetchGames, 300);
+  }, [fetchGames]);
+
+  const sortedGames = useMemo(() => {
+    if (sortOrder === 'default') {
+      return games;
+    }
+    const nextGames = [...games];
+    if (sortOrder === 'low-to-high') {
+      nextGames.sort(
+        (a, b) => parseFloat(a.price.replace('$', '')) - parseFloat(b.price.replace('$', ''))
+      );
+    } else if (sortOrder === 'high-to-low') {
+      nextGames.sort(
+        (a, b) => parseFloat(b.price.replace('$', '')) - parseFloat(a.price.replace('$', ''))
+      );
+    }
+    return nextGames;
+  }, [games, sortOrder]);
+
+  useEffect(() => {
+    setLoading(true);
+    debouncedFetchGames(searchQuery);
+    return () => {
+      debouncedFetchGames.cancel();
+    };
+  }, [searchQuery, debouncedFetchGames]);
 
   return (
-    <div className="bg-gray-900 min-h-screen text-white">
+    <main className="steam-shell pb-8">
       <Carousel />
-            <Popup show={showPopup} onClose={() => setShowPopup(false)}>
-        <h2 className="text-xl font-bold mb-2">小提醒</h2>
-        <p className="mb-4 text-gray-300">
-          任何的操作 請先註冊!!!!<br />
-          這裡可以搜尋、瀏覽、模擬支付各類遊戲<br />
-          有任何問題歡迎聯絡我！
-        </p>
-        <button
-          onClick={() => setShowPopup(false)}
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white font-semibold flex justify-center items-center"
-        >
-          關閉
-        </button>
-      </Popup>
-      <div className="p-4 max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-        <input
-          type="text"
-          placeholder="🔍 搜索遊戲..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-1/2 p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
-        />
-        <select 
-          value={sortOrder} 
-          onChange={(e) => setSortOrder(e.target.value)} 
-          className="p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" 
-        >
-          <option value="default">預設排序</option> 
-          <option value="low-to-high">價格：低 ➝ 高</option> 
-          <option value="high-to-low">價格：高 ➝ 低</option> 
-        </select>
-      </div>
-      {loading ? (
-        <div className="text-center p-10">
-          <div className="w-10 h-10 border-4 border-blue-500 border-dotted rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-400">加載中...</p>
-        </div>
-      ) : (
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {games.length === 0 ? (
-            <p className="text-center col-span-4 text-gray-400">未找到符合的遊戲。</p>
-          ) : (
-            games.map((game) => (
-              <div key={game.id} className="hover:scale-105 transition transform duration-200">
-                <GameCard game={game} />
-              </div>
-            ))
-          )}
-        </div>
+
+      {showTip && (
+        <section className="steam-fade-up mx-auto mt-4 flex w-[95%] max-w-6xl items-center justify-between gap-3 rounded-xl border border-[#66c0f433] bg-[#172839] px-4 py-3 text-sm text-[#c0d8eb]">
+          <p>提示：這是作品集練習版，註冊後可完整體驗購物流程與付款模擬。</p>
+          <button
+            onClick={() => setShowTip(false)}
+            className="rounded border border-[#66c0f455] px-3 py-1 text-xs transition hover:bg-[#24384d]"
+          >
+            關閉
+          </button>
+        </section>
       )}
-    </div>
+
+      <section className="mx-auto mt-6 w-[95%] max-w-6xl">
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">STORE BROWSE</p>
+            <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">遊戲商店</h2>
+          </div>
+          <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+            <input
+              type="text"
+              placeholder="搜尋遊戲名稱..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none md:w-80"
+            />
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+            >
+              <option value="default">預設排序</option>
+              <option value="low-to-high">價格：低到高</option>
+              <option value="high-to-low">價格：高到低</option>
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="steam-panel flex min-h-44 items-center justify-center rounded-xl p-10">
+            <div className="flex flex-col items-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
+              <p className="mt-3 text-sm text-[#9eb4c8]">資料載入中...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {sortedGames.length === 0 ? (
+              <p className="steam-panel col-span-4 rounded-xl p-10 text-center text-[#9eb4c8]">
+                沒有符合搜尋條件的遊戲。
+              </p>
+            ) : (
+              sortedGames.map((game) => <GameCard key={game.id} game={game} />)
+            )}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }

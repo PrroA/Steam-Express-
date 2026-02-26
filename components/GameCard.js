@@ -2,30 +2,40 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export function GameCard({ game }) {
+  const priceNumber = parseFloat((game.price || '$0').replace('$', '')) || 0;
+  const basePrice = priceNumber > 0 ? priceNumber * 1.35 : 1;
+  const originalPrice = basePrice.toFixed(2);
+  const discountPercent = Math.min(70, Math.max(5, Math.round((1 - priceNumber / basePrice) * 100)));
+
   return (
-    <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow flex flex-col h-[350px]">
-      <div className="w-full h-[200px] relative">
+    <article className="steam-panel group flex h-[370px] flex-col overflow-hidden rounded-xl transition duration-300 hover:-translate-y-1 hover:border-[#66c0f477] hover:bg-[#24384d]">
+      <div className="relative h-[205px] w-full overflow-hidden">
         <Image
-          src={game.image || '/public/vercel.svg'}
+          src={game.image || '/vercel.svg'}
           alt={game.name}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           style={{ objectFit: 'cover' }}
-          className="rounded-lg"
-          priority={true}
+          className="transition duration-300 group-hover:scale-105"
+          priority
         />
+        <div className="absolute left-3 top-3 rounded bg-[#1b2f44d9] px-2 py-1 text-xs font-bold text-[#8bc53f]">
+          -{discountPercent}%
+        </div>
       </div>
-      <div className="flex flex-col flex-1 justify-between mt-2">
-        <div>
-          <h3 className="text-lg font-bold">{game.name}</h3>
-          <p className="text-gray-400">{game.price}</p>
+      <div className="flex flex-1 flex-col justify-between p-4">
+        <div className="space-y-2">
+          <h3 className="min-h-14 text-lg font-extrabold text-[#d8e6f3]">{game.name}</h3>
+          <p className="text-xs text-[#9eb4c8]">{game.description || 'No description available.'}</p>
+          <div className="flex items-end gap-2">
+            <span className="text-xs text-[#8ca7bc] line-through">${originalPrice}</span>
+            <span className="text-lg font-black text-[#8bc53f]">{game.price}</span>
+          </div>
         </div>
         <Link href={`/game/${game.id}`}>
-          <button className="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded mt-2">
-            查看詳情
-          </button>
+          <button className="steam-btn mt-4 w-full rounded-md py-2 text-sm transition-all">查看詳情</button>
         </Link>
       </div>
-    </div>
+    </article>
   );
 }

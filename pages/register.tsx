@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+import Link from 'next/link';
+import { registerUser } from '../services/authService';
 
 export default function RegisterPage() {
-    const router = useRouter(); 
-
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -15,7 +14,6 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 密碼強度檢查
   const checkPasswordStrength = (password) => {
     const minLength = password.length >= 8;
     const hasNumber = /\d/.test(password);
@@ -31,7 +29,6 @@ export default function RegisterPage() {
     };
   };
 
-  // 表單驗證
   const validateForm = () => {
     const newErrors = {};
 
@@ -66,19 +63,13 @@ export default function RegisterPage() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/register`, {
-        username: formData.username,
-        password: formData.password,
-      });
+      await registerUser(formData.username, formData.password);
       toast.success('註冊成功！');
-            router.push('/login');
+      router.push('/login');
     } catch (error) {
       toast.error(error.response?.data?.message || '註冊失敗');
     } finally {
@@ -87,69 +78,79 @@ export default function RegisterPage() {
   };
 
   return (
-    <>
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <form
-          onSubmit={handleRegister}
-          className="bg-gray-800 p-8 rounded-lg shadow-lg w-96 border border-gray-700"
-        >
-          <h1 className="text-3xl font-bold mb-6 text-blue-400 text-center">創建您的帳戶</h1>
+    <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
+      <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
+        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">CREATE ACCOUNT</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">建立新帳戶</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">註冊後可使用購物車、願望清單與訂單功能。</p>
 
-          <div className="mb-4">
+        <form onSubmit={handleRegister} className="mt-6 space-y-4">
+          <div>
             <input
               type="text"
               name="username"
               placeholder="用戶名"
-              className={`w-full p-3 bg-gray-700 text-white border ${
-                errors.username ? 'border-red-500' : 'border-gray-600'
-              } rounded focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                errors.username
+                  ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
+                  : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+              }`}
               value={formData.username}
               onChange={handleChange}
             />
-            {errors.username && <p className="mt-1 text-sm text-red-500">{errors.username}</p>}
+            {errors.username && <p className="mt-1 text-xs text-[#ff9e9e]">{errors.username}</p>}
           </div>
 
-          <div className="mb-4">
+          <div>
             <input
               type="password"
               name="password"
               placeholder="密碼"
-              className={`w-full p-3 bg-gray-700 text-white border ${
-                errors.password ? 'border-red-500' : 'border-gray-600'
-              } rounded focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                errors.password
+                  ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
+                  : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+              }`}
               value={formData.password}
               onChange={handleChange}
             />
-            {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+            {errors.password && <p className="mt-1 text-xs text-[#ff9e9e]">{errors.password}</p>}
           </div>
 
-          <div className="mb-6">
+          <div>
             <input
               type="password"
               name="confirmPassword"
               placeholder="確認密碼"
-              className={`w-full p-3 bg-gray-700 text-white border ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-600'
-              } rounded focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                errors.confirmPassword
+                  ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
+                  : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+              }`}
               value={formData.confirmPassword}
               onChange={handleChange}
             />
             {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+              <p className="mt-1 text-xs text-[#ff9e9e]">{errors.confirmPassword}</p>
             )}
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full py-3 bg-blue-500 text-white font-semibold rounded 
-              ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}
-              transition duration-200 shadow-lg`}
+            className="steam-btn w-full rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? '註冊中...' : '註冊'}
           </button>
         </form>
-      </div>
-    </>
+
+        <p className="mt-4 text-center text-sm text-[#9eb4c8]">
+          已經有帳號？
+          <Link href="/login" className="ml-1 text-[#8fb8d5] transition hover:text-[#66c0f4]">
+            前往登入
+          </Link>
+        </p>
+      </section>
+    </main>
   );
 }

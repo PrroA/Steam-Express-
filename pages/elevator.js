@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FaKorvue } from 'react-icons/fa';
 
 const FLOOR_MIN = 1;
 const FLOOR_MAX = 10;
@@ -95,7 +96,7 @@ const createElevator = (id, waitingMap) => {
     },
 
     updateDirection() {
-      const hasPassengers = this.passengers.length > 0;
+      const hasPassengers = this.passengers.length > 0
       const hasWaiting =
         this.waitingMap &&
         Array.from(this.waitingMap.values()).some((list) =>
@@ -243,7 +244,7 @@ const createBuilding = () => {
     });
 
 
-    elevators.forEach((elevator) => {
+    elevators.forEach((elevator) => { 
       if (elevator.move()) {
         logs.push({
           time,

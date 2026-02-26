@@ -1,53 +1,61 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useRouter } from 'next/router';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+import Link from 'next/link';
+import { requestPasswordReset } from '../services/authService';
 
 export default function ForgotPasswordPage() {
   const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
   const router = useRouter();
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE_URL}/forgot-password`, { username });
-      setMessage('重設密碼的連結已發送到您的郵箱 📩');
+      await requestPasswordReset(username);
+      setIsError(false);
+      setMessage('重設密碼的連結已發送到您的郵箱，將跳轉下一步。');
       setTimeout(() => {
         router.push('/ConfirmResetPassword');
-      }, 3000);
+      }, 1200);
     } catch (error) {
+      setIsError(true);
       setMessage(error.response?.data?.message || '請求失敗，請稍後再試');
     }
   };
 
   return (
-    <>
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <form
-          onSubmit={handleForgotPassword}
-          className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 w-96"
-        >
-          <h1 className="text-3xl font-bold mb-6 text-blue-400 text-center">忘記密碼？</h1>
-          <p className="text-gray-400 text-center mb-4">請輸入您的帳號，我們將發送密碼重設連結</p>
+    <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
+      <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
+        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">PASSWORD RESET</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">忘記密碼？</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">輸入帳號後，進入下一步完成密碼重設。</p>
+
+        <form onSubmit={handleForgotPassword} className="mt-6 space-y-4">
           <input
             type="text"
             placeholder="輸入帳號"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+            className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
             required
           />
-          <button
-            type="submit"
-            className="w-full py-3 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 transition duration-200 shadow-lg"
-          >
+          <button type="submit" className="steam-btn w-full rounded-md py-2.5 text-sm">
             發送重設密碼連結
           </button>
-          {message && <p className="mt-4 text-green-400 text-center">{message}</p>}
         </form>
-      </div>
-    </>
+
+        {message && (
+          <p className={`mt-4 text-sm ${isError ? 'text-[#ff9e9e]' : 'text-[#8bc53f]'}`}>{message}</p>
+        )}
+
+        <p className="mt-4 text-sm text-[#9eb4c8]">
+          記得密碼了？
+          <Link href="/login" className="ml-1 text-[#8fb8d5] transition hover:text-[#66c0f4]">
+            返回登入
+          </Link>
+        </p>
+      </section>
+    </main>
   );
 }

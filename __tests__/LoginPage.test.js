@@ -1,12 +1,16 @@
 // __tests__/LoginPage.test.js
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '../pages/login';
-import axios from 'axios';
 import { toast } from 'react-toastify';
-jest.mock('axios');
+import { loginUser } from '../services/authService';
+
+jest.mock('../services/authService', () => ({
+  loginUser: jest.fn(),
+}));
+
 const mockPush = jest.fn();
 jest.mock('next/router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, query: {} }),
 }));
 
 jest.mock('react-toastify', () => ({
@@ -15,14 +19,14 @@ jest.mock('react-toastify', () => ({
 
 beforeEach(() => {
   localStorage.clear();
-  mockPush.mockReset();       
+  mockPush.mockReset();   
   toast.success.mockReset();
   toast.error.mockReset();
   jest.clearAllMocks();
 });
 
 test('成功登入：寫入 token、toast.success、導向 "/"', async () => {
-  axios.post.mockResolvedValueOnce({ data: { token: 'JWT123' } });
+  loginUser.mockResolvedValueOnce({ token: 'JWT123' });
 
   render(<LoginPage />);
   fireEvent.change(screen.getByPlaceholderText(/帳號/i), { target: { value: 'admin' } });
@@ -35,7 +39,7 @@ test('成功登入：寫入 token、toast.success、導向 "/"', async () => {
 });
 
 test('登入失敗：顯示 toast.error', async () => {
-  axios.post.mockRejectedValueOnce({ response: { data: { message: 'wrong' } } });
+  loginUser.mockRejectedValueOnce({ response: { data: { message: 'wrong' } } });
 
   render(<LoginPage />);
   fireEvent.click(screen.getByRole('button', { name: /登入/i }));

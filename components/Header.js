@@ -1,67 +1,94 @@
 import Link from 'next/link';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // 動畫
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navItems = [
+    { href: '/cart', label: '購物車' },
+    { href: '/wishlist', label: '願望清單' },
+    { href: '/orders', label: '訂單' },
+    { href: '/transactions', label: '交易記錄' },
+  ];
 
   return (
-    <header className="bg-gray-900 text-white p-4 flex justify-between items-center">
-      {/* Logo */}
-      <Link href="/" className="text-2xl font-bold tracking-widest">
-        Steam Clone
-      </Link>
-      <button
-        className="bg-gray-700 p-2 rounded focus:outline-none"
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          className="w-6 h-6"
+    <header className="sticky top-0 z-40 border-b border-[#66c0f433] bg-[#0d1824e8] backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
+        <Link href="/" className="text-xl font-extrabold tracking-[0.2em] text-[#c8dff3] md:text-2xl">
+          STEAM PRACTICE
+        </Link>
+
+        <nav className="hidden items-center gap-2 md:flex">
+          {navItems.map((item) => (
+            <NavItem key={item.href} href={item.href} label={item.label} />
+          ))}
+          <Link
+            href="/login"
+            className="steam-btn rounded-md px-4 py-2 text-sm transition-all duration-200"
+          >
+            登入 / 註冊
+          </Link>
+        </nav>
+
+        <button
+          className="rounded-md border border-[#66c0f455] bg-[#1b2b3a] p-2 text-[#d8e6f3] md:hidden"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          aria-label="開啟選單"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-6 w-6"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+        </button>
+      </div>
 
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.nav
-            initial={{ x: '-100%' }}
+          <motion.aside
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', stiffness: 100 }}
-            className="fixed top-0 left-0 h-full w-64 bg-gray-900 shadow-lg p-6 flex flex-col gap-4 z-50"
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+            className="fixed right-0 top-0 z-50 flex h-full w-72 flex-col gap-3 border-l border-[#66c0f433] bg-[#102031] p-5 shadow-2xl md:hidden"
           >
             <button
-              className="text-white self-end text-2xl mb-4 focus:outline-none"
+              className="mb-3 self-end text-2xl text-[#d8e6f3]"
               onClick={() => setIsMenuOpen(false)}
+              aria-label="關閉選單"
             >
               ✖
             </button>
 
-            <NavItem href="/login" label="🔑 登入/註冊" />
-            <NavItem href="/cart" label="🛒 購物車" />
-            <NavItem href="/orders" label="📦 訂單" />
-            <NavItem href="/wishlist" label="❤️ 願望清單" />
-            <NavItem href="/transactions" label="💰 交易記錄" />
-            <NavItem href="/admin" label="🛠️ 新增遊戲" />
-            {/* <NavItem href="/profile" label="👤 個人資料" /> */}
-            {/* <NavItem href="/ChatPage" label="💬 科普中心" /> */}
-            {/* <NavItem href="/elevator" label=" 電梯模擬" /> */}
-          </motion.nav>
+            <Link href="/login" onClick={() => setIsMenuOpen(false)} className="steam-btn rounded-md px-4 py-2 text-center">
+              登入 / 註冊
+            </Link>
+            {navItems.map((item) => (
+              <NavItem
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                onClick={() => setIsMenuOpen(false)}
+              />
+            ))}
+            <NavItem href="/admin" label="後台管理" onClick={() => setIsMenuOpen(false)} />
+          </motion.aside>
         )}
       </AnimatePresence>
     </header>
   );
 }
-const NavItem = ({ href, label }) => (
+
+const NavItem = ({ href, label, onClick }) => (
   <Link
     href={href}
-    className="bg-gray-700 hover:bg-blue-500 text-white py-2 px-4 rounded-lg transition-all"
+    onClick={onClick}
+    className="rounded-md border border-[#66c0f433] bg-[#1b2b3a] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:border-[#66c0f488] hover:bg-[#24384d]"
   >
     {label}
   </Link>

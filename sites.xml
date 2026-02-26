@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FileZilla3 version="3.67.0" platform="mac">
+	<Servers>
+		<Server>
+			<Host>192.168.12.162</Host>
+			<Port>22</Port>
+			<Protocol>1</Protocol>
+			<Type>0</Type>
+			<User>root</User>
+			<Pass encoding="base64">d3NmdWpjMzk=</Pass>
+			<Logontype>1</Logontype>
+			<EncodingType>Auto</EncodingType>
+			<BypassProxy>0</BypassProxy>
+			<Name>162</Name>
+			<SyncBrowsing>0</SyncBrowsing>
+			<DirectoryComparison>0</DirectoryComparison>
+		</Server>
+	</Servers>
+</FileZilla3>

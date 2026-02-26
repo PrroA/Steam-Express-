@@ -1,7 +1,4 @@
-//購物車狀態 跟 相關的 action
 import { createSlice } from '@reduxjs/toolkit';
-
-// 定義購物車的初始狀態
 const initialState = {
   items: [], // 購物車內的所有商品，每個商品包含 id, name, price, quantity 等資訊
 };

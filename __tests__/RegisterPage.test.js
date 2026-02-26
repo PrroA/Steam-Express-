@@ -1,10 +1,13 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RegisterPage from '../pages/register';         
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { registerUser } from '../services/authService';
 
-jest.mock('axios');
+jest.mock('../services/authService', () => ({
+  registerUser: jest.fn(),
+}));
+
 const mockPush = jest.fn();
 jest.mock('next/router', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -68,7 +71,7 @@ test('欄位驗證：空白/太短/弱密碼/二次密碼不一致', async () =>
 });
 
 test('成功註冊：呼叫 API、toast.success、導向 /login', async () => {
-  axios.post.mockResolvedValueOnce({ data: { ok: true } });
+  registerUser.mockResolvedValueOnce({ ok: true });
 
   render(<RegisterPage />);
 
@@ -77,10 +80,7 @@ test('成功註冊：呼叫 API、toast.success、導向 /login', async () => {
 
   // 等待 API 被打（可選擇性驗證）
   await waitFor(() => {
-    expect(axios.post).toHaveBeenCalledWith(
-      expect.stringMatching(/\/register$/),
-      { username: 'gooduser', password: 'Password1' }
-    );
+    expect(registerUser).toHaveBeenCalledWith('gooduser', 'Password1');
   });
 
   expect(toast.success).toHaveBeenCalled();      
@@ -88,7 +88,7 @@ test('成功註冊：呼叫 API、toast.success、導向 /login', async () => {
 });
 
 test('註冊失敗：顯示 toast.error', async () => {
-  axios.post.mockRejectedValueOnce({
+  registerUser.mockRejectedValueOnce({
     response: { data: { message: '帳號已存在' } },
   });
 

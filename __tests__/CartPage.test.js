@@ -1,4 +1,4 @@
-const { calculateTotalPrice } = require('../utils/cartUtils');
+import { calculateTotalPrice } from '../utils/cartUtils';
 
 describe('calculateTotalPrice function', () => {
   test('正確計算總價', () => {
