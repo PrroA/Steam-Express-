@@ -2,11 +2,13 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { fetchOrderById } from '../../services/orderService';
+import type { Order } from '../../types/domain';
 
 export default function OrderDetail() {
   const router = useRouter();
-  const { orderId } = router.query;
-  const [order, setOrder] = useState(null);
+  const { orderId: rawOrderId } = router.query;
+  const orderId = Array.isArray(rawOrderId) ? rawOrderId[0] : rawOrderId;
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -18,7 +20,8 @@ export default function OrderDetail() {
         setOrder(data);
         setErrorMessage('');
       } catch (error) {
-        console.error('無法獲取訂單詳情:', error.response?.data || error.message);
+        const message = error instanceof Error ? error.message : '未知錯誤';
+        console.error('無法獲取訂單詳情:', message);
         setErrorMessage('目前無法取得訂單詳情，請稍後再試。');
       } finally {
         setLoading(false);

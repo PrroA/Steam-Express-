@@ -3,18 +3,27 @@ import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { registerUser } from '../services/authService';
+import type { ChangeEvent, FormEvent } from 'react';
+
+interface RegisterFormData {
+  username: string;
+  password: string;
+  confirmPassword: string;
+}
+
+type RegisterFormErrors = Partial<Record<keyof RegisterFormData, string>>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     username: '',
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const checkPasswordStrength = (password) => {
+  const checkPasswordStrength = (password: string) => {
     const minLength = password.length >= 8;
     const hasNumber = /\d/.test(password);
     const hasLetter = /[a-zA-Z]/.test(password);
@@ -30,7 +39,7 @@ export default function RegisterPage() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: RegisterFormErrors = {};
 
     if (!formData.username.trim()) {
       newErrors.username = '請輸入用戶名';
@@ -53,7 +62,7 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -61,7 +70,7 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -71,7 +80,20 @@ export default function RegisterPage() {
       toast.success('註冊成功！');
       router.push('/login');
     } catch (error) {
-      toast.error(error.response?.data?.message || '註冊失敗');
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'data' in error.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        'message' in error.response.data &&
+        typeof error.response.data.message === 'string'
+          ? error.response.data.message
+          : '註冊失敗';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

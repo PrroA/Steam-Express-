@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
       const token = localStorage.getItem('token');
       try {
         const data = await fetchProfile(token);
@@ -21,7 +21,7 @@ export default function ProfilePage() {
       }
     };
 
-    fetchProfile();
+    loadProfile();
   }, []);
 
   const handleUpdateProfile = async () => {

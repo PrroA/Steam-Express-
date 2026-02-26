@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "npm run build:backend && npm run build:server",
     "dev": "next dev",
-    "prebuild": "npm run build:backend && npm run build:server",
+    "prebuild": "if [ \"$VERCEL\" != \"1\" ]; then npm run build:backend && npm run build:server; fi",
     "build": "next build",
     "prestart": "npm run build:backend && npm run build:server",
     "start": "next start",
@@ -15,7 +15,7 @@
     "pretest": "npm run build:backend && npm run build:server",
     "test": "jest",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install || true"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.0",

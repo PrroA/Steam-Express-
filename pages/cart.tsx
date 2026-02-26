@@ -48,10 +48,8 @@ export default function CartPage() {
   const handleClearCart = async () => {
     const token = localStorage.getItem('token');
     try {
-      const results = await Promise.all(
-        cart.map((item) => removeFromCart(item.id, token).catch((error) => ({ error, item })))
-      );
-      const failedItems = results.filter((result) => result?.error);
+      const results = await Promise.allSettled(cart.map((item) => removeFromCart(item.id, token)));
+      const failedItems = results.filter((result) => result.status === 'rejected');
       if (failedItems.length > 0) {
         toast.error(`部分商品清空失敗 (${failedItems.length} 項)`);
       } else {
