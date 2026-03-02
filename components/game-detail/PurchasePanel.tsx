@@ -1,3 +1,5 @@
+import type { GameVariant } from '../../types/domain';
+
 export interface PriceInfo {
   currentText: string;
   originalText: string;
@@ -6,6 +8,9 @@ export interface PriceInfo {
 
 interface PurchasePanelProps {
   priceInfo: PriceInfo;
+  variants?: GameVariant[];
+  selectedVariantId?: string;
+  onSelectVariant?: (variantId: string) => void;
   onAddToCart: () => void;
   onAddToWishlist: () => void;
   onGoToCart: () => void;
@@ -13,10 +18,17 @@ interface PurchasePanelProps {
 
 export function PurchasePanel({
   priceInfo,
+  variants = [],
+  selectedVariantId = '',
+  onSelectVariant,
   onAddToCart,
   onAddToWishlist,
   onGoToCart,
 }: PurchasePanelProps) {
+  const selectedVariant =
+    variants.find((variant) => variant.id === selectedVariantId) || variants[0] || null;
+  const hasVariantStock = selectedVariant ? selectedVariant.stock > 0 : true;
+
   return (
     <aside className="rounded-xl border border-[#66c0f433] bg-[#142536] p-5">
       <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">PURCHASE PANEL</p>
@@ -32,7 +44,33 @@ export function PurchasePanel({
       </div>
 
       <div className="mt-5 grid gap-3">
-        <button onClick={onAddToCart} className="steam-btn rounded-md py-2.5 text-sm">
+        {variants.length > 0 && (
+          <div className="rounded-md border border-[#66c0f433] bg-[#132334] p-3">
+            <p className="text-xs text-[#9eb4c8]">版本選擇</p>
+            <select
+              value={selectedVariant?.id || ''}
+              onChange={(e) => onSelectVariant?.(e.target.value)}
+              className="mt-2 w-full rounded-md border border-[#66c0f455] bg-[#1a2f43] px-3 py-2 text-sm text-[#d8e6f3] focus:border-[#66c0f4] focus:outline-none"
+            >
+              {variants.map((variant) => (
+                <option key={variant.id} value={variant.id}>
+                  {variant.name} | {variant.price} | 庫存 {variant.stock}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-[#9eb4c8]">
+              {selectedVariant && selectedVariant.stock > 0
+                ? `可購買，剩餘 ${selectedVariant.stock} 份`
+                : '目前無庫存'}
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={onAddToCart}
+          disabled={!hasVariantStock}
+          className="steam-btn rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        >
           加入購物車
         </button>
         <button

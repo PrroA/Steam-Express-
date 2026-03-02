@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerChatRoutes = registerChatRoutes;
+const persistence_1 = require("../persistence");
 function registerChatRoutes({ app, io, state, openaiClient }) {
     const { messages } = state;
     io.on('connection', (socket) => {
@@ -12,6 +13,7 @@ function registerChatRoutes({ app, io, state, openaiClient }) {
                 timestamp: new Date().toLocaleTimeString(),
             };
             messages.push(newMessage);
+            (0, persistence_1.persistState)(state);
             io.emit('receiveMessage', newMessage);
         });
         setTimeout(() => {

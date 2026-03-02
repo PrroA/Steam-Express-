@@ -19,10 +19,12 @@ export default function GameDetail() {
     newReview,
     isSubmitting,
     selectedShot,
+    selectedVariantId,
     galleryShots,
     priceInfo,
     setNewReview,
     setSelectedShot,
+    setSelectedVariantId,
     handleSubmitReview,
     handleAddToWishlist,
     handleAddToCart,
@@ -54,6 +56,9 @@ export default function GameDetail() {
             />
             <PurchasePanel
               priceInfo={priceInfo}
+              variants={game.variants}
+              selectedVariantId={selectedVariantId}
+              onSelectVariant={setSelectedVariantId}
               onAddToCart={handleAddToCart}
               onAddToWishlist={handleAddToWishlist}
               onGoToCart={() => router.push('/cart')}

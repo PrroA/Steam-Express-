@@ -23,10 +23,12 @@ interface UseGameDetailResult {
   newReview: string;
   isSubmitting: boolean;
   selectedShot: number;
+  selectedVariantId: string;
   galleryShots: GalleryShot[];
   priceInfo: PriceInfo;
   setNewReview: (value: string) => void;
   setSelectedShot: (index: number) => void;
+  setSelectedVariantId: (variantId: string) => void;
   handleSubmitReview: () => Promise<void>;
   handleAddToWishlist: () => Promise<void>;
   handleAddToCart: () => Promise<void>;
@@ -39,6 +41,7 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
   const [newReview, setNewReview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedShot, setSelectedShot] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState('');
 
   const gameId = useMemo(() => {
     if (Array.isArray(id)) {
@@ -88,6 +91,38 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
     setSelectedShot(0);
   }, [gameId]);
 
+  useEffect(() => {
+    if (!game?.variants || game.variants.length === 0) {
+      setSelectedVariantId('');
+      return;
+    }
+    setSelectedVariantId((prev) => {
+      if (prev && game.variants?.some((variant) => variant.id === prev)) {
+        return prev;
+      }
+      return game.variants[0].id;
+    });
+  }, [game?.variants]);
+
+  useEffect(() => {
+    if (!game) return;
+    try {
+      const key = 'recentlyViewedGames';
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const nextList = [
+        {
+          id: game.id,
+          viewedAt: new Date().toISOString(),
+        },
+        ...(Array.isArray(parsed) ? parsed.filter((item) => item?.id !== game.id) : []),
+      ].slice(0, 12);
+      localStorage.setItem(key, JSON.stringify(nextList));
+    } catch (error) {
+      console.error('Failed to save recently viewed games');
+    }
+  }, [game]);
+
   const galleryShots = useMemo(() => {
     const source = game?.image || '/vercel.svg';
     return [
@@ -98,15 +133,18 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
   }, [game?.image]);
 
   const priceInfo = useMemo(() => {
-    const current = parseFloat((game?.price || '$0').replace('$', '')) || 0;
+    const selectedVariant =
+      game?.variants?.find((variant) => variant.id === selectedVariantId) || game?.variants?.[0];
+    const currentText = selectedVariant?.price || game?.price || '$0.00';
+    const current = parseFloat((currentText || '$0').replace('$', '')) || 0;
     const original = current > 0 ? current * 1.35 : 1;
     const discount = Math.min(70, Math.max(5, Math.round((1 - current / original) * 100)));
     return {
-      currentText: game?.price || '$0.00',
+      currentText,
       originalText: `$${original.toFixed(2)}`,
       discount,
     };
-  }, [game?.price]);
+  }, [game?.price, game?.variants, selectedVariantId]);
 
   const numericGameId = useMemo(() => Number(gameId), [gameId]);
 
@@ -163,7 +201,7 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
     const token = localStorage.getItem('token');
 
     try {
-      await addToCart(numericGameId, token);
+      await addToCart(numericGameId, token, selectedVariantId || undefined);
       toast.success('已加入購物車');
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知錯誤';
@@ -179,10 +217,12 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
     newReview,
     isSubmitting,
     selectedShot,
+    selectedVariantId,
     galleryShots,
     priceInfo,
     setNewReview,
     setSelectedShot,
+    setSelectedVariantId,
     handleSubmitReview,
     handleAddToWishlist,
     handleAddToCart,

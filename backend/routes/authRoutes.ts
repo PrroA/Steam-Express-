@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import type { Request, Response } from 'express';
 import type { RouteDeps } from './types';
+import { persistState } from '../persistence';
 import type {
   ForgotPasswordBody,
   LoginBody,
@@ -32,6 +33,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
     }
     user.password = await bcrypt.hash(newPassword, 10);
     delete resetTokens[token];
+    persistState(state);
     return res.json({ message: '密碼更新成功！' });
   };
 
@@ -47,6 +49,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = { id: users.length + 1, username, password: hashedPassword };
     users.push(newUser);
+    persistState(state);
     return res
       .status(201)
       .json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } })
@@ -76,6 +79,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
       username,
       expires: Date.now() + 15 * 60 * 1000,
     };
+    persistState(state);
     return res.json({ message: '重設密碼的連結已發送', resetToken });
   });
 
@@ -105,6 +109,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
     }
     user.username = username || user.username;
     user.email = email || user.email;
+    persistState(state);
     return res.json({ message: '個人資料更新成功', user });
   });
 }

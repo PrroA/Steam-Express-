@@ -6,11 +6,16 @@ import { toast } from 'react-toastify';
 import { FaHeartBroken } from 'react-icons/fa';
 import Link from 'next/link';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://steam-express.onrender.com'
+    : 'http://localhost:4000');
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [priceDropAlerts, setPriceDropAlerts] = useState([]);
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -19,7 +24,40 @@ export default function WishlistPage() {
         const response = await axios.get(`${API_BASE_URL}/wishlist`, { 
           headers: { Authorization: `Bearer ${token}` }, 
         }); 
-        setWishlist(response.data); 
+        const nextWishlist = response.data;
+        setWishlist(nextWishlist);
+
+        const snapshotKey = 'wishlistPriceSnapshot';
+        const rawSnapshot = localStorage.getItem(snapshotKey);
+        const previousSnapshot = rawSnapshot ? JSON.parse(rawSnapshot) : {};
+        const nextSnapshot = { ...(previousSnapshot || {}) };
+        const drops = [];
+
+        nextWishlist.forEach((game) => {
+          const currentPrice = parseFloat((game.price || '$0').replace('$', '')) || 0;
+          const previousPrice = parseFloat(previousSnapshot?.[game.id] || currentPrice);
+          if (currentPrice < previousPrice) {
+            drops.push({
+              id: game.id,
+              name: game.name,
+              previousPrice,
+              currentPrice,
+            });
+          }
+          nextSnapshot[game.id] = String(currentPrice);
+        });
+
+        Object.keys(nextSnapshot).forEach((id) => {
+          if (!nextWishlist.some((game) => String(game.id) === id)) {
+            delete nextSnapshot[id];
+          }
+        });
+
+        if (drops.length > 0) {
+          toast.info(`願望清單有 ${drops.length} 款遊戲降價`);
+        }
+        setPriceDropAlerts(drops);
+        localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot));
       } catch (error) { 
         console.error('Unable to get wishlist:', error.response?.data || error.message); 
       } finally { 
@@ -88,6 +126,20 @@ export default function WishlistPage() {
     <>
       <div className="p-6 bg-gray-900 min-h-screen text-white">
         <h1 className="text-3xl font-bold mb-6 text-center">❤️ 我的收藏</h1>
+
+        {priceDropAlerts.length > 0 && (
+          <div className="max-w-4xl mx-auto mb-4 rounded-lg border border-[#66c0f455] bg-[#152b3e] p-4">
+            <p className="text-sm font-bold text-[#d8e6f3]">降價通知</p>
+            <ul className="mt-2 space-y-1 text-sm text-[#9ec5df]">
+              {priceDropAlerts.map((alert) => (
+                <li key={alert.id}>
+                  {alert.name}：${alert.previousPrice.toFixed(2)} →{' '}
+                  <span className="font-bold text-[#8bc53f]">${alert.currentPrice.toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
           {wishlist.map((game) => (

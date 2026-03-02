@@ -1,20 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerStoreRoutes = registerStoreRoutes;
+const persistence_1 = require("../persistence");
 function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
     const { games, reviews, wishlists } = state;
     app.get('/games', (req, res) => {
         const { query } = req.query;
+        const visibleGames = games.filter((game) => game.isActive !== false);
         if (query) {
-            const filteredGames = games.filter((game) => game.name.toLowerCase().includes(query.toLowerCase()));
+            const filteredGames = visibleGames.filter((game) => game.name.toLowerCase().includes(query.toLowerCase()));
             return res.json(filteredGames);
         }
-        return res.json(games);
+        return res.json(visibleGames);
     });
     app.get('/games/:id', (req, res) => {
         const gameId = parseInt(req.params.id, 10);
         const game = games.find((g) => g.id === gameId);
-        if (!game) {
+        if (!game || game.isActive === false) {
             return res.status(404).json({ message: '遊戲未找到' });
         }
         return res.json(game);
@@ -30,8 +32,10 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
             price,
             description,
             image,
+            isActive: true,
         };
         games.push(newGame);
+        (0, persistence_1.persistState)(state);
         return res.status(201).json({ message: '遊戲已添加', game: newGame });
     });
     app.delete('/games/:id', authenticate, isAdmin, (req, res) => {
@@ -41,7 +45,43 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
             return res.status(404).json({ message: '遊戲未找到' });
         }
         games.splice(index, 1);
+        (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '遊戲已刪除' });
+    });
+    app.get('/admin/games', authenticate, isAdmin, (req, res) => {
+        return res.status(200).json(games);
+    });
+    app.patch('/admin/games/:id/status', authenticate, isAdmin, (req, res) => {
+        const gameId = parseInt(req.params.id, 10);
+        const game = games.find((g) => g.id === gameId);
+        if (!game) {
+            return res.status(404).json({ message: '遊戲未找到' });
+        }
+        game.isActive = Boolean(req.body.isActive);
+        (0, persistence_1.persistState)(state);
+        return res.status(200).json({ message: game.isActive ? '商品已上架' : '商品已下架', game });
+    });
+    app.patch('/admin/games/:id/variants/:variantId', authenticate, isAdmin, (req, res) => {
+        const gameId = parseInt(req.params.id, 10);
+        const game = games.find((g) => g.id === gameId);
+        if (!game || !game.variants) {
+            return res.status(404).json({ message: '商品或版本不存在' });
+        }
+        const variant = game.variants.find((v) => v.id === req.params.variantId);
+        if (!variant) {
+            return res.status(404).json({ message: '版本不存在' });
+        }
+        if (typeof req.body.name === 'string' && req.body.name.trim()) {
+            variant.name = req.body.name.trim();
+        }
+        if (typeof req.body.price === 'string' && req.body.price.trim()) {
+            variant.price = req.body.price.trim().startsWith('$') ? req.body.price.trim() : `$${req.body.price.trim()}`;
+        }
+        if (typeof req.body.stock === 'number' && req.body.stock >= 0) {
+            variant.stock = Math.floor(req.body.stock);
+        }
+        (0, persistence_1.persistState)(state);
+        return res.status(200).json({ message: '版本資料已更新', game });
     });
     app.post('/wishlist', authenticate, (req, res) => {
         const userId = req.user.id;
@@ -52,11 +92,14 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
         if (!wishlists[userId].includes(id)) {
             wishlists[userId].push(id);
         }
+        (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '已添加到收藏清單', wishlist: wishlists[userId] });
     });
     app.get('/wishlist', authenticate, (req, res) => {
         const userId = req.user.id;
-        const gamesInWishlist = (wishlists[userId] || []).map((gameId) => games.find((game) => game.id === gameId));
+        const gamesInWishlist = (wishlists[userId] || [])
+            .map((gameId) => games.find((game) => game.id === gameId))
+            .filter(Boolean);
         return res.status(200).json(gamesInWishlist);
     });
     app.delete('/wishlist/:id', authenticate, (req, res) => {
@@ -65,6 +108,7 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
         if (wishlists[userId]) {
             wishlists[userId] = wishlists[userId].filter((id) => id !== gameId);
         }
+        (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '已移除收藏', wishlist: wishlists[userId] });
     });
     app.get('/reviews/:gameId', (req, res) => {
@@ -82,8 +126,10 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
         const newReview = {
             content,
             createdAt: new Date().toISOString(),
+            username: req.user.username,
         };
         reviews[gameId].push(newReview);
+        (0, persistence_1.persistState)(state);
         return res.status(201).json(newReview);
     });
 }

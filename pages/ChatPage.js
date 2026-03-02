@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { Header } from '../components/Header';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://steam-express.onrender.com'
+    : 'http://localhost:4000');
 const possibleKeywords = [
   '艾爾登',
   'Elden',

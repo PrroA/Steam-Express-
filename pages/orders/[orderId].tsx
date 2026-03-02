@@ -1,8 +1,28 @@
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { FaCheckCircle, FaClock, FaTimesCircle, FaUndoAlt } from 'react-icons/fa';
 import { fetchOrderById } from '../../services/orderService';
 import type { Order } from '../../types/domain';
+
+const statusClasses = {
+  已付款: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+  未付款: 'bg-[#3f3318] text-[#ffd079] border-[#ffd07955]',
+  付款失敗: 'bg-[#4a202a] text-[#ff9e9e] border-[#ff9e9e55]',
+  已取消: 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]',
+  已退款: 'bg-[#22384a] text-[#9ed8ff] border-[#9ed8ff55]',
+};
+
+function statusBadgeClass(status: Order['status']) {
+  return statusClasses[status] || 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]';
+}
+
+function statusNodeStyle(status: Order['status']) {
+  if (status === '已付款') return { dot: 'bg-[#8bc53f]', line: 'bg-[#8bc53f66]', icon: FaCheckCircle };
+  if (status === '未付款') return { dot: 'bg-[#ffd079]', line: 'bg-[#ffd07966]', icon: FaClock };
+  if (status === '付款失敗') return { dot: 'bg-[#ff8d8d]', line: 'bg-[#ff8d8d66]', icon: FaTimesCircle };
+  return { dot: 'bg-[#8fb8d5]', line: 'bg-[#8fb8d566]', icon: FaUndoAlt };
+}
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -85,12 +105,14 @@ export default function OrderDetail() {
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-[#66c0f433] bg-[#132434] p-4">
               <p className="text-xs text-[#9eb4c8]">訂單狀態</p>
-              <p
-                className={`mt-1 text-2xl font-black ${
-                  order.status === '已付款' ? 'text-[#8bc53f]' : 'text-[#ffd079]'
-                }`}
-              >
+              <p className="mt-2">
+                <span
+                  className={`inline-flex rounded-md border px-3 py-1 text-sm font-bold ${statusBadgeClass(
+                    order.status
+                  )}`}
+                >
                 {order.status}
+                </span>
               </p>
             </div>
             <div className="rounded-xl border border-[#66c0f433] bg-[#132434] p-4">
@@ -133,6 +155,49 @@ export default function OrderDetail() {
                 </p>
               </li>
             ))}
+          </ul>
+        </div>
+
+        <div className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
+          <h2 className="text-xl font-black text-[#d8e6f3]">狀態時間軸</h2>
+          <ul className="mt-4 space-y-2">
+            {(order.statusHistory || []).length === 0 ? (
+              <li className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
+                尚無狀態紀錄
+              </li>
+            ) : (
+              order.statusHistory.map((event, index) => {
+                const styles = statusNodeStyle(event.status);
+                const Icon = styles.icon;
+                const isLast = index === order.statusHistory.length - 1;
+                return (
+                  <li key={`${event.status}-${event.at}-${index}`} className="relative pl-9">
+                    {!isLast && (
+                      <span className={`absolute left-[13px] top-7 h-[calc(100%-8px)] w-[2px] ${styles.line}`} />
+                    )}
+                    <span
+                      className={`absolute left-0 top-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#ffffff22] ${styles.dot}`}
+                    >
+                      <Icon className="text-[12px] text-[#0f1822]" />
+                    </span>
+                    <div className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-[#d8e6f3]">{event.status}</p>
+                        <span
+                          className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusBadgeClass(
+                            event.status
+                          )}`}
+                        >
+                          #{index + 1}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#8faac0]">{new Date(event.at).toLocaleString()}</p>
+                      {event.note && <p className="mt-2 text-xs text-[#9eb4c8]">{event.note}</p>}
+                    </div>
+                  </li>
+                );
+              })
+            )}
           </ul>
         </div>
       </section>

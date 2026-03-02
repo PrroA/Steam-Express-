@@ -7,6 +7,7 @@ exports.registerAuthRoutes = registerAuthRoutes;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const crypto_1 = __importDefault(require("crypto"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const persistence_1 = require("../persistence");
 function registerAuthRoutes({ app, state, secretKey, authenticate }) {
     const { users, resetTokens } = state;
     const resetPasswordHandler = async (req, res) => {
@@ -22,6 +23,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
         }
         user.password = await bcrypt_1.default.hash(newPassword, 10);
         delete resetTokens[token];
+        (0, persistence_1.persistState)(state);
         return res.json({ message: '密碼更新成功！' });
     };
     app.post('/register', async (req, res) => {
@@ -36,6 +38,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
         const hashedPassword = await bcrypt_1.default.hash(password, 10);
         const newUser = { id: users.length + 1, username, password: hashedPassword };
         users.push(newUser);
+        (0, persistence_1.persistState)(state);
         return res
             .status(201)
             .json({ message: '註冊成功！', user: { id: newUser.id, username: newUser.username } })
@@ -63,6 +66,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
             username,
             expires: Date.now() + 15 * 60 * 1000,
         };
+        (0, persistence_1.persistState)(state);
         return res.json({ message: '重設密碼的連結已發送', resetToken });
     });
     app.post('/reset-password', resetPasswordHandler);
@@ -89,6 +93,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
         }
         user.username = username || user.username;
         user.email = email || user.email;
+        (0, persistence_1.persistState)(state);
         return res.json({ message: '個人資料更新成功', user });
     });
 }

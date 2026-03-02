@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { Socket } from 'socket.io';
 import type { RouteDeps } from './types';
 import type { GptReplyBody } from '../../types/backend';
+import { persistState } from '../persistence';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 
@@ -18,6 +19,7 @@ export function registerChatRoutes({ app, io, state, openaiClient }: RouteDeps) 
         timestamp: new Date().toLocaleTimeString(),
       };
       messages.push(newMessage);
+      persistState(state);
       io.emit('receiveMessage', newMessage);
     });
 

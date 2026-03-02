@@ -18,10 +18,21 @@ export interface Game {
   price: string;
   description: string;
   image: string;
+  isActive?: boolean;
+  variants?: GameVariant[];
+}
+
+export interface GameVariant {
+  id: string;
+  name: string;
+  price: string;
+  stock: number;
 }
 
 export interface CartItem extends Game {
   quantity: number;
+  variantId?: string;
+  variantName?: string;
 }
 
 export interface PaymentDetails {
@@ -34,8 +45,16 @@ export interface Order {
   items: CartItem[];
   total: number;
   date: string;
-  status: '未付款' | '已付款';
+  status: '未付款' | '付款失敗' | '已付款' | '已取消' | '已退款';
   paymentDetails?: PaymentDetails;
+  statusHistory: OrderStatusEvent[];
+  stockRestored?: boolean;
+}
+
+export interface OrderStatusEvent {
+  status: Order['status'];
+  at: string;
+  note?: string;
 }
 
 export interface Review {
@@ -154,6 +173,7 @@ export interface CreateReviewBody {
 
 export interface AddCartBody {
   id: number;
+  variantId?: string;
 }
 
 export interface UpdateCartBody {
@@ -162,6 +182,7 @@ export interface UpdateCartBody {
 
 export interface PayBody {
   orderId: string;
+  simulateFailure?: boolean;
 }
 
 export interface CreatePaymentIntentBody {

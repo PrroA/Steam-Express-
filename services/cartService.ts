@@ -10,11 +10,12 @@ export async function fetchCart(token?: string | null): Promise<CartItem[]> {
 
 export async function addToCart(
   gameId: number,
-  token?: string | null
+  token?: string | null,
+  variantId?: string
 ): Promise<{ message: string; cart: CartItem[] }> {
   const response = await apiClient.post(
     '/cart',
-    { id: gameId },
+    { id: gameId, variantId },
     {
       headers: authHeader(token),
     }

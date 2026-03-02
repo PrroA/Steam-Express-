@@ -5,7 +5,14 @@ import { Elements, useStripe, useElements, CardElement } from '@stripe/react-str
 import { toast } from 'react-toastify';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { createPaymentIntent, fetchOrders as fetchOrdersApi, payOrder } from '../services/orderService';
+import {
+  cancelOrder,
+  createPaymentIntent,
+  fetchOrders as fetchOrdersApi,
+  payOrder,
+  refundOrder,
+  retryOrderPayment,
+} from '../services/orderService';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -13,22 +20,37 @@ const stripePromise = loadStripe(
   'pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB'
 );
 
+const statusClasses = {
+  已付款: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+  未付款: 'bg-[#3f3318] text-[#ffd079] border-[#ffd07955]',
+  付款失敗: 'bg-[#4a202a] text-[#ff9e9e] border-[#ff9e9e55]',
+  已取消: 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]',
+  已退款: 'bg-[#22384a] text-[#9ed8ff] border-[#9ed8ff55]',
+};
+
+function statusBadgeClass(status) {
+  return statusClasses[status] || 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]';
+}
+
 export default function CheckoutPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (preferredOrderId?: string) => {
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem('token');
       const data = await fetchOrdersApi(token);
       setOrders(data);
+      const preferredOrder =
+        (preferredOrderId && data.find((order) => order.id === preferredOrderId)) || null;
       const unpaidOrder = data.find((order) => order.status === '未付款');
-      setSelectedOrder(unpaidOrder || data[0] || null);
+      setSelectedOrder(preferredOrder || unpaidOrder || data[0] || null);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -65,18 +87,36 @@ export default function CheckoutPage() {
   const chartData = useMemo(() => {
     const paidOrders = orders.filter((order) => order.status === '已付款').length;
     const unpaidOrders = orders.filter((order) => order.status === '未付款').length;
+    const failedOrders = orders.filter((order) => order.status === '付款失敗').length;
+    const closedOrders = orders.filter((order) => ['已取消', '已退款'].includes(order.status)).length;
     return {
-      labels: ['已付款', '未付款'],
+      labels: ['已付款', '未付款', '付款失敗', '已關閉(取消/退款)'],
       datasets: [
         {
-          data: [paidOrders, unpaidOrders],
-          backgroundColor: ['#8bc53f', '#ff7a7a'],
-          hoverBackgroundColor: ['#77af31', '#eb6666'],
+          data: [paidOrders, unpaidOrders, failedOrders, closedOrders],
+          backgroundColor: ['#8bc53f', '#ffcf5a', '#ff7a7a', '#7f8ea3'],
+          hoverBackgroundColor: ['#77af31', '#e7b443', '#eb6666', '#6e7d91'],
           borderWidth: 0,
         },
       ],
     };
   }, [orders]);
+
+  const mutateOrder = useCallback(
+    async (runner, successText) => {
+      if (!selectedOrder?.id) return;
+      try {
+        const token = localStorage.getItem('token');
+        await runner(selectedOrder.id, token);
+        toast.success(successText);
+        await loadOrders(selectedOrder.id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '操作失敗';
+        toast.error(message);
+      }
+    },
+    [loadOrders, selectedOrder?.id]
+  );
 
   return (
     <main className="steam-shell px-4 py-6 md:px-6">
@@ -121,13 +161,52 @@ export default function CheckoutPage() {
                   <p className="mt-2 text-xs text-[#9eb4c8]">
                     訂單狀態：
                     <span
-                      className={`ml-1 font-bold ${
-                        selectedOrder?.status === '已付款' ? 'text-[#8bc53f]' : 'text-[#ffd079]'
-                      }`}
+                      className={`ml-2 inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusBadgeClass(
+                        selectedOrder?.status
+                      )}`}
                     >
                       {selectedOrder?.status || 'N/A'}
                     </span>
                   </p>
+                  <p className="mt-2 text-xs text-[#8faac0]">
+                    建立時間：{selectedOrder?.date ? new Date(selectedOrder.date).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={() => mutateOrder(cancelOrder, '訂單已取消')}
+                    disabled={!selectedOrder || !['未付款', '付款失敗'].includes(selectedOrder.status)}
+                    className="rounded-md border border-[#ff9f9f55] bg-[#4a202a] px-3 py-2 text-sm font-semibold text-[#ffd6d6] transition hover:bg-[#66303c] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    取消訂單
+                  </button>
+                  <button
+                    onClick={() => mutateOrder(refundOrder, '退款完成')}
+                    disabled={!selectedOrder || selectedOrder.status !== '已付款'}
+                    className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    退款
+                  </button>
+                  <button
+                    onClick={() => mutateOrder(retryOrderPayment, '訂單已轉為待付款')}
+                    disabled={!selectedOrder || selectedOrder.status !== '付款失敗'}
+                    className="rounded-md border border-[#66c0f455] bg-[#193142] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24445a] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    重新付款
+                  </button>
+                  <button
+                    onClick={() =>
+                      mutateOrder(
+                        (orderId, token) => payOrder(orderId, token, true),
+                        '已模擬付款失敗'
+                      )
+                    }
+                    disabled={!selectedOrder || selectedOrder.status !== '未付款'}
+                    className="rounded-md border border-[#ffcf5a55] bg-[#3f3318] px-3 py-2 text-sm font-semibold text-[#ffe0a6] transition hover:bg-[#524423] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    模擬付款失敗
+                  </button>
                 </div>
               </>
             )}
@@ -135,9 +214,9 @@ export default function CheckoutPage() {
 
           <div className="steam-panel rounded-2xl p-5">
             <h2 className="text-xl font-black text-[#d8e6f3]">付款資訊</h2>
-            {selectedOrder?.status === '已付款' ? (
+            {selectedOrder?.status !== '未付款' ? (
               <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-                此訂單已付款，請改選其他未付款訂單。
+                只有「未付款」訂單可進行付款，請切換訂單或使用訂單操作按鈕。
               </p>
             ) : clientSecret ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
@@ -150,6 +229,73 @@ export default function CheckoutPage() {
             )}
           </div>
         </div>
+
+        {orders.length > 0 && (
+          <div className="steam-panel mt-5 rounded-2xl p-5">
+            <h2 className="text-xl font-black text-[#d8e6f3]">所有訂單</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {orders.map((order) => {
+                const latestStatus = order.statusHistory?.[order.statusHistory.length - 1];
+                return (
+                  <article
+                    key={order.id}
+                    className={`rounded-xl border p-4 transition ${
+                      selectedOrder?.id === order.id
+                        ? 'border-[#66c0f4] bg-[#173247]'
+                        : 'border-[#66c0f433] bg-[#132434]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-[#d8e6f3]">訂單 {order.id.slice(0, 8)}...</p>
+                        <p className="mt-1 text-xs text-[#8faac0]">{new Date(order.date).toLocaleString()}</p>
+                      </div>
+                      <span
+                        className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusBadgeClass(
+                          order.status
+                        )}`}
+                      >
+                        {order.status}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between text-sm">
+                      <span className="text-[#9eb4c8]">金額</span>
+                      <span className="font-black text-[#8bc53f]">${order.total.toFixed(2)}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-xs text-[#9eb4c8]">
+                      <span>商品數</span>
+                      <span>{order.items.reduce((sum, item) => sum + (item.quantity || 0), 0)} 件</span>
+                    </div>
+
+                    <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-2 text-xs">
+                      <p className="text-[#8fb8d5]">最新節點</p>
+                      <p className="mt-1 text-[#d8e6f3]">{latestStatus?.status || '無'}</p>
+                      <p className="mt-0.5 text-[#8faac0]">
+                        {latestStatus?.at ? new Date(latestStatus.at).toLocaleString() : 'N/A'}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+                      >
+                        選取
+                      </button>
+                      <button
+                        onClick={() => router.push(`/orders/${order.id}`)}
+                        className="rounded-md border border-[#66c0f455] bg-[#162839] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+                      >
+                        查看詳情
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {orders.length > 0 && (
           <div className="steam-panel mt-5 rounded-2xl p-5">

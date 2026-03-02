@@ -133,6 +133,9 @@ export default function CartPage() {
                         </div>
                         <div>
                           <h2 className="text-base font-bold text-[#d8e6f3]">{item.name}</h2>
+                          {item.variantName && (
+                            <p className="text-xs text-[#8fb8d5]">版本: {item.variantName}</p>
+                          )}
                           <p className="text-xs text-[#9eb4c8]">
                             單價: <span className="text-[#8bc53f]">${unitPrice.toFixed(2)}</span>
                           </p>

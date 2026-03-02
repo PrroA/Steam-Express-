@@ -36,11 +36,54 @@ export async function createPaymentIntent(amount: number): Promise<PaymentIntent
 
 export async function payOrder(
   orderId: string,
-  token?: string | null
+  token?: string | null,
+  simulateFailure?: boolean
 ): Promise<{ message: string; order: Order }> {
   const response = await apiClient.post(
     '/pay',
-    { orderId },
+    { orderId, simulateFailure },
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function cancelOrder(
+  orderId: string,
+  token?: string | null
+): Promise<{ message: string; order: Order }> {
+  const response = await apiClient.post(
+    `/orders/${orderId}/cancel`,
+    {},
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function retryOrderPayment(
+  orderId: string,
+  token?: string | null
+): Promise<{ message: string; order: Order }> {
+  const response = await apiClient.post(
+    `/orders/${orderId}/retry-payment`,
+    {},
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function refundOrder(
+  orderId: string,
+  token?: string | null
+): Promise<{ message: string; order: Order }> {
+  const response = await apiClient.post(
+    `/orders/${orderId}/refund`,
+    {},
     {
       headers: authHeader(token),
     }
