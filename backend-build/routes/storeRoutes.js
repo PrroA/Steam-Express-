@@ -4,6 +4,10 @@ exports.registerStoreRoutes = registerStoreRoutes;
 const persistence_1 = require("../persistence");
 function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
     const { games, reviews, wishlists } = state;
+    const normalizePrice = (rawPrice) => {
+        const trimmed = String(rawPrice || '').trim();
+        return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
+    };
     app.get('/games', (req, res) => {
         const { query } = req.query;
         const visibleGames = games.filter((game) => game.isActive !== false);
@@ -26,13 +30,23 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
         if (!name || !price || !description) {
             return res.status(400).json({ message: '請提供完整的遊戲信息' });
         }
+        const normalizedPrice = normalizePrice(price);
+        const variantId = 'standard';
         const newGame = {
             id: games.length + 1,
             name,
-            price,
+            price: normalizedPrice,
             description,
             image,
             isActive: true,
+            variants: [
+                {
+                    id: variantId,
+                    name: 'Standard',
+                    price: normalizedPrice,
+                    stock: 50,
+                },
+            ],
         };
         games.push(newGame);
         (0, persistence_1.persistState)(state);

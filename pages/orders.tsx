@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { toast } from 'react-toastify';
+import { FaCheckCircle } from 'react-icons/fa';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import {
@@ -39,6 +40,8 @@ export default function CheckoutPage() {
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isPaymentSuccess = router.query.payment === 'success';
+  const successOrderId = typeof router.query.orderId === 'string' ? router.query.orderId : '';
 
   const loadOrders = useCallback(async (preferredOrderId?: string) => {
     setLoading(true);
@@ -77,8 +80,11 @@ export default function CheckoutPage() {
   }, [selectedOrder]);
 
   useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+    if (!router.isReady) return;
+    const preferredOrderId =
+      typeof router.query.orderId === 'string' ? router.query.orderId : undefined;
+    loadOrders(preferredOrderId);
+  }, [loadOrders, router.isReady, router.query.orderId]);
 
   useEffect(() => {
     fetchClientSecret();
@@ -102,6 +108,19 @@ export default function CheckoutPage() {
     };
   }, [orders]);
 
+  const orderStats = useMemo(() => {
+    const paid = orders.filter((order) => order.status === '已付款');
+    const unpaid = orders.filter((order) => order.status === '未付款');
+    const failed = orders.filter((order) => order.status === '付款失敗');
+    return {
+      totalOrders: orders.length,
+      paidCount: paid.length,
+      unpaidCount: unpaid.length,
+      failedCount: failed.length,
+      paidRevenue: paid.reduce((sum, order) => sum + (order.total || 0), 0),
+    };
+  }, [orders]);
+
   const mutateOrder = useCallback(
     async (runner, successText) => {
       if (!selectedOrder?.id) return;
@@ -118,18 +137,59 @@ export default function CheckoutPage() {
     [loadOrders, selectedOrder?.id]
   );
 
+  const handlePaymentSuccess = useCallback(
+    async (paidOrderId) => {
+      await loadOrders(paidOrderId);
+      router.replace(
+        {
+          pathname: '/orders',
+          query: {
+            orderId: paidOrderId,
+            payment: 'success',
+          },
+        },
+        undefined,
+        { shallow: true }
+      );
+    },
+    [loadOrders, router]
+  );
+
   return (
     <main className="steam-shell px-4 py-6 md:px-6">
       <section className="mx-auto w-full max-w-6xl">
-        <h1 className="text-3xl font-black text-[#d8e6f3]">結帳與付款</h1>
+        <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">ORDER CENTER</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">結帳與付款</h1>
         <p className="mt-1 text-sm text-[#9eb4c8]">選擇訂單後完成付款，狀態會即時更新。</p>
+
+        {isPaymentSuccess && (
+          <div className="mt-4 rounded-xl border border-[#8bc53f55] bg-[#183126] p-4">
+            <div className="flex items-start gap-3">
+              <FaCheckCircle className="mt-0.5 text-[#8bc53f]" />
+              <div>
+                <p className="text-sm font-bold text-[#cde8a5]">付款成功</p>
+                <p className="mt-1 text-xs text-[#b5d7be]">
+                  訂單 {successOrderId ? successOrderId.slice(0, 8) : ''} 已完成付款，你可以在下方查看完整狀態流程。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading && <p className="mt-3 text-sm text-[#9eb4c8]">正在載入資料...</p>}
         {error && <p className="mt-3 text-sm text-[#ff9e9e]">{error}</p>}
 
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="總訂單數" value={`${orderStats.totalOrders} 筆`} />
+          <StatCard label="已付款" value={`${orderStats.paidCount} 筆`} />
+          <StatCard label="待付款" value={`${orderStats.unpaidCount} 筆`} />
+          <StatCard label="付款失敗" value={`${orderStats.failedCount} 筆`} />
+          <StatCard label="已收款總額" value={`$${orderStats.paidRevenue.toFixed(2)}`} />
+        </div>
+
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <div className="steam-panel rounded-2xl p-5">
-            <h2 className="text-xl font-black text-[#d8e6f3]">訂單選擇</h2>
+          <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
+            <h2 className="text-xl font-black text-[#d8e6f3]">訂單操作台</h2>
 
             {orders.length === 0 ? (
               <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
@@ -212,7 +272,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          <div className="steam-panel rounded-2xl p-5">
+          <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
             <h2 className="text-xl font-black text-[#d8e6f3]">付款資訊</h2>
             {selectedOrder?.status !== '未付款' ? (
               <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
@@ -220,7 +280,11 @@ export default function CheckoutPage() {
               </p>
             ) : clientSecret ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <CheckoutForm clientSecret={clientSecret} orderId={selectedOrder?.id} />
+                <CheckoutForm
+                  clientSecret={clientSecret}
+                  orderId={selectedOrder?.id}
+                  onPaid={handlePaymentSuccess}
+                />
               </Elements>
             ) : (
               <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
@@ -231,7 +295,7 @@ export default function CheckoutPage() {
         </div>
 
         {orders.length > 0 && (
-          <div className="steam-panel mt-5 rounded-2xl p-5">
+          <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-5">
             <h2 className="text-xl font-black text-[#d8e6f3]">所有訂單</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {orders.map((order) => {
@@ -297,8 +361,34 @@ export default function CheckoutPage() {
           </div>
         )}
 
+        {selectedOrder?.statusHistory?.length > 0 && (
+          <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-5">
+            <h2 className="text-xl font-black text-[#d8e6f3]">目前訂單狀態流程</h2>
+            <div className="mt-4 space-y-3">
+              {selectedOrder.statusHistory.map((node, index) => (
+                <div
+                  key={`${node.status}-${node.at}-${index}`}
+                  className="rounded-lg border border-[#66c0f433] bg-[#132434] p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusBadgeClass(
+                        node.status
+                      )}`}
+                    >
+                      {node.status}
+                    </span>
+                    <span className="text-xs text-[#8faac0]">{new Date(node.at).toLocaleString()}</span>
+                  </div>
+                  {node.note && <p className="mt-1 text-xs text-[#9eb4c8]">{node.note}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {orders.length > 0 && (
-          <div className="steam-panel mt-5 rounded-2xl p-5">
+          <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-5">
             <h2 className="text-xl font-black text-[#d8e6f3]">訂單狀態分佈</h2>
             <div className="mt-4 flex justify-center">
               <div className="h-60 w-60">
@@ -312,10 +402,9 @@ export default function CheckoutPage() {
   );
 }
 
-function CheckoutForm({ clientSecret, orderId }) {
+function CheckoutForm({ clientSecret, orderId, onPaid }) {
   const stripe = useStripe();
   const elements = useElements();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -348,8 +437,8 @@ function CheckoutForm({ clientSecret, orderId }) {
     if (paymentIntent?.status === 'succeeded') {
       await payOrder(orderId, localStorage.getItem('token'));
       toast.success('付款成功，感謝你的購買');
-      setMessage('付款成功，正在返回首頁...');
-      setTimeout(() => router.push('/'), 1000);
+      setMessage('付款成功，正在更新訂單狀態...');
+      await onPaid(orderId);
     }
 
     setLoading(false);
@@ -379,5 +468,14 @@ function CheckoutForm({ clientSecret, orderId }) {
       </button>
       {message && <p className="text-sm text-[#ffd079]">{message}</p>}
     </form>
+  );
+}
+
+function StatCard({ label, value }) {
+  return (
+    <div className="rounded-lg border border-[#66c0f433] bg-[#102131] p-3">
+      <p className="text-xs text-[#8faac0]">{label}</p>
+      <p className="mt-1 text-lg font-black text-[#d8e6f3]">{value}</p>
+    </div>
   );
 }

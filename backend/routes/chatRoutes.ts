@@ -7,22 +7,6 @@ import { retrieveRagContext } from '../rag';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 
-function buildFallbackRagReply(state: RouteDeps['state'], message: string) {
-  const contexts = retrieveRagContext(state, message, 3);
-  if (contexts.length === 0) {
-    return {
-      reply: '目前知識庫找不到直接答案，建議改問：訂單狀態、退款規則、庫存與版本、付款流程。',
-      sources: [],
-    };
-  }
-  return {
-    reply:
-      `根據平台資料整理如下：\n` +
-      contexts.map((item) => `- ${item.doc.title}：${item.doc.content}`).join('\n'),
-    sources: contexts.map((item) => item.doc.title),
-  };
-}
-
 export function registerChatRoutes({ app, io, state, openaiClient }: RouteDeps) {
   const { messages } = state;
 
@@ -38,24 +22,6 @@ export function registerChatRoutes({ app, io, state, openaiClient }: RouteDeps) 
       messages.push(newMessage);
       persistState(state);
       io.emit('receiveMessage', newMessage);
-
-      const isUserMessage =
-        newMessage.user === '你' || newMessage.user === '我' || newMessage.user === '訪客';
-      if (isUserMessage && typeof newMessage.text === 'string' && newMessage.text.trim()) {
-        const ragResult = buildFallbackRagReply(state, newMessage.text.trim());
-        const supportReply = {
-          user: 'AI助手',
-          text:
-            ragResult.reply +
-            (ragResult.sources.length > 0
-              ? `\n\n參考來源：${ragResult.sources.slice(0, 2).join('、')}`
-              : ''),
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        messages.push(supportReply);
-        persistState(state);
-        io.emit('receiveMessage', supportReply);
-      }
     });
 
     setTimeout(() => {

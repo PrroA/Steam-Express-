@@ -4,6 +4,18 @@ import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
 import { fetchGames as fetchGamesList } from '../services/storeService'
 
+function parsePrice(priceText) {
+  return parseFloat((priceText || '$0').replace('$', '')) || 0;
+}
+
+function extractKeywords(text = '') {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fff\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length >= 2);
+}
+
 export default function Home() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,26 +81,58 @@ export default function Home() {
     return recentIds.map((id) => gameMap.get(id)).filter(Boolean).slice(0, 4);
   }, [recentIds, games]);
 
+  const recentPreference = useMemo(() => {
+    if (recentlyViewedGames.length === 0) {
+      return { averagePrice: 0, topKeywords: [] };
+    }
+    const averagePrice =
+      recentlyViewedGames.reduce((sum, game) => sum + parsePrice(game.price), 0) /
+      recentlyViewedGames.length;
+    const keywordCounter = new Map();
+    recentlyViewedGames.forEach((game) => {
+      extractKeywords(`${game.name || ''} ${game.description || ''}`).forEach((word) => {
+        keywordCounter.set(word, (keywordCounter.get(word) || 0) + 1);
+      });
+    });
+    const topKeywords = [...keywordCounter.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([keyword]) => keyword);
+    return { averagePrice, topKeywords };
+  }, [recentlyViewedGames]);
+
   const recommendedGames = useMemo(() => {
     if (!games.length) return [];
     const recentSet = new Set(recentlyViewedGames.map((game) => game.id));
     if (recentlyViewedGames.length === 0) {
       return games.slice(0, 4);
     }
-    const avgRecentPrice =
-      recentlyViewedGames.reduce(
-        (sum, game) => sum + (parseFloat((game.price || '$0').replace('$', '')) || 0),
-        0
-      ) / recentlyViewedGames.length;
+    const avgRecentPrice = recentPreference.averagePrice;
+    const keywordSet = new Set(recentPreference.topKeywords);
+
     return [...games]
       .filter((game) => !recentSet.has(game.id))
       .sort((a, b) => {
-        const aPrice = parseFloat((a.price || '$0').replace('$', '')) || 0;
-        const bPrice = parseFloat((b.price || '$0').replace('$', '')) || 0;
+        const aText = `${a.name || ''} ${a.description || ''}`.toLowerCase();
+        const bText = `${b.name || ''} ${b.description || ''}`.toLowerCase();
+
+        let aKeywordScore = 0;
+        let bKeywordScore = 0;
+        keywordSet.forEach((keyword) => {
+          if (aText.includes(keyword)) aKeywordScore += 1;
+          if (bText.includes(keyword)) bKeywordScore += 1;
+        });
+
+        if (aKeywordScore !== bKeywordScore) {
+          return bKeywordScore - aKeywordScore;
+        }
+
+        const aPrice = parsePrice(a.price);
+        const bPrice = parsePrice(b.price);
         return Math.abs(aPrice - avgRecentPrice) - Math.abs(bPrice - avgRecentPrice);
       })
       .slice(0, 4);
-  }, [games, recentlyViewedGames]);
+  }, [games, recentlyViewedGames, recentPreference]);
 
   return (
     <main className="steam-shell pb-8">
@@ -126,6 +170,19 @@ export default function Home() {
             <div className="mb-4">
               <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">RECOMMENDED FOR YOU</p>
               <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">為你推薦</h2>
+              {recentPreference.topKeywords.length > 0 && (
+                <p className="mt-2 text-xs text-[#9eb4c8]">
+                  依據最近偏好關鍵字：
+                  {recentPreference.topKeywords.map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="ml-2 inline-block rounded-full border border-[#66c0f455] bg-[#162737] px-2 py-0.5 text-[#b8d4e8]"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {recommendedGames.map((game) => (

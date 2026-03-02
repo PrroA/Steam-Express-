@@ -37,6 +37,15 @@ function findOrderAcrossUsers(orders, orderId) {
     }
     return null;
 }
+function normalizeOrdersForAdmin(orders) {
+    return Object.entries(orders).flatMap(([userId, userOrders]) => {
+        if (!Array.isArray(userOrders))
+            return [];
+        return userOrders
+            .filter((order) => order && typeof order === 'object' && typeof order.id === 'string')
+            .map((order) => ({ ...order, userId: Number(userId) }));
+    });
+}
 function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }) {
     const { carts, orders, games } = state;
     app.get('/cart', authenticate, (req, res) => {
@@ -129,22 +138,25 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         return res.status(200).json(order);
     });
     app.get('/admin/orders', authenticate, isAdmin, (req, res) => {
-        const allOrders = Object.entries(orders).flatMap(([userId, userOrders]) => (userOrders || []).map((order) => ({ ...order, userId: Number(userId) })));
+        const allOrders = normalizeOrdersForAdmin(orders);
         return res.status(200).json(allOrders);
     });
     app.get('/admin/dashboard', authenticate, isAdmin, (req, res) => {
-        const allOrders = Object.values(orders).flat();
+        const allOrders = normalizeOrdersForAdmin(orders).map(({ userId, ...order }) => order);
         const totalOrders = allOrders.length;
-        const paidOrders = allOrders.filter((order) => order.status === '已付款').length;
-        const refundedOrders = allOrders.filter((order) => order.status === '已退款').length;
-        const cancelledOrders = allOrders.filter((order) => order.status === '已取消').length;
-        const pendingOrders = allOrders.filter((order) => order.status === '未付款').length;
+        const paidOrders = allOrders.filter((order) => order?.status === '已付款').length;
+        const refundedOrders = allOrders.filter((order) => order?.status === '已退款').length;
+        const cancelledOrders = allOrders.filter((order) => order?.status === '已取消').length;
+        const pendingOrders = allOrders.filter((order) => order?.status === '未付款').length;
         const totalRevenue = allOrders
-            .filter((order) => order.status === '已付款')
-            .reduce((sum, order) => sum + order.total, 0);
+            .filter((order) => order?.status === '已付款')
+            .reduce((sum, order) => sum + (Number(order?.total) || 0), 0);
         const totalItemsSold = allOrders
-            .filter((order) => order.status === '已付款')
-            .reduce((sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + (item.quantity || 0), 0), 0);
+            .filter((order) => order?.status === '已付款')
+            .reduce((sum, order) => sum +
+            (Array.isArray(order?.items)
+                ? order.items.reduce((itemSum, item) => itemSum + (item?.quantity || 0), 0)
+                : 0), 0);
         const lowStockGames = games
             .filter((game) => game.isActive !== false)
             .map((game) => ({

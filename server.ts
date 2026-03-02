@@ -152,7 +152,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const startedAt = Date.now();

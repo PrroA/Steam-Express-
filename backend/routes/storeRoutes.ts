@@ -24,6 +24,10 @@ type TypedAuthRequest<
 
 export function registerStoreRoutes({ app, state, authenticate, isAdmin }: RouteDeps) {
   const { games, reviews, wishlists } = state;
+  const normalizePrice = (rawPrice: string) => {
+    const trimmed = String(rawPrice || '').trim();
+    return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
+  };
 
   app.get('/games', (req: TypedRequest<unknown, Record<string, string>, GamesQuery>, res: Response) => {
     const { query } = req.query;
@@ -52,13 +56,23 @@ export function registerStoreRoutes({ app, state, authenticate, isAdmin }: Route
     if (!name || !price || !description) {
       return res.status(400).json({ message: '請提供完整的遊戲信息' });
     }
+    const normalizedPrice = normalizePrice(price);
+    const variantId = 'standard';
     const newGame = {
       id: games.length + 1,
       name,
-      price,
+      price: normalizedPrice,
       description,
       image,
       isActive: true,
+      variants: [
+        {
+          id: variantId,
+          name: 'Standard',
+          price: normalizedPrice,
+          stock: 50,
+        },
+      ],
     };
     games.push(newGame);
     persistState(state);

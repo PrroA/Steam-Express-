@@ -23,6 +23,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const user = '你';
 
   const inputRef = useRef(null);
@@ -65,7 +66,7 @@ export default function ChatPage() {
 
   const handleSendMessage = async () => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage) return;
+    if (!trimmedMessage || isReplying) return;
 
     const userMessage = {
       user,
@@ -73,9 +74,10 @@ export default function ChatPage() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
     if (socket && socketConnected) {
       socket.emit('sendMessage', userMessage);
+    } else {
+      setMessages((prev) => [...prev, userMessage]);
     }
     setMessage('');
 
@@ -86,6 +88,7 @@ export default function ChatPage() {
 
     if (matchedKeyword) {
       try {
+        setIsReplying(true);
         const res = await fetch(
           `${API_BASE_URL}/games?query=${encodeURIComponent(matchedKeyword)}`
         );
@@ -115,10 +118,13 @@ export default function ChatPage() {
             timestamp: new Date().toLocaleTimeString(),
           },
         ]);
+      } finally {
+        setIsReplying(false);
       }
       return;
     }
     try {
+      setIsReplying(true);
       const res = await fetch(`${API_BASE_URL}/chat/rag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,6 +160,8 @@ export default function ChatPage() {
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
+    } finally {
+      setIsReplying(false);
     }
   };
 
@@ -199,9 +207,10 @@ export default function ChatPage() {
           />
           <button
             onClick={handleSendMessage}
-            className="ml-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition"
+            disabled={isReplying}
+            className="ml-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            發送
+            {isReplying ? '回覆中...' : '發送'}
           </button>
         </div>
       </div>

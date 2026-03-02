@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { addGame } from '../services/storeService';
 import {
@@ -13,12 +12,36 @@ import {
 
 const ORDER_STATUS_OPTIONS = ['未付款', '付款失敗', '已付款', '已取消', '已退款'];
 
+function normalizeImagePreviewUrl(rawValue: string) {
+  const value = String(rawValue || '').trim();
+  if (!value) {
+    return { url: '', error: '' };
+  }
+  if (value.startsWith('data:image/')) {
+    return { url: value, error: '' };
+  }
+  if (value.startsWith('/')) {
+    return { url: value, error: '' };
+  }
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return { url: value, error: '' };
+    }
+    return { url: '', error: '僅支援 http/https 或站內路徑（/xxx）' };
+  } catch (error) {
+    return { url: '', error: '圖片 URL 格式不正確' };
+  }
+}
+
 export default function AdminPage() {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [preview, setPreview] = useState('');
+  const [imageUrlError, setImageUrlError] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [dashboard, setDashboard] = useState(null);
   const [games, setGames] = useState([]);
@@ -55,6 +78,9 @@ export default function AdminPage() {
   );
 
   const handleAddGame = async () => {
+    if (imageUrlError) {
+      toast.warn('圖片預覽失敗，但仍可先新增商品，之後再更換圖片網址');
+    }
     try {
       await addGame({ name, price, description, image }, token);
       toast.success('遊戲已添加');
@@ -63,16 +89,60 @@ export default function AdminPage() {
       setDescription('');
       setImage('');
       setPreview('');
+      setImageUrlError('');
       await loadAdminData();
     } catch (error) {
-      toast.error('添加遊戲失敗：你不是管理員或資料有誤');
+      const message =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        '添加遊戲失敗';
+      toast.error(`添加遊戲失敗：${message}`);
     }
   };
 
   const handleImageChange = (e) => {
     const url = e.target.value;
     setImage(url);
-    setPreview(url);
+    const normalized = normalizeImagePreviewUrl(url);
+    setPreview(normalized.url);
+    setImageUrlError(normalized.error);
+  };
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageUrlError('請選擇圖片檔案');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setImageUrlError('圖片大小需小於 2MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result.startsWith('data:image/')) {
+        setImageUrlError('圖片轉換失敗，請重新選擇');
+        setUploadingImage(false);
+        return;
+      }
+      setImage(result);
+      setPreview(result);
+      setImageUrlError('');
+      setUploadingImage(false);
+      toast.success('圖片已載入，可直接新增商品');
+    };
+    reader.onerror = () => {
+      setUploadingImage(false);
+      setImageUrlError('圖片讀取失敗，請重試');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleToggleActive = async (game) => {
@@ -85,13 +155,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleVariantStockChange = async (gameId, variantId, stock) => {
+  const handleVariantUpdate = async (gameId, variantId, payload) => {
     try {
-      await updateGameVariant(gameId, variantId, { stock }, token);
-      toast.success('庫存已更新');
+      await updateGameVariant(gameId, variantId, payload, token);
+      toast.success('版本資料已更新');
       await loadAdminData();
     } catch (error) {
-      toast.error('更新庫存失敗');
+      toast.error('更新版本資料失敗');
     }
   };
 
@@ -129,7 +199,16 @@ export default function AdminPage() {
               <h2 className="text-xl font-black text-[#d8e6f3]">新增商品</h2>
               {preview && (
                 <div className="relative mt-4 aspect-video w-full overflow-hidden rounded-xl border border-[#66c0f433] bg-[#0f1d2b]">
-                  <Image src={preview || '/vercel.svg'} alt="封面預覽" fill style={{ objectFit: 'cover' }} />
+                  <img
+                    src={preview}
+                    alt="封面預覽"
+                    className="h-full w-full object-cover"
+                    onError={() => setImageUrlError('圖片載入失敗，請確認網址可公開存取')}
+                    onLoad={() => {
+                      setImageUrlError('');
+                    }}
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
               )}
               <div className="mt-4 grid gap-3">
@@ -160,6 +239,17 @@ export default function AdminPage() {
                   onChange={handleImageChange}
                   className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
                 />
+                <div className="rounded-md border border-dashed border-[#66c0f455] bg-[#112334] p-3">
+                  <p className="text-xs text-[#9eb4c8]">或直接上傳圖片（建議 2MB 內）</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    className="mt-2 block w-full text-xs text-[#d8e6f3] file:mr-3 file:rounded-md file:border-0 file:bg-[#1b2f44] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#d8e6f3] hover:file:bg-[#24384d]"
+                  />
+                  {uploadingImage && <p className="mt-2 text-xs text-[#8fb8d5]">圖片處理中...</p>}
+                </div>
+                {imageUrlError && <p className="text-xs text-[#ff9e9e]">{imageUrlError}</p>}
                 <button onClick={handleAddGame} className="steam-btn rounded-md py-2.5 text-sm">
                   添加遊戲
                 </button>
@@ -194,7 +284,7 @@ export default function AdminPage() {
                           <VariantEditor
                             key={`${game.id}-${variant.id}`}
                             variant={variant}
-                            onSave={(stock) => handleVariantStockChange(game.id, variant.id, stock)}
+                            onSave={(payload) => handleVariantUpdate(game.id, variant.id, payload)}
                           />
                         ))}
                       </div>
@@ -252,16 +342,31 @@ function MetricCard({ label, value, highlight = false }) {
 
 function VariantEditor({ variant, onSave }) {
   const [stock, setStock] = useState(variant.stock);
+  const [price, setPrice] = useState(String(variant.price || '').replace('$', ''));
 
   useEffect(() => {
     setStock(variant.stock);
-  }, [variant.stock]);
+    setPrice(String(variant.price || '').replace('$', ''));
+  }, [variant.stock, variant.price]);
+
+  const handleSave = () => {
+    const typedPayload: { stock?: number; price?: string } = {};
+    const parsedStock = Number(stock);
+    if (Number.isFinite(parsedStock) && parsedStock >= 0) {
+      typedPayload.stock = Math.floor(parsedStock);
+    }
+    const trimmedPrice = String(price || '').trim();
+    if (trimmedPrice) {
+      typedPayload.price = trimmedPrice.startsWith('$') ? trimmedPrice : `$${trimmedPrice}`;
+    }
+    onSave(typedPayload);
+  };
 
   return (
     <div className="rounded-md border border-[#66c0f433] bg-[#102131] p-3">
       <p className="text-sm font-bold text-[#d8e6f3]">{variant.name}</p>
       <p className="text-xs text-[#8faac0]">價格 {variant.price}</p>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <input
           type="number"
           min={0}
@@ -269,11 +374,18 @@ function VariantEditor({ variant, onSave }) {
           onChange={(e) => setStock(Number(e.target.value))}
           className="w-24 rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
         />
+        <input
+          type="text"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="59.99"
+          className="w-28 rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+        />
         <button
-          onClick={() => onSave(stock)}
+          onClick={handleSave}
           className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
         >
-          更新庫存
+          更新價格/庫存
         </button>
       </div>
     </div>

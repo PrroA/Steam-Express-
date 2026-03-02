@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Header } from '../components/Header';
+import { FaHeadset } from 'react-icons/fa';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -66,7 +66,7 @@ export default function ChatPage() {
 
   const handleSendMessage = async () => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage) return;
+    if (!trimmedMessage || isReplying) return;
 
     const userMessage = {
       user,
@@ -74,9 +74,10 @@ export default function ChatPage() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
     if (socket && socketConnected) {
       socket.emit('sendMessage', userMessage);
+    } else {
+      setMessages((prev) => [...prev, userMessage]);
     }
     setMessage('');
 
@@ -179,10 +180,11 @@ export default function ChatPage() {
   };
 
   return (
-    <>
-      <Header />
-      <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center">
-        <h1 className="text-2xl font-bold mb-4 text-white">💬 客服中心</h1>
+    <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center">
+      <h1 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+        <FaHeadset className="text-blue-400" aria-hidden />
+        <span>客服中心</span>
+      </h1>
         <div className="w-full max-w-2xl flex flex-col bg-gray-800 p-4 rounded-lg shadow-md h-[500px] overflow-y-auto">
           {messages.map((msg, index) => {
             const isMe = msg.user === user;
@@ -222,12 +224,12 @@ export default function ChatPage() {
           />
           <button
             onClick={handleSendMessage}
-            className="ml-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition"
+            disabled={isReplying}
+            className="ml-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            發送
+            {isReplying ? '回覆中...' : '發送'}
           </button>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
