@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { confirmPasswordReset } from '../services/authService';
 
 export default function ConfirmResetPasswordPage() {
-  const [resetToken, setResetToken] = useState('');
+  const router = useRouter();
+  const initialToken = typeof router.query?.token === 'string' ? router.query.token : '';
+  const [resetToken, setResetToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
-  const router = useRouter();
+
+  useEffect(() => {
+    if (!resetToken && initialToken) {
+      setResetToken(initialToken);
+    }
+  }, [initialToken, resetToken]);
 
   const handleConfirmReset = async (e) => {
     e.preventDefault();

@@ -106,6 +106,15 @@ export function Header() {
     };
   }, [router.asPath]);
 
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isMenuOpen]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setAuthUser(null);
@@ -225,55 +234,74 @@ export function Header() {
 
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.aside
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-            className="fixed right-0 top-0 z-50 flex h-full w-72 flex-col gap-3 border-l border-[#66c0f433] bg-[#102031] p-5 shadow-2xl md:hidden"
-          >
-            <button
-              className="mb-3 self-end text-2xl text-[#d8e6f3]"
+          <div className="fixed inset-0 z-50 md:hidden">
+            <motion.button
+              type="button"
+              aria-label="關閉選單遮罩"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
-              aria-label="關閉選單"
+              className="absolute inset-0 bg-[#050a0fcc] backdrop-blur-[1px]"
+            />
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 180, damping: 24 }}
+              className="absolute inset-y-0 right-0 z-10 flex w-[86vw] max-w-[360px] flex-col border-l border-[#66c0f455] bg-[#102031] shadow-2xl"
             >
-              ✖
-            </button>
-
-            {isLoggedIn ? (
-              <div className="rounded-lg border border-[#66c0f433] bg-[#102131] p-3">
-                <p className="text-[11px] text-[#8faac0]">目前登入</p>
-                <p className="text-sm font-bold text-[#d8e6f3]">
-                  {authUser.username}
-                  {isAdmin ? ' (Admin)' : ''}
-                </p>
+              <div className="flex items-center justify-between border-b border-[#66c0f433] px-4 py-4">
+                <p className="text-sm font-extrabold tracking-[0.16em] text-[#c8dff3]">選單</p>
                 <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="mt-2 w-full rounded-md border border-[#ff9f9f55] bg-[#4a202a] px-3 py-2 text-xs font-semibold text-[#ffd6d6] transition hover:bg-[#66303c]"
+                  className="rounded-md border border-[#66c0f455] bg-[#1b2b3a] px-3 py-1.5 text-lg text-[#d8e6f3]"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="關閉選單"
                 >
-                  登出
+                  ✖
                 </button>
               </div>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setIsMenuOpen(false)}
-                className="steam-btn rounded-md px-4 py-2 text-center"
-              >
-                登入 / 註冊
-              </Link>
-            )}
-            {navItems.map((item) => (
-              <NavItem
-                key={item.href}
-                href={item.href}
-                label={item.label}
-                onClick={() => setIsMenuOpen(false)}
-              />
-            ))}
-            {isAdmin && <NavItem href="/admin" label="後台管理" onClick={() => setIsMenuOpen(false)} />}
-          </motion.aside>
+
+              <div className="space-y-2 px-4 py-3">
+                {isLoggedIn ? (
+                  <div className="rounded-lg border border-[#66c0f433] bg-[#102131] p-2.5">
+                    <p className="text-[11px] text-[#8faac0]">目前登入</p>
+                    <p className="text-sm font-bold text-[#d8e6f3]">
+                      {authUser.username}
+                      {isAdmin ? ' (Admin)' : ''}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="mt-1.5 w-full rounded-md border border-[#ff9f9f55] bg-[#4a202a] px-3 py-2 text-xs font-semibold text-[#ffd6d6] transition hover:bg-[#66303c]"
+                    >
+                      登出
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="steam-btn block rounded-md px-4 py-2 text-center"
+                  >
+                    登入 / 註冊
+                  </Link>
+                )}
+
+                {navItems.map((item) => (
+                  <NavItem
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    onClick={() => setIsMenuOpen(false)}
+                  />
+                ))}
+                {isAdmin && (
+                  <NavItem href="/admin" label="後台管理" onClick={() => setIsMenuOpen(false)} />
+                )}
+              </div>
+            </motion.aside>
+          </div>
         )}
       </AnimatePresence>
     </header>
@@ -320,7 +348,7 @@ const NavItem = ({ href, label, onClick }) => (
   <Link
     href={href}
     onClick={onClick}
-    className="rounded-md border border-[#66c0f433] bg-[#1b2b3a] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:border-[#66c0f488] hover:bg-[#24384d]"
+    className="block rounded-md border border-[#66c0f433] bg-[#1b2b3a] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:border-[#66c0f488] hover:bg-[#24384d]"
   >
     {label}
   </Link>

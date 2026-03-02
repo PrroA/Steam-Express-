@@ -7,17 +7,16 @@ export default function ForgotPasswordPage() {
   const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [resetToken, setResetToken] = useState('');
   const router = useRouter();
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     try {
-      await requestPasswordReset(username);
+      const response = await requestPasswordReset(username);
+      setResetToken(response?.resetToken || '');
       setIsError(false);
-      setMessage('重設密碼的連結已發送到您的郵箱，將跳轉下一步。');
-      setTimeout(() => {
-        router.push('/ConfirmResetPassword');
-      }, 1200);
+      setMessage('已產生重設憑證，請複製 Token 到下一步重設密碼。');
     } catch (error) {
       setIsError(true);
       setMessage(error.response?.data?.message || '請求失敗，請稍後再試');
@@ -29,7 +28,7 @@ export default function ForgotPasswordPage() {
       <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
         <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">PASSWORD RESET</p>
         <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">忘記密碼？</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">輸入帳號後，進入下一步完成密碼重設。</p>
+        <p className="mt-1 text-sm text-[#9eb4c8]">輸入帳號後會產生重設 Token（目前為開發模式）。</p>
 
         <form onSubmit={handleForgotPassword} className="mt-6 space-y-4">
           <input
@@ -47,6 +46,31 @@ export default function ForgotPasswordPage() {
 
         {message && (
           <p className={`mt-4 text-sm ${isError ? 'text-[#ff9e9e]' : 'text-[#8bc53f]'}`}>{message}</p>
+        )}
+
+        {resetToken && (
+          <div className="mt-4 rounded-lg border border-[#66c0f455] bg-[#102131] p-3">
+            <p className="text-xs text-[#8faac0]">重設 Token（15 分鐘有效）</p>
+            <p className="mt-1 break-all text-sm font-bold text-[#d8e6f3]">{resetToken}</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(resetToken)}
+                className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+              >
+                複製 Token
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/ConfirmResetPassword?token=${encodeURIComponent(resetToken)}`)
+                }
+                className="steam-btn rounded-md px-3 py-2 text-xs"
+              >
+                前往下一步
+              </button>
+            </div>
+          </div>
         )}
 
         <p className="mt-4 text-sm text-[#9eb4c8]">

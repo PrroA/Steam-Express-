@@ -42,6 +42,31 @@ export async function updateGameActiveStatus(
   return response.data;
 }
 
+export async function updateAdminGame(
+  gameId: number,
+  payload: { name?: string; description?: string; image?: string; price?: string },
+  token?: string | null
+): Promise<{ message: string; game: Game }> {
+  const response = await apiClient.patch(`/admin/games/${gameId}`, payload, {
+    headers: authHeader(token),
+  });
+  return response.data;
+}
+
+export async function ensureAdminGameVariant(
+  gameId: number,
+  token?: string | null
+): Promise<{ message: string; game: Game }> {
+  const response = await apiClient.post(
+    `/admin/games/${gameId}/ensure-variant`,
+    {},
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
 export async function updateGameVariant(
   gameId: number,
   variantId: string,

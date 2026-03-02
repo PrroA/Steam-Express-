@@ -28,6 +28,20 @@ export function registerStoreRoutes({ app, state, authenticate, isAdmin }: Route
     const trimmed = String(rawPrice || '').trim();
     return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
   };
+  const ensureDefaultVariant = (game: { variants?: Array<{ id: string; name: string; price: string; stock: number }>; price: string }) => {
+    if (Array.isArray(game.variants) && game.variants.length > 0) {
+      return game.variants;
+    }
+    game.variants = [
+      {
+        id: 'standard',
+        name: 'Standard',
+        price: game.price,
+        stock: 50,
+      },
+    ];
+    return game.variants;
+  };
 
   app.get('/games', (req: TypedRequest<unknown, Record<string, string>, GamesQuery>, res: Response) => {
     const { query } = req.query;
@@ -104,6 +118,59 @@ export function registerStoreRoutes({ app, state, authenticate, isAdmin }: Route
     persistState(state);
     return res.status(200).json({ message: game.isActive ? '商品已上架' : '商品已下架', game });
   });
+
+  app.patch(
+    '/admin/games/:id',
+    authenticate,
+    isAdmin,
+    (
+      req: TypedAuthRequest<{ name?: string; description?: string; image?: string; price?: string }, IdParam>,
+      res: Response
+    ) => {
+      const gameId = parseInt(req.params.id, 10);
+      const game = games.find((g) => g.id === gameId);
+      if (!game) {
+        return res.status(404).json({ message: '遊戲未找到' });
+      }
+
+      if (typeof req.body.name === 'string' && req.body.name.trim()) {
+        game.name = req.body.name.trim();
+      }
+      if (typeof req.body.description === 'string' && req.body.description.trim()) {
+        game.description = req.body.description.trim();
+      }
+      if (typeof req.body.image === 'string' && req.body.image.trim()) {
+        game.image = req.body.image.trim();
+      }
+      if (typeof req.body.price === 'string' && req.body.price.trim()) {
+        game.price = normalizePrice(req.body.price.trim());
+        const standardVariant = game.variants?.find((variant) => variant.id === 'standard');
+        if (standardVariant) {
+          standardVariant.price = game.price;
+        }
+      }
+
+      persistState(state);
+      return res.status(200).json({ message: '商品資料已更新', game });
+    }
+  );
+
+  app.post(
+    '/admin/games/:id/ensure-variant',
+    authenticate,
+    isAdmin,
+    (req: TypedAuthRequest<unknown, IdParam>, res: Response) => {
+      const gameId = parseInt(req.params.id, 10);
+      const game = games.find((g) => g.id === gameId);
+      if (!game) {
+        return res.status(404).json({ message: '遊戲未找到' });
+      }
+
+      ensureDefaultVariant(game);
+      persistState(state);
+      return res.status(200).json({ message: '已建立預設版本', game });
+    }
+  );
 
   app.patch(
     '/admin/games/:id/variants/:variantId',

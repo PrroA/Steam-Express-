@@ -122,7 +122,7 @@ export default function CartPage() {
         setCart(response.cart);
       }
     } catch (error) {
-      toast.error('更新數量失敗，請稍後再試');
+      toast.error('庫存沒貨了');
     }
   };
 

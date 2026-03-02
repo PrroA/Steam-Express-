@@ -2,15 +2,26 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { addGame } from '../services/storeService';
 import {
+  ensureAdminGameVariant,
   fetchAdminDashboard,
   fetchAdminGames,
   fetchAdminOrders,
+  updateAdminGame,
   updateAdminOrderStatus,
   updateGameActiveStatus,
   updateGameVariant,
 } from '../services/adminService';
 
 const ORDER_STATUS_OPTIONS = ['未付款', '付款失敗', '已付款', '已取消', '已退款'];
+
+function getApiErrorMessage(error, fallback = '操作失敗') {
+  return (
+    error?.response?.data?.error?.message ||
+    error?.response?.data?.message ||
+    error?.message ||
+    fallback
+  );
+}
 
 function normalizeImagePreviewUrl(rawValue: string) {
   const value = String(rawValue || '').trim();
@@ -92,12 +103,7 @@ export default function AdminPage() {
       setImageUrlError('');
       await loadAdminData();
     } catch (error) {
-      const message =
-        error?.response?.data?.error?.message ||
-        error?.response?.data?.message ||
-        error?.message ||
-        '添加遊戲失敗';
-      toast.error(`添加遊戲失敗：${message}`);
+      toast.error(`添加遊戲失敗：${getApiErrorMessage(error, '添加遊戲失敗')}`);
     }
   };
 
@@ -161,7 +167,27 @@ export default function AdminPage() {
       toast.success('版本資料已更新');
       await loadAdminData();
     } catch (error) {
-      toast.error('更新版本資料失敗');
+      toast.error(`更新版本資料失敗：${getApiErrorMessage(error)}`);
+    }
+  };
+
+  const handleGameBasicUpdate = async (gameId, payload) => {
+    try {
+      await updateAdminGame(gameId, payload, token);
+      toast.success('商品基本資料已更新');
+      await loadAdminData();
+    } catch (error) {
+      toast.error(`更新商品失敗：${getApiErrorMessage(error)}`);
+    }
+  };
+
+  const handleEnsureVariant = async (gameId) => {
+    try {
+      await ensureAdminGameVariant(gameId, token);
+      toast.success('已建立預設版本，可調整價格與庫存');
+      await loadAdminData();
+    } catch (error) {
+      toast.error(`建立預設版本失敗：${getApiErrorMessage(error)}`);
     }
   };
 
@@ -278,6 +304,11 @@ export default function AdminPage() {
                       </button>
                     </div>
 
+                    <GameBasicEditor
+                      game={game}
+                      onSave={(payload) => handleGameBasicUpdate(game.id, payload)}
+                    />
+
                     {Array.isArray(game.variants) && game.variants.length > 0 && (
                       <div className="mt-3 grid gap-2 md:grid-cols-2">
                         {game.variants.map((variant) => (
@@ -287,6 +318,18 @@ export default function AdminPage() {
                             onSave={(payload) => handleVariantUpdate(game.id, variant.id, payload)}
                           />
                         ))}
+                      </div>
+                    )}
+
+                    {(!Array.isArray(game.variants) || game.variants.length === 0) && (
+                      <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
+                        <p className="text-xs text-[#9eb4c8]">此商品尚未建立版本，無法調整庫存。</p>
+                        <button
+                          onClick={() => handleEnsureVariant(game.id)}
+                          className="mt-2 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+                        >
+                          建立預設版本（Standard）
+                        </button>
                       </div>
                     )}
                   </div>
@@ -337,6 +380,73 @@ function MetricCard({ label, value, highlight = false }) {
         {value}
       </p>
     </article>
+  );
+}
+
+function GameBasicEditor({ game, onSave }) {
+  const [draftName, setDraftName] = useState(game.name || '');
+  const [draftDescription, setDraftDescription] = useState(game.description || '');
+  const [draftImage, setDraftImage] = useState(game.image || '');
+  const [draftPrice, setDraftPrice] = useState(String(game.price || '').replace('$', ''));
+
+  useEffect(() => {
+    setDraftName(game.name || '');
+    setDraftDescription(game.description || '');
+    setDraftImage(game.image || '');
+    setDraftPrice(String(game.price || '').replace('$', ''));
+  }, [game.id, game.name, game.description, game.image, game.price]);
+
+  const handleSave = () => {
+    onSave({
+      name: draftName,
+      description: draftDescription,
+      image: draftImage,
+      price: draftPrice,
+    });
+  };
+
+  return (
+    <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
+      <p className="text-xs font-bold text-[#8fb8d5]">基本資料編輯</p>
+      <div className="mt-2 grid gap-2">
+        <input
+          type="text"
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          placeholder="商品名稱"
+          className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+        />
+        <textarea
+          value={draftDescription}
+          onChange={(e) => setDraftDescription(e.target.value)}
+          rows={2}
+          placeholder="商品描述"
+          className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+        />
+        <div className="grid gap-2 sm:grid-cols-[1fr_120px]">
+          <input
+            type="text"
+            value={draftImage}
+            onChange={(e) => setDraftImage(e.target.value)}
+            placeholder="封面 URL / 路徑"
+            className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+          />
+          <input
+            type="text"
+            value={draftPrice}
+            onChange={(e) => setDraftPrice(e.target.value)}
+            placeholder="價格"
+            className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+        >
+          更新商品基本資料
+        </button>
+      </div>
+    </div>
   );
 }
 
