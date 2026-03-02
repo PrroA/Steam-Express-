@@ -8,6 +8,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Footer from '../components/Footer';
 import { Header } from '@/components/Header';
+import { FloatingSupportWidget } from '../components/FloatingSupportWidget';
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function App({ Component, pageProps }) {
       <Header />
       <CartProvider>
         <Component {...pageProps} />
+        <FloatingSupportWidget />
         <Footer />
       </CartProvider>
     </Provider>

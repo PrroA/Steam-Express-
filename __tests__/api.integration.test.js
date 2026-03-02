@@ -259,4 +259,17 @@ describe('API integration', () => {
     const stockAfterRefund = gameAfterRefund.variants.find((v) => v.id === variant.id).stock;
     expect(stockAfterRefund).toBe(initialStock);
   });
+
+  test('rag endpoint returns grounded answer with sources for platform question', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '退款規則是什麼？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(typeof ragRes.body.reply).toBe('string');
+    expect(ragRes.body.reply.length).toBeGreaterThan(0);
+    expect(Array.isArray(ragRes.body.sources)).toBe(true);
+    expect(ragRes.body.sources.length).toBeGreaterThan(0);
+  });
 });

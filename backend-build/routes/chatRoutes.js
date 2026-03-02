@@ -2,6 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerChatRoutes = registerChatRoutes;
 const persistence_1 = require("../persistence");
+const rag_1 = require("../rag");
+function buildFallbackRagReply(state, message) {
+    const contexts = (0, rag_1.retrieveRagContext)(state, message, 3);
+    if (contexts.length === 0) {
+        return {
+            reply: '目前知識庫找不到直接答案，建議改問：訂單狀態、退款規則、庫存與版本、付款流程。',
+            sources: [],
+        };
+    }
+    return {
+        reply: `根據平台資料整理如下：\n` +
+            contexts.map((item) => `- ${item.doc.title}：${item.doc.content}`).join('\n'),
+        sources: contexts.map((item) => item.doc.title),
+    };
+}
 function registerChatRoutes({ app, io, state, openaiClient }) {
     const { messages } = state;
     io.on('connection', (socket) => {
@@ -15,6 +30,21 @@ function registerChatRoutes({ app, io, state, openaiClient }) {
             messages.push(newMessage);
             (0, persistence_1.persistState)(state);
             io.emit('receiveMessage', newMessage);
+            const isUserMessage = newMessage.user === '你' || newMessage.user === '我' || newMessage.user === '訪客';
+            if (isUserMessage && typeof newMessage.text === 'string' && newMessage.text.trim()) {
+                const ragResult = buildFallbackRagReply(state, newMessage.text.trim());
+                const supportReply = {
+                    user: 'AI助手',
+                    text: ragResult.reply +
+                        (ragResult.sources.length > 0
+                            ? `\n\n參考來源：${ragResult.sources.slice(0, 2).join('、')}`
+                            : ''),
+                    timestamp: new Date().toLocaleTimeString(),
+                };
+                messages.push(supportReply);
+                (0, persistence_1.persistState)(state);
+                io.emit('receiveMessage', supportReply);
+            }
         });
         setTimeout(() => {
             const autoReply = {
@@ -48,6 +78,79 @@ function registerChatRoutes({ app, io, state, openaiClient }) {
             const typedError = err;
             console.error('GPT API 錯誤:', typedError.response?.data || typedError.message || err);
             return res.status(500).json({ error: 'GPT 回覆失敗' });
+        }
+    });
+    app.post('/chat/rag', async (req, res) => {
+        const { message } = req.body;
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: '缺少 message' });
+        }
+        const contexts = (0, rag_1.retrieveRagContext)(state, message, 4);
+        if (contexts.length === 0) {
+            return res.json({
+                reply: '目前知識庫找不到直接答案，建議改問：訂單狀態、退款規則、庫存與版本、付款流程。',
+                grounded: false,
+                sources: [],
+            });
+        }
+        const sourceItems = contexts.map((item) => ({
+            id: item.doc.id,
+            title: item.doc.title,
+            type: item.doc.type,
+            score: item.score,
+        }));
+        const contextText = contexts
+            .map((item, index) => `[來源${index + 1}] ${item.doc.title}：${item.doc.content}`)
+            .join('\n');
+        if (!openaiClient) {
+            const fallbackReply = `根據平台資料整理如下：\n` +
+                contexts
+                    .slice(0, 3)
+                    .map((item) => `- ${item.doc.title}：${item.doc.content}`)
+                    .join('\n') +
+                `\n如果你要，我可以再幫你一步一步操作。`;
+            return res.json({
+                reply: fallbackReply,
+                grounded: true,
+                sources: sourceItems,
+            });
+        }
+        try {
+            const completion = await openaiClient.chat.completions.create({
+                model: 'gpt-4o-mini',
+                temperature: 0.2,
+                messages: [
+                    {
+                        role: 'system',
+                        content: '你是電商平台客服。只能根據提供的知識回答，不可編造。請用繁體中文，簡潔且可執行。',
+                    },
+                    {
+                        role: 'user',
+                        content: `使用者問題：${message}\n\n可用知識：\n${contextText}`,
+                    },
+                ],
+            });
+            const reply = completion.choices?.[0]?.message?.content || '目前無法產生回覆，請稍後再試。';
+            return res.json({
+                reply,
+                grounded: true,
+                sources: sourceItems,
+            });
+        }
+        catch (error) {
+            const typedError = error;
+            console.error('RAG reply failed:', typedError.message || error);
+            const degradedReply = `目前改用本地知識回答：\n` +
+                contexts
+                    .slice(0, 3)
+                    .map((item) => `- ${item.doc.title}：${item.doc.content}`)
+                    .join('\n');
+            return res.json({
+                reply: degradedReply,
+                grounded: true,
+                degraded: true,
+                sources: sourceItems,
+            });
         }
     });
 }

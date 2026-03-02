@@ -22,6 +22,7 @@ export default function ChatPage() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const user = '你';
 
   const inputRef = useRef(null);
@@ -29,8 +30,15 @@ export default function ChatPage() {
 
   // 初始化 socket
   useEffect(() => {
-    const newSocket = io(`${API_BASE_URL}`);
+    const newSocket = io(`${API_BASE_URL}`, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+    });
     setSocket(newSocket);
+
+    newSocket.on('connect', () => setSocketConnected(true));
+    newSocket.on('disconnect', () => setSocketConnected(false));
+    newSocket.on('connect_error', () => setSocketConnected(false));
 
     newSocket.off('chatHistory').on('chatHistory', (chatHistory) => {
       setMessages(chatHistory);
@@ -57,7 +65,7 @@ export default function ChatPage() {
 
   const handleSendMessage = async () => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || !socket) return;
+    if (!trimmedMessage) return;
 
     const userMessage = {
       user,
@@ -65,7 +73,10 @@ export default function ChatPage() {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    socket.emit('sendMessage', userMessage);
+    setMessages((prev) => [...prev, userMessage]);
+    if (socket && socketConnected) {
+      socket.emit('sendMessage', userMessage);
+    }
     setMessage('');
 
     // 1️⃣ 檢查關鍵字
@@ -89,14 +100,26 @@ export default function ChatPage() {
           timestamp: new Date().toLocaleTimeString(),
         };
 
-        socket.emit('sendMessage', aiReply);
+        if (socket && socketConnected) {
+          socket.emit('sendMessage', aiReply);
+        } else {
+          setMessages((prev) => [...prev, aiReply]);
+        }
       } catch (err) {
         console.error('查詢錯誤:', err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            user: 'AI助手',
+            text: '查詢失敗，請稍後再試。',
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       }
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/gpt-reply`, {
+      const res = await fetch(`${API_BASE_URL}/chat/rag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: trimmedMessage }),
@@ -104,16 +127,33 @@ export default function ChatPage() {
 
       const data = await res.json();
       const reply = data?.reply;
+      const sources = Array.isArray(data?.sources) ? data.sources : [];
+      const sourceText =
+        sources.length > 0
+          ? `\n\n參考來源：${sources.slice(0, 2).map((source) => source.title).join('、')}`
+          : '';
 
       const aiReply = {
         user: 'AI助手',
-        text: reply || '抱歉，我一時無法理解你的問題 🫠',
+        text: (reply || '抱歉，我一時無法理解你的問題 🫠') + sourceText,
         timestamp: new Date().toLocaleTimeString(),
       };
 
-      socket.emit('sendMessage', aiReply);
+      if (socket && socketConnected) {
+        socket.emit('sendMessage', aiReply);
+      } else {
+        setMessages((prev) => [...prev, aiReply]);
+      }
     } catch (err) {
       console.error('GPT 回覆錯誤:', err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          user: 'AI助手',
+          text: '目前無法回覆，請稍後再試。',
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
     }
   };
 
