@@ -272,4 +272,71 @@ describe('API integration', () => {
     expect(Array.isArray(ragRes.body.sources)).toBe(true);
     expect(ragRes.body.sources.length).toBeGreaterThan(0);
   });
+
+  test('admin routes enforce permission and allow basic game update for admin', async () => {
+    const username = `normal_user_${Date.now()}`;
+    const password = 'Password1!';
+
+    const registerRes = await requestJson('/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    expect(registerRes.status).toBe(201);
+
+    const userLoginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    expect(userLoginRes.status).toBe(200);
+    const userToken = userLoginRes.body.token;
+
+    const forbiddenRes = await requestJson('/admin/games', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${userToken}` },
+    });
+    expect(forbiddenRes.status).toBe(403);
+
+    const adminLoginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: 'admin', password: 'admin' }),
+    });
+    expect(adminLoginRes.status).toBe(200);
+    const adminToken = adminLoginRes.body.token;
+
+    const addGameRes = await requestJson('/games', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        name: `admin_game_${Date.now()}`,
+        price: '29.99',
+        description: 'for admin update test',
+        image: '/vercel.svg',
+      }),
+    });
+    expect(addGameRes.status).toBe(201);
+    const gameId = addGameRes.body.game.id;
+
+    const patchRes = await requestJson(`/admin/games/${gameId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        name: 'admin_game_updated',
+        description: 'updated description',
+        image: '/new-image.jpg',
+        price: '39.99',
+      }),
+    });
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.game.name).toBe('admin_game_updated');
+    expect(String(patchRes.body.game.price)).toContain('39.99');
+
+    const ensureVariantRes = await requestJson(`/admin/games/${gameId}/ensure-variant`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({}),
+    });
+    expect(ensureVariantRes.status).toBe(200);
+    expect(Array.isArray(ensureVariantRes.body.game.variants)).toBe(true);
+    expect(ensureVariantRes.body.game.variants.length).toBeGreaterThan(0);
+  });
 });

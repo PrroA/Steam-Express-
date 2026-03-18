@@ -1,6 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerStoreRoutes = registerStoreRoutes;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const express_1 = __importDefault(require("express"));
 const persistence_1 = require("../persistence");
 function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
     const { games, reviews, wishlists } = state;
@@ -21,6 +27,13 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
             },
         ];
         return game.variants;
+    };
+    const uploadMimeToExt = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+        'image/avif': 'avif',
     };
     app.get('/games', (req, res) => {
         const { query } = req.query;
@@ -88,6 +101,33 @@ function registerStoreRoutes({ app, state, authenticate, isAdmin }) {
         game.isActive = Boolean(req.body.isActive);
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: game.isActive ? '商品已上架' : '商品已下架', game });
+    });
+    app.post('/admin/upload-image', authenticate, isAdmin, express_1.default.raw({ type: 'image/*', limit: '8mb' }), (req, res) => {
+        const contentType = String(req.headers['content-type'] || '')
+            .split(';')[0]
+            .trim()
+            .toLowerCase();
+        const ext = uploadMimeToExt[contentType];
+        if (!ext) {
+            return res.status(400).json({ message: '僅支援 jpg/png/webp/gif/avif 圖片格式' });
+        }
+        if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+            return res.status(400).json({ message: '未收到圖片內容' });
+        }
+        const uploadDir = path_1.default.join(process.cwd(), 'uploads');
+        if (!fs_1.default.existsSync(uploadDir)) {
+            fs_1.default.mkdirSync(uploadDir, { recursive: true });
+        }
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const fileName = `${unique}.${ext}`;
+        const filePath = path_1.default.join(uploadDir, fileName);
+        fs_1.default.writeFileSync(filePath, req.body);
+        const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+        const protocol = forwardedProto || req.protocol || 'http';
+        const hostHeader = req.headers.host || 'localhost:4000';
+        const host = String(hostHeader);
+        const imageUrl = `${protocol}://${host}/uploads/${fileName}`;
+        return res.status(201).json({ message: '圖片上傳成功', imageUrl });
     });
     app.patch('/admin/games/:id', authenticate, isAdmin, (req, res) => {
         const gameId = parseInt(req.params.id, 10);

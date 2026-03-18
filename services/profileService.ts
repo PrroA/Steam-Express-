@@ -9,7 +9,14 @@ export async function fetchProfile(token?: string | null): Promise<UserProfile> 
 }
 
 export async function updateProfile(
-  payload: { username: string; email: string },
+  payload: {
+    username?: string;
+    email?: string;
+    defaultFullName?: string;
+    defaultPhone?: string;
+    defaultAddress?: string;
+    defaultPaymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
+  },
   token?: string | null
 ): Promise<{ message: string; user: UserProfile }> {
   const response = await apiClient.put('/profile', payload, {

@@ -4,7 +4,9 @@ import type { RouteDeps } from './types';
 import { persistState } from '../persistence';
 import type {
   AddCartBody,
+  CheckoutBody,
   CreatePaymentIntentBody,
+  FulfillmentStatus,
   GameVariant,
   IdParam,
   Order,
@@ -65,6 +67,11 @@ function normalizeOrdersForAdmin(orders: RouteDeps['state']['orders']) {
       .filter((order) => order && typeof order === 'object' && typeof order.id === 'string')
       .map((order) => ({ ...order, userId: Number(userId) }));
   });
+}
+
+function getOrderAmountInCents(order: Order) {
+  const total = Number(order.total || 0);
+  return Math.round(total * 100);
 }
 
 export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }: RouteDeps) {
@@ -247,11 +254,81 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
           transactionId: `ADMIN-${Date.now()}`,
           paidAt: new Date().toISOString(),
         };
+        if (!order.fulfillmentStatus) {
+          order.fulfillmentStatus = '待出貨';
+        }
       }
 
       pushOrderStatus(order, status, note || '管理員手動更新');
       persistState(state);
       return res.status(200).json({ message: '訂單狀態已更新', order, userId: found.userId });
+    }
+  );
+
+  app.patch(
+    '/admin/orders/:orderId/fulfillment-status',
+    authenticate,
+    isAdmin,
+    (
+      req: TypedAuthRequest<{ fulfillmentStatus: FulfillmentStatus; note?: string }, OrderIdParam>,
+      res: Response
+    ) => {
+      const found = findOrderAcrossUsers(orders, req.params.orderId);
+      if (!found) {
+        return res.status(404).json({ message: '訂單未找到' });
+      }
+
+      const { order } = found;
+      const { fulfillmentStatus } = req.body;
+      const allowedFulfillmentStatus: FulfillmentStatus[] = ['待出貨', '已出貨', '已送達'];
+      if (!allowedFulfillmentStatus.includes(fulfillmentStatus)) {
+        return res.status(400).json({ message: '無效的出貨狀態' });
+      }
+
+      if (order.status !== '已付款' && fulfillmentStatus !== '待出貨') {
+        return res.status(400).json({ message: '僅已付款訂單可更新為已出貨或已送達' });
+      }
+
+      order.fulfillmentStatus = fulfillmentStatus;
+      if (!order.shippingDetails) {
+        order.shippingDetails = {};
+      }
+      if (fulfillmentStatus === '已出貨') {
+        order.shippingDetails.shippedAt = order.shippingDetails.shippedAt || new Date().toISOString();
+      }
+      if (fulfillmentStatus === '已送達') {
+        order.shippingDetails.shippedAt = order.shippingDetails.shippedAt || new Date().toISOString();
+        order.shippingDetails.deliveredAt = new Date().toISOString();
+      }
+      persistState(state);
+      return res.status(200).json({ message: '出貨狀態已更新', order, userId: found.userId });
+    }
+  );
+
+  app.patch(
+    '/admin/orders/:orderId/shipping-details',
+    authenticate,
+    isAdmin,
+    (
+      req: TypedAuthRequest<{ carrier?: string; trackingNumber?: string }, OrderIdParam>,
+      res: Response
+    ) => {
+      const found = findOrderAcrossUsers(orders, req.params.orderId);
+      if (!found) {
+        return res.status(404).json({ message: '訂單未找到' });
+      }
+
+      const { order } = found;
+      const carrier = (req.body?.carrier || '').trim();
+      const trackingNumber = (req.body?.trackingNumber || '').trim();
+
+      order.shippingDetails = {
+        ...(order.shippingDetails || {}),
+        carrier: carrier || undefined,
+        trackingNumber: trackingNumber || undefined,
+      };
+      persistState(state);
+      return res.status(200).json({ message: '物流資訊已更新', order, userId: found.userId });
     }
   );
 
@@ -269,6 +346,68 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     pushOrderStatus(order, '已取消', '使用者取消訂單');
     persistState(state);
     return res.status(200).json({ message: '訂單已取消', order });
+  });
+
+  app.post('/orders/:orderId/reorder', authenticate, (req: TypedAuthRequest<unknown, OrderIdParam>, res: Response) => {
+    const userId = req.user.id;
+    const sourceOrder = (orders[userId] || []).find((item) => item.id === req.params.orderId);
+    if (!sourceOrder) {
+      return res.status(404).json({ message: '訂單未找到' });
+    }
+    if (!sourceOrder.items?.length) {
+      return res.status(400).json({ message: '此訂單無可重購商品' });
+    }
+
+    if (!carts[userId]) {
+      carts[userId] = [];
+    }
+
+    const skipped: Array<{ id: number; name: string; reason: string }> = [];
+    let addedCount = 0;
+
+    for (const item of sourceOrder.items) {
+      const game = games.find((g) => g.id === item.id);
+      if (!game || game.isActive === false) {
+        skipped.push({ id: item.id, name: item.name || '未知商品', reason: '商品已下架或不存在' });
+        continue;
+      }
+
+      const variant = game.variants?.find((v) => v.id === item.variantId);
+      const currentInCart = carts[userId].find((c) => c.id === item.id && c.variantId === item.variantId);
+      const existingQty = currentInCart?.quantity || 0;
+      const desiredQty = existingQty + (item.quantity || 1);
+
+      if (variant && desiredQty > variant.stock) {
+        skipped.push({ id: item.id, name: game.name, reason: '庫存不足' });
+        continue;
+      }
+
+      if (currentInCart) {
+        currentInCart.quantity = desiredQty;
+      } else {
+        carts[userId].push({
+          ...game,
+          price: variant?.price || game.price,
+          quantity: item.quantity || 1,
+          variantId: variant?.id || item.variantId,
+          variantName: variant?.name || item.variantName,
+        });
+      }
+
+      addedCount += 1;
+    }
+
+    if (addedCount === 0) {
+      return res.status(400).json({ message: '無可加入購物車的商品', skipped });
+    }
+
+    persistState(state);
+    return res.status(200).json({
+      message: skipped.length > 0 ? '部分商品已加入購物車' : '已將商品加入購物車',
+      cart: carts[userId],
+      addedCount,
+      skipped,
+    });
   });
 
   app.post('/orders/:orderId/retry-payment', authenticate, (req: TypedAuthRequest<unknown, OrderIdParam>, res: Response) => {
@@ -302,7 +441,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     return res.status(200).json({ message: '退款完成', order });
   });
 
-  app.post('/checkout', authenticate, async (req: TypedAuthRequest, res: Response) => {
+  app.post('/checkout', authenticate, async (req: TypedAuthRequest<CheckoutBody>, res: Response) => {
     try {
       const userId = req.user?.id;
       if (!userId) {
@@ -333,6 +472,15 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         }
       }
 
+      const customerInfo = {
+        fullName: req.body?.fullName?.trim() || undefined,
+        phone: req.body?.phone?.trim() || undefined,
+        contactEmail: req.body?.contactEmail?.trim() || undefined,
+        shippingAddress: req.body?.shippingAddress?.trim() || undefined,
+        orderNote: req.body?.orderNote?.trim() || undefined,
+        paymentMethod: req.body?.paymentMethod || undefined,
+      };
+
       const newOrder: Order = {
         id: uuidv4(),
         items: [...userCart],
@@ -350,6 +498,8 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
           },
         ],
         stockRestored: false,
+        customerInfo,
+        fulfillmentStatus: '待出貨',
       };
 
       orders[userId].push(newOrder);
@@ -388,6 +538,9 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       transactionId,
       paidAt: new Date().toISOString(),
     };
+    if (!order.fulfillmentStatus) {
+      order.fulfillmentStatus = '待出貨';
+    }
     pushOrderStatus(order, '已付款', '支付成功');
     persistState(state);
 
@@ -407,18 +560,99 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     return res.status(200).json(transactions);
   });
 
-  app.post('/create-payment-intent', async (req: TypedRequest<CreatePaymentIntentBody>, res: Response) => {
+  app.post('/stripe/webhook', (req: Request, res: Response) => {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      return res.status(500).json({ message: 'Stripe webhook secret 未設定' });
+    }
+
+    const signature = req.headers['stripe-signature'];
+    if (!signature || Array.isArray(signature)) {
+      return res.status(400).json({ message: '缺少 stripe-signature' });
+    }
+
+    let event;
     try {
-      let { amount } = req.body;
-      if (!amount || amount < 0.5) {
+      event = stripeClient.webhooks.constructEvent(req.body, signature, webhookSecret);
+    } catch (error: any) {
+      console.error('Stripe webhook 驗證失敗:', error?.message || error);
+      return res.status(400).json({ message: 'Webhook 驗證失敗' });
+    }
+
+    if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed') {
+      const intent = event.data.object as {
+        id: string;
+        metadata?: { orderId?: string; userId?: string };
+      };
+      const orderId = intent.metadata?.orderId;
+      const metadataUserId = Number(intent.metadata?.userId);
+
+      let found: { userId: number; order: Order } | null = null;
+      if (metadataUserId && Array.isArray(orders[metadataUserId])) {
+        const order = orders[metadataUserId].find((item) => item.id === orderId);
+        if (order) {
+          found = { userId: metadataUserId, order };
+        }
+      }
+      if (!found && orderId) {
+        found = findOrderAcrossUsers(orders, orderId);
+      }
+
+      if (found) {
+        const { order } = found;
+        if (event.type === 'payment_intent.succeeded') {
+          if (!['已取消', '已退款'].includes(order.status) && order.status !== '已付款') {
+            order.paymentDetails = {
+              transactionId: intent.id,
+              paidAt: new Date().toISOString(),
+            };
+            if (!order.fulfillmentStatus) {
+              order.fulfillmentStatus = '待出貨';
+            }
+            pushOrderStatus(order, '已付款', 'Stripe webhook: payment_intent.succeeded');
+            persistState(state);
+          }
+        } else if (order.status === '未付款') {
+          pushOrderStatus(order, '付款失敗', 'Stripe webhook: payment_intent.payment_failed');
+          persistState(state);
+        }
+      }
+    }
+
+    return res.json({ received: true });
+  });
+
+  app.post('/create-payment-intent', authenticate, async (req: TypedAuthRequest<CreatePaymentIntentBody>, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const { orderId } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ error: '缺少 orderId' });
+      }
+
+      const order = (orders[userId] || []).find((item) => item.id === orderId);
+      if (!order) {
+        return res.status(404).json({ error: '訂單未找到' });
+      }
+      if (order.status !== '未付款') {
+        return res.status(400).json({ error: '只有未付款訂單可建立付款流程' });
+      }
+
+      const amount = getOrderAmountInCents(order);
+      if (amount < 50) {
         return res.status(400).json({ error: '金額不可低於 $0.50 USD' });
       }
-      amount = Math.round(amount * 100);
+
       const paymentIntent = await stripeClient.paymentIntents.create({
         amount,
         currency: 'usd',
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+          orderId: order.id,
+          userId: String(userId),
+        },
       });
-      return res.json({ clientSecret: paymentIntent.client_secret });
+      return res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
     } catch (error: any) {
       console.error('付款失敗:', error);
       return res.status(500).json({ error: error.message });

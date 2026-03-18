@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import express from 'express';
 import type { Request, Response } from 'express';
 import type { RouteDeps } from './types';
 import { persistState } from '../persistence';
@@ -41,6 +44,13 @@ export function registerStoreRoutes({ app, state, authenticate, isAdmin }: Route
       },
     ];
     return game.variants;
+  };
+  const uploadMimeToExt: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/avif': 'avif',
   };
 
   app.get('/games', (req: TypedRequest<unknown, Record<string, string>, GamesQuery>, res: Response) => {
@@ -118,6 +128,42 @@ export function registerStoreRoutes({ app, state, authenticate, isAdmin }: Route
     persistState(state);
     return res.status(200).json({ message: game.isActive ? '商品已上架' : '商品已下架', game });
   });
+
+  app.post(
+    '/admin/upload-image',
+    authenticate,
+    isAdmin,
+    express.raw({ type: 'image/*', limit: '8mb' }),
+    (req: TypedAuthRequest, res: Response) => {
+      const contentType = String(req.headers['content-type'] || '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+      const ext = uploadMimeToExt[contentType];
+      if (!ext) {
+        return res.status(400).json({ message: '僅支援 jpg/png/webp/gif/avif 圖片格式' });
+      }
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ message: '未收到圖片內容' });
+      }
+
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const fileName = `${unique}.${ext}`;
+      const filePath = path.join(uploadDir, fileName);
+      fs.writeFileSync(filePath, req.body);
+
+      const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+      const protocol = forwardedProto || (req as unknown as Request).protocol || 'http';
+      const hostHeader = req.headers.host || 'localhost:4000';
+      const host = String(hostHeader);
+      const imageUrl = `${protocol}://${host}/uploads/${fileName}`;
+      return res.status(201).json({ message: '圖片上傳成功', imageUrl });
+    }
+  );
 
   app.patch(
     '/admin/games/:id',

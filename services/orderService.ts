@@ -1,8 +1,9 @@
 import { apiClient, authHeader } from './apiClient';
-import type { Order } from '../types/domain';
+import type { CartItem, Order } from '../types/domain';
 
 export interface PaymentIntentResponse {
   clientSecret: string;
+  paymentIntentId?: string;
 }
 
 export interface Transaction {
@@ -10,6 +11,13 @@ export interface Transaction {
   transactionId: string;
   paidAt: string;
   total: number;
+}
+
+export interface ReorderResponse {
+  message: string;
+  cart: CartItem[];
+  addedCount: number;
+  skipped: Array<{ id: number; name: string; reason: string }>;
 }
 
 export async function fetchOrders(token?: string | null): Promise<Order[]> {
@@ -29,8 +37,17 @@ export async function fetchOrderById(
   return response.data;
 }
 
-export async function createPaymentIntent(amount: number): Promise<PaymentIntentResponse> {
-  const response = await apiClient.post('/create-payment-intent', { amount });
+export async function createPaymentIntent(
+  orderId: string,
+  token?: string | null
+): Promise<PaymentIntentResponse> {
+  const response = await apiClient.post(
+    '/create-payment-intent',
+    { orderId },
+    {
+      headers: authHeader(token),
+    }
+  );
   return response.data;
 }
 
@@ -69,6 +86,20 @@ export async function retryOrderPayment(
 ): Promise<{ message: string; order: Order }> {
   const response = await apiClient.post(
     `/orders/${orderId}/retry-payment`,
+    {},
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function reorderOrder(
+  orderId: string,
+  token?: string | null
+): Promise<ReorderResponse> {
+  const response = await apiClient.post(
+    `/orders/${orderId}/reorder`,
     {},
     {
       headers: authHeader(token),

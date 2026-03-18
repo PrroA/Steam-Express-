@@ -10,6 +10,10 @@ export interface User {
   role?: 'admin' | 'user';
   email?: string;
   registeredAt?: string;
+  defaultFullName?: string;
+  defaultPhone?: string;
+  defaultAddress?: string;
+  defaultPaymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
 }
 
 export interface Game {
@@ -40,13 +44,34 @@ export interface PaymentDetails {
   paidAt: string;
 }
 
+export type FulfillmentStatus = '待出貨' | '已出貨' | '已送達';
+
+export interface ShippingDetails {
+  carrier?: string;
+  trackingNumber?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+}
+
+export interface CustomerInfo {
+  fullName?: string;
+  phone?: string;
+  contactEmail?: string;
+  shippingAddress?: string;
+  orderNote?: string;
+  paymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
+}
+
 export interface Order {
   id: string;
   items: CartItem[];
   total: number;
   date: string;
   status: '未付款' | '付款失敗' | '已付款' | '已取消' | '已退款';
+  fulfillmentStatus?: FulfillmentStatus;
+  shippingDetails?: ShippingDetails;
   paymentDetails?: PaymentDetails;
+  customerInfo?: CustomerInfo;
   statusHistory: OrderStatusEvent[];
   stockRestored?: boolean;
 }
@@ -133,6 +158,7 @@ export interface GamesQuery {
 export interface RegisterBody {
   username: string;
   password: string;
+  email?: string;
 }
 
 export interface LoginBody {
@@ -141,7 +167,9 @@ export interface LoginBody {
 }
 
 export interface ForgotPasswordBody {
-  username: string;
+  username?: string;
+  email?: string;
+  account?: string;
 }
 
 export interface ResetPasswordBody {
@@ -153,6 +181,10 @@ export interface ResetPasswordBody {
 export interface UpdateProfileBody {
   username?: string;
   email?: string;
+  defaultFullName?: string;
+  defaultPhone?: string;
+  defaultAddress?: string;
+  defaultPaymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
 }
 
 export interface AddGameBody {
@@ -180,13 +212,22 @@ export interface UpdateCartBody {
   quantity: number;
 }
 
+export interface CheckoutBody {
+  fullName?: string;
+  phone?: string;
+  contactEmail?: string;
+  shippingAddress?: string;
+  orderNote?: string;
+  paymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
+}
+
 export interface PayBody {
   orderId: string;
   simulateFailure?: boolean;
 }
 
 export interface CreatePaymentIntentBody {
-  amount: number;
+  orderId: string;
 }
 
 export interface GptReplyBody {

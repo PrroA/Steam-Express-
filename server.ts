@@ -1,6 +1,8 @@
 require('dotenv').config();
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
+import path from 'path';
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -152,7 +154,14 @@ app.use(
     credentials: true,
   })
 );
+app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '8mb' }));
+
+const uploadDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const startedAt = Date.now();

@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { calculateTotalPrice } from '../utils/cartUtils';
 import type { CartItem } from '../types/domain';
+import { fetchProfile } from '../services/profileService';
 
 type CheckoutStep = 1 | 2 | 3;
 
@@ -45,6 +46,7 @@ export default function CartPage() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
   const [orderNote, setOrderNote] = useState('');
   const [promoInput, setPromoInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState('');
@@ -68,6 +70,25 @@ export default function CartPage() {
       }
     };
     loadCart();
+  }, []);
+
+  useEffect(() => {
+    const hydrateProfileDefaults = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const profile = await fetchProfile(token);
+        if (profile?.defaultFullName) setFullName(profile.defaultFullName);
+        if (profile?.defaultPhone) setPhone(profile.defaultPhone);
+        if (profile?.email && profile.email !== '未提供') setContactEmail(profile.email);
+        if (profile?.defaultAddress) setShippingAddress(profile.defaultAddress);
+        if (profile?.defaultPaymentMethod) setPaymentMethod(profile.defaultPaymentMethod);
+      } catch (error) {
+        // ignore profile hydrate errors in checkout flow
+      }
+    };
+
+    hydrateProfileDefaults();
   }, []);
 
   const total = useMemo(() => calculateTotalPrice(cart), [cart]);
@@ -147,6 +168,10 @@ export default function CartPage() {
       toast.error('請輸入有效 Email 以接收訂單通知');
       return;
     }
+    if (shippingAddress.trim().length < 6) {
+      toast.error('請輸入完整收件地址');
+      return;
+    }
     if (!agreed) {
       toast.error('請先勾選同意交易條款');
       return;
@@ -173,7 +198,17 @@ export default function CartPage() {
     const token = localStorage.getItem('token');
     try {
       setIsSubmitting(true);
-      const result = await checkout(token);
+      const result = await checkout(
+        {
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          contactEmail: contactEmail.trim(),
+          shippingAddress: shippingAddress.trim(),
+          orderNote: orderNote.trim(),
+          paymentMethod,
+        },
+        token
+      );
       const orderId = result?.order?.id;
       setCreatedOrderId(orderId || 'new-order');
       toast.success('訂單建立成功，正在前往付款頁');
@@ -384,6 +419,18 @@ export default function CartPage() {
                     <p className="mt-1 text-xs text-[#ff9e9e]">Email 格式不正確</p>
                   )}
 
+                  <label className="mt-4 block text-sm text-[#9eb4c8]">收件地址</label>
+                  <textarea
+                    value={shippingAddress}
+                    onChange={(event) => setShippingAddress(event.target.value)}
+                    placeholder="台北市中正區..."
+                    rows={2}
+                    className="mt-2 w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                  />
+                  {shippingAddress.trim() && shippingAddress.trim().length < 6 && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">地址至少需要 6 個字元</p>
+                  )}
+
                   <label className="mt-4 block text-sm text-[#9eb4c8]">優惠碼（選填）</label>
                   <div className="mt-2 flex gap-2">
                     <input
@@ -439,6 +486,7 @@ export default function CartPage() {
                     <InfoRow label="收件人" value={fullName || '未填寫'} />
                     <InfoRow label="聯絡電話" value={phone || '未填寫'} />
                     <InfoRow label="通知 Email" value={contactEmail || '未填寫'} />
+                    <InfoRow label="收件地址" value={shippingAddress || '未填寫'} />
                     <InfoRow label="商品件數" value={`${itemCount} 件`} />
                     <InfoRow
                       label={appliedPromo ? `優惠碼 (${appliedPromo})` : '優惠折抵'}

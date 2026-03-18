@@ -21,6 +21,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
+  const [priceRange, setPriceRange] = useState('all');
+  const [genreKeyword, setGenreKeyword] = useState('all');
+  const [onlyInStock, setOnlyInStock] = useState(false);
   const [showTip, setShowTip] = useState(true);
   const [recentIds, setRecentIds] = useState([]);
 
@@ -134,6 +137,39 @@ export default function Home() {
       .slice(0, 4);
   }, [games, recentlyViewedGames, recentPreference]);
 
+  const genreOptions = useMemo(() => {
+    const counter = new Map();
+    games.forEach((game) => {
+      extractKeywords(`${game.name || ''} ${game.description || ''}`).forEach((word) => {
+        counter.set(word, (counter.get(word) || 0) + 1);
+      });
+    });
+    return [...counter.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([word]) => word);
+  }, [games]);
+
+  const filteredGames = useMemo(() => {
+    return sortedGames.filter((game) => {
+      const price = parsePrice(game.price);
+      const hasStock =
+        !Array.isArray(game.variants) || game.variants.some((variant) => Number(variant.stock) > 0);
+      const gameText = `${game.name || ''} ${game.description || ''}`.toLowerCase();
+
+      const passPrice =
+        priceRange === 'all' ||
+        (priceRange === 'under20' && price < 20) ||
+        (priceRange === '20to50' && price >= 20 && price <= 50) ||
+        (priceRange === '50plus' && price > 50);
+
+      const passGenre = genreKeyword === 'all' || gameText.includes(genreKeyword.toLowerCase());
+      const passStock = !onlyInStock || hasStock;
+
+      return passPrice && passGenre && passStock;
+    });
+  }, [sortedGames, priceRange, genreKeyword, onlyInStock]);
+
   return (
     <main className="steam-shell pb-8">
       <Carousel />
@@ -214,6 +250,36 @@ export default function Home() {
               <option value="low-to-high">價格：低到高</option>
               <option value="high-to-low">價格：高到低</option>
             </select>
+            <select
+              value={priceRange}
+              onChange={(e) => setPriceRange(e.target.value)}
+              className="rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+            >
+              <option value="all">價格：全部</option>
+              <option value="under20">低於 $20</option>
+              <option value="20to50">$20 - $50</option>
+              <option value="50plus">高於 $50</option>
+            </select>
+            <select
+              value={genreKeyword}
+              onChange={(e) => setGenreKeyword(e.target.value)}
+              className="rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+            >
+              <option value="all">類型：全部</option>
+              {genreOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <label className="inline-flex items-center gap-2 rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3]">
+              <input
+                type="checkbox"
+                checked={onlyInStock}
+                onChange={(e) => setOnlyInStock(e.target.checked)}
+              />
+              只看有庫存
+            </label>
           </div>
         </div>
 
@@ -226,12 +292,12 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {sortedGames.length === 0 ? (
+            {filteredGames.length === 0 ? (
               <p className="steam-panel col-span-4 rounded-xl p-10 text-center text-[#9eb4c8]">
                 沒有符合搜尋條件的遊戲。
               </p>
             ) : (
-              sortedGames.map((game) => <GameCard key={game.id} game={game} />)
+              filteredGames.map((game) => <GameCard key={game.id} game={game} />)
             )}
           </div>
         )}

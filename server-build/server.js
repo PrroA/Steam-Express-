@@ -1,9 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
 exports.startServer = startServer;
 require('dotenv').config();
 const crypto_1 = require("crypto");
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -135,7 +140,13 @@ app.use(cors({
     },
     credentials: true,
 }));
+app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '8mb' }));
+const uploadDir = path_1.default.join(process.cwd(), 'uploads');
+if (!fs_1.default.existsSync(uploadDir)) {
+    fs_1.default.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
 app.use((req, res, next) => {
     const startedAt = Date.now();
     res.on('finish', () => {

@@ -14,6 +14,8 @@ export default function LoginPage() {
     try {
       const response = await loginUser(username, password);
       localStorage.setItem('token', response.token);
+      localStorage.setItem('profile_username', username || '');
+      window.dispatchEvent(new Event('auth-user-updated'));
       toast.success('登入成功');
       const redirectTo =
         typeof router.query?.redirect === 'string' ? router.query.redirect : '/';

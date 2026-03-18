@@ -49,11 +49,19 @@ export async function removeFromCart(
 }
 
 export async function checkout(
+  payload?: {
+    fullName?: string;
+    phone?: string;
+    contactEmail?: string;
+    shippingAddress?: string;
+    orderNote?: string;
+    paymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
+  },
   token?: string | null
 ): Promise<{ message: string; order: Order }> {
   const response = await apiClient.post(
     '/checkout',
-    {},
+    payload || {},
     {
       headers: authHeader(token),
     }

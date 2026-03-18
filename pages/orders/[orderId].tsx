@@ -2,8 +2,9 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { FaCheckCircle, FaClock, FaTimesCircle, FaUndoAlt } from 'react-icons/fa';
-import { fetchOrderById } from '../../services/orderService';
+import { fetchOrderById, reorderOrder } from '../../services/orderService';
 import type { Order } from '../../types/domain';
+import { toast } from 'react-toastify';
 
 const statusClasses = {
   已付款: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
@@ -13,8 +14,19 @@ const statusClasses = {
   已退款: 'bg-[#22384a] text-[#9ed8ff] border-[#9ed8ff55]',
 };
 
+const fulfillmentClasses = {
+  待出貨: 'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
+  已出貨: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
+  已送達: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+};
+
 function statusBadgeClass(status: Order['status']) {
   return statusClasses[status] || 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]';
+}
+
+function fulfillmentBadgeClass(status?: Order['fulfillmentStatus']) {
+  if (!status) return fulfillmentClasses.待出貨;
+  return fulfillmentClasses[status] || fulfillmentClasses.待出貨;
 }
 
 function statusNodeStyle(status: Order['status']) {
@@ -58,6 +70,23 @@ export default function OrderDetail() {
     [order]
   );
 
+  const handleReorder = async () => {
+    if (!order?.id) return;
+    const token = localStorage.getItem('token');
+    try {
+      const result = await reorderOrder(order.id, token);
+      if (result.skipped?.length) {
+        toast.info(`已加入 ${result.addedCount} 項，${result.skipped.length} 項略過`);
+      } else {
+        toast.success('商品已加入購物車');
+      }
+      router.push('/cart');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '再買一次失敗';
+      toast.error(message);
+    }
+  };
+
   if (loading) {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
@@ -96,13 +125,19 @@ export default function OrderDetail() {
           >
             返回商店
           </button>
+          <button
+            onClick={handleReorder}
+            className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-4 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35]"
+          >
+            再買一次
+          </button>
         </div>
 
         <div className="steam-panel rounded-2xl p-5 md:p-6">
           <h1 className="text-3xl font-black text-[#d8e6f3]">訂單詳情</h1>
           <p className="mt-1 text-sm text-[#9eb4c8]">訂單編號：{order.id}</p>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-[#66c0f433] bg-[#132434] p-4">
               <p className="text-xs text-[#9eb4c8]">訂單狀態</p>
               <p className="mt-2">
@@ -112,6 +147,18 @@ export default function OrderDetail() {
                   )}`}
                 >
                 {order.status}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#66c0f433] bg-[#132434] p-4">
+              <p className="text-xs text-[#9eb4c8]">出貨狀態</p>
+              <p className="mt-2">
+                <span
+                  className={`inline-flex rounded-md border px-3 py-1 text-sm font-bold ${fulfillmentBadgeClass(
+                    order.fulfillmentStatus
+                  )}`}
+                >
+                  {order.fulfillmentStatus || '待出貨'}
                 </span>
               </p>
             </div>
@@ -127,10 +174,51 @@ export default function OrderDetail() {
 
           <div className="mt-4 rounded-xl border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
             <p>下單時間：{new Date(order.date).toLocaleString()}</p>
+            {(order.customerInfo?.fullName ||
+              order.customerInfo?.phone ||
+              order.customerInfo?.contactEmail ||
+              order.customerInfo?.shippingAddress ||
+              order.customerInfo?.paymentMethod ||
+              order.customerInfo?.orderNote) && (
+              <div className="mt-2 space-y-1 border-t border-[#66c0f433] pt-2">
+                {order.customerInfo?.fullName && <p>收件人：{order.customerInfo.fullName}</p>}
+                {order.customerInfo?.phone && <p>電話：{order.customerInfo.phone}</p>}
+                {order.customerInfo?.contactEmail && <p>Email：{order.customerInfo.contactEmail}</p>}
+                {order.customerInfo?.shippingAddress && <p>地址：{order.customerInfo.shippingAddress}</p>}
+                {order.customerInfo?.paymentMethod && (
+                  <p>
+                    付款方式：
+                    {order.customerInfo.paymentMethod === 'credit-card'
+                      ? '信用卡'
+                      : order.customerInfo.paymentMethod === 'line-pay'
+                        ? 'LINE Pay'
+                        : 'Steam 錢包'}
+                  </p>
+                )}
+                {order.customerInfo?.orderNote && <p>備註：{order.customerInfo.orderNote}</p>}
+              </div>
+            )}
             {order.paymentDetails && (
               <div className="mt-2 space-y-1 border-t border-[#66c0f433] pt-2">
                 <p>交易編號：{order.paymentDetails.transactionId}</p>
                 <p>付款時間：{new Date(order.paymentDetails.paidAt).toLocaleString()}</p>
+              </div>
+            )}
+            {(order.shippingDetails?.carrier ||
+              order.shippingDetails?.trackingNumber ||
+              order.shippingDetails?.shippedAt ||
+              order.shippingDetails?.deliveredAt) && (
+              <div className="mt-2 space-y-1 border-t border-[#66c0f433] pt-2">
+                {order.shippingDetails?.carrier && <p>物流商：{order.shippingDetails.carrier}</p>}
+                {order.shippingDetails?.trackingNumber && (
+                  <p>追蹤碼：{order.shippingDetails.trackingNumber}</p>
+                )}
+                {order.shippingDetails?.shippedAt && (
+                  <p>出貨時間：{new Date(order.shippingDetails.shippedAt).toLocaleString()}</p>
+                )}
+                {order.shippingDetails?.deliveredAt && (
+                  <p>送達時間：{new Date(order.shippingDetails.deliveredAt).toLocaleString()}</p>
+                )}
               </div>
             )}
           </div>

@@ -9,19 +9,28 @@ export async function loginUser(username: string, password: string): Promise<Log
   return response.data;
 }
 
-export async function registerUser(username: string, password: string): Promise<{
+export async function registerUser(username: string, password: string, email?: string): Promise<{
   message: string;
-  user: { id: number; username: string };
+  user: { id: number; username: string; email?: string };
 }> {
-  const response = await apiClient.post('/register', { username, password });
+  const response = await apiClient.post('/register', { username, password, email });
   return response.data;
 }
 
-export async function requestPasswordReset(username: string): Promise<{
+export async function requestPasswordReset(account: string): Promise<{
   message: string;
-  resetToken: string;
+  resetToken?: string;
+  resetUrl?: string;
+  emailSent?: boolean;
 }> {
-  const response = await apiClient.post('/forgot-password', { username });
+  // Backward-compatible payload:
+  // - New backend reads `account`
+  // - Older backend may still read `username`
+  const response = await apiClient.post('/forgot-password', {
+    account,
+    username: account,
+    email: account,
+  });
   return response.data;
 }
 

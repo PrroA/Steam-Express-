@@ -67,6 +67,27 @@ export async function ensureAdminGameVariant(
   return response.data;
 }
 
+export async function uploadAdminImage(
+  file: File,
+  token?: string | null
+): Promise<{ message: string; imageUrl: string }> {
+  const response = await fetch(`${apiClient.defaults.baseURL}/admin/upload-image`, {
+    method: 'POST',
+    headers: {
+      ...(authHeader(token) || {}),
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = payload?.error?.message || payload?.message || '圖片上傳失敗';
+    throw new Error(message);
+  }
+  return payload;
+}
+
 export async function updateGameVariant(
   gameId: number,
   variantId: string,
@@ -95,6 +116,37 @@ export async function updateAdminOrderStatus(
   const response = await apiClient.patch(
     `/admin/orders/${orderId}/status`,
     { status, note },
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function updateAdminFulfillmentStatus(
+  orderId: string,
+  fulfillmentStatus: Order['fulfillmentStatus'],
+  token?: string | null,
+  note?: string
+): Promise<{ message: string; order: Order; userId: number }> {
+  const response = await apiClient.patch(
+    `/admin/orders/${orderId}/fulfillment-status`,
+    { fulfillmentStatus, note },
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
+export async function updateAdminShippingDetails(
+  orderId: string,
+  payload: { carrier?: string; trackingNumber?: string },
+  token?: string | null
+): Promise<{ message: string; order: Order; userId: number }> {
+  const response = await apiClient.patch(
+    `/admin/orders/${orderId}/shipping-details`,
+    payload,
     {
       headers: authHeader(token),
     }

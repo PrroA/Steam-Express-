@@ -7,14 +7,20 @@ const ContentSecurityPolicy = isDev
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' http://localhost:4000 https://steam-express.onrender.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' http://localhost:4000 https://steam-express.onrender.com https://api.stripe.com https://m.stripe.network https://r.stripe.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    font-src 'self' data:;
     object-src 'none';
   `
   : `
     default-src 'self';
     script-src 'self' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    connect-src 'self' https://steam-express.onrender.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' https://steam-express.onrender.com https://api.stripe.com https://m.stripe.network https://r.stripe.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    font-src 'self' data:;
     object-src 'none';
   `;
 
@@ -49,7 +55,11 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   images: {
-    domains: ['upload.wikimedia.org'],
+    domains: ['upload.wikimedia.org', 'steam-express.onrender.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'steam-express.onrender.com' },
+      { protocol: 'http', hostname: 'localhost', port: '4000' },
+    ],
   },
   async headers() {
     return [

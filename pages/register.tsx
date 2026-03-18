@@ -7,6 +7,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 
 interface RegisterFormData {
   username: string;
+  email: string;
   password: string;
   confirmPassword: string;
 }
@@ -17,6 +18,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<RegisterFormData>({
     username: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -45,6 +47,12 @@ export default function RegisterPage() {
       newErrors.username = '請輸入用戶名';
     } else if (formData.username.length < 3) {
       newErrors.username = '用戶名至少需要 3 個字符';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = '請輸入 Email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email 格式不正確';
     }
 
     const passwordStrength = checkPasswordStrength(formData.password);
@@ -76,7 +84,7 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await registerUser(formData.username, formData.password);
+      await registerUser(formData.username, formData.password, formData.email);
       toast.success('註冊成功！');
       router.push('/login');
     } catch (error) {
@@ -104,9 +112,9 @@ export default function RegisterPage() {
       <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
         <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">CREATE ACCOUNT</p>
         <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">建立新帳戶</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">註冊後可使用購物車、願望清單與訂單功能。</p>
+        <p className="mt-1 text-sm text-[#9eb4c8]">註冊後可使用購物車、願望清單與訂單功能，並綁定 Email 供忘記密碼使用。</p>
 
-        <form onSubmit={handleRegister} className="mt-6 space-y-4">
+        <form onSubmit={handleRegister} noValidate className="mt-6 space-y-4">
           <div>
             <input
               type="text"
@@ -121,6 +129,22 @@ export default function RegisterPage() {
               onChange={handleChange}
             />
             {errors.username && <p className="mt-1 text-xs text-[#ff9e9e]">{errors.username}</p>}
+          </div>
+
+          <div>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                errors.email
+                  ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
+                  : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+              }`}
+              value={formData.email}
+              onChange={handleChange}
+            />
+            {errors.email && <p className="mt-1 text-xs text-[#ff9e9e]">{errors.email}</p>}
           </div>
 
           <div>
