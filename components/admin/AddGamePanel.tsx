@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 interface AddGamePanelProps {
   form: {
     name: string;
@@ -26,10 +28,12 @@ export function AddGamePanel({
       <h2 className="text-xl font-black text-[#d8e6f3]">新增商品</h2>
       {form.preview && (
         <div className="relative mt-4 aspect-video w-full overflow-hidden rounded-xl border border-[#66c0f433] bg-[#0f1d2b]">
-          <img
+          <Image
             src={form.preview}
             alt="封面預覽"
-            className="h-full w-full object-cover"
+            fill
+            unoptimized
+            className="object-cover"
             onError={() => onFieldChange('imageUrlError', '圖片載入失敗，請確認網址可公開存取')}
             onLoad={() => onFieldChange('imageUrlError', '')}
             referrerPolicy="no-referrer"

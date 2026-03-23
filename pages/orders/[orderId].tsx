@@ -43,6 +43,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -71,9 +72,10 @@ export default function OrderDetail() {
   );
 
   const handleReorder = async () => {
-    if (!order?.id) return;
+    if (!order?.id || reorderLoading) return;
     const token = localStorage.getItem('token');
     try {
+      setReorderLoading(true);
       const result = await reorderOrder(order.id, token);
       if (result.skipped?.length) {
         toast.info(`已加入 ${result.addedCount} 項，${result.skipped.length} 項略過`);
@@ -84,6 +86,8 @@ export default function OrderDetail() {
     } catch (error) {
       const message = error instanceof Error ? error.message : '再買一次失敗';
       toast.error(message);
+    } finally {
+      setReorderLoading(false);
     }
   };
 
@@ -113,7 +117,7 @@ export default function OrderDetail() {
   }
 
   return (
-    <main className="steam-shell px-4 py-6 md:px-6">
+    <main className="steam-shell px-4 py-6 pb-28 md:px-6 md:pb-6">
       <section className="mx-auto w-full max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <Link href="/orders" className="text-sm text-[#8fb8d5] transition hover:text-[#66c0f4]">
@@ -127,9 +131,10 @@ export default function OrderDetail() {
           </button>
           <button
             onClick={handleReorder}
-            className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-4 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35]"
+            disabled={reorderLoading}
+            className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-4 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            再買一次
+            {reorderLoading ? '加入中...' : '再買一次'}
           </button>
         </div>
 
@@ -287,6 +292,24 @@ export default function OrderDetail() {
               })
             )}
           </ul>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#66c0f433] bg-[#0e1a26ee] p-3 backdrop-blur md:hidden">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-2">
+            <button
+              onClick={() => router.push('/orders')}
+              className="flex-1 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3]"
+            >
+              回訂單列表
+            </button>
+            <button
+              onClick={handleReorder}
+              disabled={reorderLoading}
+              className="flex-1 rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-sm font-semibold text-[#d6ecb2] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reorderLoading ? '加入中...' : '再買一次'}
+            </button>
+          </div>
         </div>
       </section>
     </main>

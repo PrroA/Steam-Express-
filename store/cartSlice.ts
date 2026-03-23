@@ -1,6 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
+
+type CartSliceItem = {
+  id: number | string;
+  quantity: number;
+  [key: string]: any;
+};
+
 const initialState = {
-  items: [], // 購物車內的所有商品，每個商品包含 id, name, price, quantity 等資訊
+  items: [] as CartSliceItem[], // 購物車內的所有商品，每個商品包含 id, name, price, quantity 等資訊
 };
 
 // 創建 cartSlice，用來處理購物車的狀態
@@ -10,6 +17,7 @@ const cartSlice = createSlice({
   reducers: {
     // 新增商品到購物車
     addItem: (state, action) => {
+      const item = state.items.find((i) => i.id === action.payload.id);
       if (item) {
         // 如果商品已存在，增加數量
         item.quantity += 1;

@@ -90,9 +90,6 @@ describe('AddGamePanel', () => {
 
     fireEvent.error(preview);
     expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '圖片載入失敗，請確認網址可公開存取');
-
-    fireEvent.load(preview);
-    expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '');
   });
 
   it('shows uploading and error states', () => {

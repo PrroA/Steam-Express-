@@ -18,6 +18,8 @@ interface OrderListProps {
   onSelectOrder: (order: Order) => void;
   onViewOrderDetail: (orderId: string) => void;
   onReorder: (orderId: string) => void;
+  reorderingOrderId?: string | null;
+  focusOrderId?: string | null;
 }
 
 export function OrderList({
@@ -26,6 +28,8 @@ export function OrderList({
   onSelectOrder,
   onViewOrderDetail,
   onReorder,
+  reorderingOrderId,
+  focusOrderId,
 }: OrderListProps) {
   if (orders.length === 0) return null;
 
@@ -38,10 +42,15 @@ export function OrderList({
           return (
             <article
               key={order.id}
+              id={`order-card-${order.id}`}
               className={`rounded-xl border p-4 transition ${
                 selectedOrderId === order.id
                   ? 'border-[#66c0f4] bg-[#173247]'
                   : 'border-[#66c0f433] bg-[#132434]'
+              } ${
+                focusOrderId === order.id
+                  ? 'ring-2 ring-[#66c0f477] ring-offset-0 animate-pulse'
+                  : ''
               }`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -100,9 +109,10 @@ export function OrderList({
                 </button>
                 <button
                   onClick={() => onReorder(order.id)}
-                  className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-xs font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35]"
+                  disabled={Boolean(reorderingOrderId)}
+                  className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-xs font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  再買一次
+                  {reorderingOrderId === order.id ? '加入中...' : '再買一次'}
                 </button>
               </div>
             </article>

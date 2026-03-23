@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   checkout,
   fetchCart,
@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { calculateTotalPrice } from '../utils/cartUtils';
 import type { CartItem } from '../types/domain';
 import { fetchProfile } from '../services/profileService';
+import { ErrorState } from '../components/ui/PageStates';
+import { CartPageSkeleton } from '../components/ui/PageSkeletons';
 
 type CheckoutStep = 1 | 2 | 3;
 
@@ -37,10 +39,13 @@ const promoRules: Record<string, number> = {
   STEAM10: 0.1,
   NEWBIE15: 0.15,
 };
+const checkoutDraftKey = 'steam_checkout_draft_v1';
 
 export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartLoading, setCartLoading] = useState(true);
+  const [cartLoadError, setCartLoadError] = useState('');
   const [activeStep, setActiveStep] = useState<CheckoutStep>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit-card');
   const [fullName, setFullName] = useState('');
@@ -53,24 +58,36 @@ export default function CartPage() {
   const [agreed, setAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState('');
+  const [paymentValidationTriggered, setPaymentValidationTriggered] = useState(false);
+  const fullNameInputRef = useRef<HTMLInputElement | null>(null);
+  const phoneInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const addressInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const agreedInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    const loadCart = async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const data = await fetchCart(token);
-        const nextCart = Array.isArray(data) ? data : [];
-        setCart(nextCart);
-        if (nextCart.length === 0) {
-          setActiveStep(1);
-        }
-      } catch (error) {
-        setCart([]);
+  const loadCart = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    setCartLoading(true);
+    setCartLoadError('');
+    try {
+      const data = await fetchCart(token);
+      const nextCart = Array.isArray(data) ? data : [];
+      setCart(nextCart);
+      if (nextCart.length === 0) {
         setActiveStep(1);
       }
-    };
-    loadCart();
+    } catch (error) {
+      setCart([]);
+      setActiveStep(1);
+      setCartLoadError('購物車資料載入失敗，請檢查網路或稍後重試。');
+    } finally {
+      setCartLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
 
   useEffect(() => {
     const hydrateProfileDefaults = async () => {
@@ -91,6 +108,27 @@ export default function CartPage() {
     hydrateProfileDefaults();
   }, []);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(checkoutDraftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (typeof draft.fullName === 'string') setFullName(draft.fullName);
+      if (typeof draft.phone === 'string') setPhone(draft.phone);
+      if (typeof draft.contactEmail === 'string') setContactEmail(draft.contactEmail);
+      if (typeof draft.shippingAddress === 'string') setShippingAddress(draft.shippingAddress);
+      if (typeof draft.orderNote === 'string') setOrderNote(draft.orderNote);
+      if (typeof draft.promoInput === 'string') setPromoInput(draft.promoInput);
+      if (typeof draft.appliedPromo === 'string') setAppliedPromo(draft.appliedPromo);
+      if (typeof draft.agreed === 'boolean') setAgreed(draft.agreed);
+      if (draft.paymentMethod === 'credit-card' || draft.paymentMethod === 'line-pay' || draft.paymentMethod === 'wallet') {
+        setPaymentMethod(draft.paymentMethod);
+      }
+    } catch (error) {
+      // ignore invalid draft format
+    }
+  }, []);
+
   const total = useMemo(() => calculateTotalPrice(cart), [cart]);
   const discountRate = useMemo(() => promoRules[appliedPromo] || 0, [appliedPromo]);
   const discountAmount = useMemo(() => total * discountRate, [total, discountRate]);
@@ -99,6 +137,45 @@ export default function CartPage() {
     () => cart.reduce((sum, item) => sum + (item.quantity || 0), 0),
     [cart]
   );
+  const paymentErrors = useMemo(
+    () => ({
+      fullName: fullName.trim().length >= 2 ? '' : '姓名至少需要 2 個字元',
+      phone: isValidPhone(phone) ? '' : '請輸入 8-15 碼電話號碼',
+      contactEmail: isValidEmail(contactEmail) ? '' : 'Email 格式不正確',
+      shippingAddress: shippingAddress.trim().length >= 6 ? '' : '地址至少需要 6 個字元',
+      agreed: agreed ? '' : '請先勾選同意交易條款',
+    }),
+    [agreed, contactEmail, fullName, phone, shippingAddress]
+  );
+  const hasPaymentErrors = useMemo(
+    () => Object.values(paymentErrors).some(Boolean),
+    [paymentErrors]
+  );
+
+  useEffect(() => {
+    const payload = {
+      fullName,
+      phone,
+      contactEmail,
+      shippingAddress,
+      orderNote,
+      promoInput,
+      appliedPromo,
+      agreed,
+      paymentMethod,
+    };
+    localStorage.setItem(checkoutDraftKey, JSON.stringify(payload));
+  }, [
+    agreed,
+    appliedPromo,
+    contactEmail,
+    fullName,
+    orderNote,
+    paymentMethod,
+    phone,
+    promoInput,
+    shippingAddress,
+  ]);
 
   const handleRemove = async (id: number) => {
     const token = localStorage.getItem('token');
@@ -156,24 +233,15 @@ export default function CartPage() {
   };
 
   const handleNextFromPayment = () => {
-    if (fullName.trim().length < 2) {
-      toast.error('請輸入收件人姓名');
-      return;
-    }
-    if (!isValidPhone(phone)) {
-      toast.error('請輸入有效電話');
-      return;
-    }
-    if (!isValidEmail(contactEmail)) {
-      toast.error('請輸入有效 Email 以接收訂單通知');
-      return;
-    }
-    if (shippingAddress.trim().length < 6) {
-      toast.error('請輸入完整收件地址');
-      return;
-    }
-    if (!agreed) {
-      toast.error('請先勾選同意交易條款');
+    setPaymentValidationTriggered(true);
+    if (hasPaymentErrors) {
+      const firstError = Object.values(paymentErrors).find(Boolean) || '請先完成付款資訊';
+      toast.error(firstError);
+      if (paymentErrors.fullName) fullNameInputRef.current?.focus();
+      else if (paymentErrors.phone) phoneInputRef.current?.focus();
+      else if (paymentErrors.contactEmail) emailInputRef.current?.focus();
+      else if (paymentErrors.shippingAddress) addressInputRef.current?.focus();
+      else if (paymentErrors.agreed) agreedInputRef.current?.focus();
       return;
     }
     setActiveStep(3);
@@ -213,8 +281,12 @@ export default function CartPage() {
       setCreatedOrderId(orderId || 'new-order');
       toast.success('訂單建立成功，正在前往付款頁');
       setCart([]);
+      localStorage.removeItem(checkoutDraftKey);
       setTimeout(() => {
-        router.push(orderId ? `/orders?orderId=${orderId}` : '/orders');
+        router.push({
+          pathname: '/orders',
+          query: orderId ? { orderId } : undefined,
+        });
       }, 1200);
     } catch (error) {
       toast.error('結帳失敗，請稍後再試');
@@ -239,6 +311,14 @@ export default function CartPage() {
     );
   }
 
+  if (cartLoading) {
+    return <CartPageSkeleton />;
+  }
+
+  if (cartLoadError) {
+    return <ErrorState title="購物車暫時不可用" description={cartLoadError} onAction={loadCart} />;
+  }
+
   if (cart.length === 0) {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
@@ -255,10 +335,20 @@ export default function CartPage() {
   }
 
   return (
-    <main className="steam-shell px-4 py-6 md:px-6">
+    <main className="steam-shell px-4 py-6 pb-28 md:px-6 md:pb-6">
       <section className="mx-auto w-full max-w-6xl">
         <h1 className="text-3xl font-black text-[#d8e6f3]">一頁式結帳</h1>
         <p className="mt-1 text-sm text-[#9eb4c8]">三步完成下單，建立訂單後會自動帶你到付款頁。</p>
+        <p className="mt-2 text-xs font-semibold tracking-[0.08em] text-[#8fb8d5]">
+          STEP {activeStep} / {checkoutSteps.length}
+        </p>
+
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#102131]">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[#66c0f4] to-[#8bc53f] transition-all duration-300"
+            style={{ width: `${(activeStep / checkoutSteps.length) * 100}%` }}
+          />
+        </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#66c0f433] bg-[#122333] p-2">
           {checkoutSteps.map((step) => {
@@ -388,47 +478,71 @@ export default function CartPage() {
 
                   <label className="mt-4 block text-sm text-[#9eb4c8]">收件人姓名</label>
                   <input
+                    ref={fullNameInputRef}
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
                     placeholder="王小明"
-                    className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                    aria-invalid={(paymentValidationTriggered || fullName.trim()) && Boolean(paymentErrors.fullName)}
+                    className={`mt-2 w-full rounded-md border bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                      (paymentValidationTriggered || fullName.trim()) && paymentErrors.fullName
+                        ? 'border-[#ff9e9e] focus:border-[#ff9e9e]'
+                        : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+                    }`}
                   />
-                  {fullName.trim() && fullName.trim().length < 2 && (
-                    <p className="mt-1 text-xs text-[#ff9e9e]">姓名至少需要 2 個字元</p>
+                  {(paymentValidationTriggered || fullName.trim()) && paymentErrors.fullName && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">{paymentErrors.fullName}</p>
                   )}
 
                   <label className="mt-4 block text-sm text-[#9eb4c8]">聯絡電話</label>
                   <input
+                    ref={phoneInputRef}
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
                     placeholder="0912345678"
-                    className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                    aria-invalid={(paymentValidationTriggered || phone.trim()) && Boolean(paymentErrors.phone)}
+                    className={`mt-2 w-full rounded-md border bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                      (paymentValidationTriggered || phone.trim()) && paymentErrors.phone
+                        ? 'border-[#ff9e9e] focus:border-[#ff9e9e]'
+                        : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+                    }`}
                   />
-                  {phone.trim() && !isValidPhone(phone) && (
-                    <p className="mt-1 text-xs text-[#ff9e9e]">請輸入 8-15 碼電話號碼</p>
+                  {(paymentValidationTriggered || phone.trim()) && paymentErrors.phone && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">{paymentErrors.phone}</p>
                   )}
 
                   <label className="mt-4 block text-sm text-[#9eb4c8]">通知 Email</label>
                   <input
+                    ref={emailInputRef}
                     value={contactEmail}
                     onChange={(event) => setContactEmail(event.target.value)}
                     placeholder="you@example.com"
-                    className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                    aria-invalid={(paymentValidationTriggered || contactEmail.trim()) && Boolean(paymentErrors.contactEmail)}
+                    className={`mt-2 w-full rounded-md border bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                      (paymentValidationTriggered || contactEmail.trim()) && paymentErrors.contactEmail
+                        ? 'border-[#ff9e9e] focus:border-[#ff9e9e]'
+                        : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+                    }`}
                   />
-                  {contactEmail.trim() && !isValidEmail(contactEmail) && (
-                    <p className="mt-1 text-xs text-[#ff9e9e]">Email 格式不正確</p>
+                  {(paymentValidationTriggered || contactEmail.trim()) && paymentErrors.contactEmail && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">{paymentErrors.contactEmail}</p>
                   )}
 
                   <label className="mt-4 block text-sm text-[#9eb4c8]">收件地址</label>
                   <textarea
+                    ref={addressInputRef}
                     value={shippingAddress}
                     onChange={(event) => setShippingAddress(event.target.value)}
                     placeholder="台北市中正區..."
                     rows={2}
-                    className="mt-2 w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                    aria-invalid={(paymentValidationTriggered || shippingAddress.trim()) && Boolean(paymentErrors.shippingAddress)}
+                    className={`mt-2 w-full resize-none rounded-md border bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
+                      (paymentValidationTriggered || shippingAddress.trim()) && paymentErrors.shippingAddress
+                        ? 'border-[#ff9e9e] focus:border-[#ff9e9e]'
+                        : 'border-[#66c0f444] focus:border-[#66c0f4aa]'
+                    }`}
                   />
-                  {shippingAddress.trim() && shippingAddress.trim().length < 6 && (
-                    <p className="mt-1 text-xs text-[#ff9e9e]">地址至少需要 6 個字元</p>
+                  {(paymentValidationTriggered || shippingAddress.trim()) && paymentErrors.shippingAddress && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">{paymentErrors.shippingAddress}</p>
                   )}
 
                   <label className="mt-4 block text-sm text-[#9eb4c8]">優惠碼（選填）</label>
@@ -464,6 +578,7 @@ export default function CartPage() {
 
                   <label className="mt-4 flex items-start gap-2 text-sm text-[#9eb4c8]">
                     <input
+                      ref={agreedInputRef}
                       type="checkbox"
                       checked={agreed}
                       onChange={(event) => setAgreed(event.target.checked)}
@@ -471,6 +586,10 @@ export default function CartPage() {
                     />
                     <span>我同意交易條款，了解建立訂單後可於訂單頁進行付款與退款操作。</span>
                   </label>
+                  {paymentValidationTriggered && paymentErrors.agreed && (
+                    <p className="mt-1 text-xs text-[#ff9e9e]">{paymentErrors.agreed}</p>
+                  )}
+                  <p className="mt-2 text-xs text-[#8faac0]">已自動儲存本次填寫內容</p>
                 </div>
               </>
             )}
@@ -585,6 +704,52 @@ export default function CartPage() {
               繼續購物
             </Link>
           </aside>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#66c0f433] bg-[#0e1a26ee] p-3 backdrop-blur md:hidden">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-[#8faac0]">
+                Step {activeStep}/3
+                {activeStep === 1 ? '・確認購物清單' : activeStep === 2 ? '・付款資訊' : '・確認送出'}
+              </p>
+              <p className="text-sm font-black text-[#8bc53f]">${payableTotal.toFixed(2)}</p>
+            </div>
+
+            {activeStep !== 1 && (
+              <button
+                onClick={() => setActiveStep(activeStep === 3 ? 2 : 1)}
+                className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3]"
+              >
+                上一步
+              </button>
+            )}
+
+            {activeStep === 1 && (
+              <button onClick={handleNextFromItems} className="steam-btn rounded-md px-3 py-2 text-xs">
+                下一步
+              </button>
+            )}
+
+            {activeStep === 2 && (
+              <button
+                onClick={handleNextFromPayment}
+                className="steam-btn rounded-md px-3 py-2 text-xs"
+              >
+                下一步
+              </button>
+            )}
+
+            {activeStep === 3 && (
+              <button
+                onClick={handleSubmitOrder}
+                disabled={isSubmitting}
+                className="steam-btn rounded-md px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? '建立中...' : '送出訂單'}
+              </button>
+            )}
+          </div>
         </div>
       </section>
     </main>

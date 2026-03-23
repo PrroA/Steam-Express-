@@ -23,15 +23,15 @@ const PASSENGER_STATUS = {
 };
 
 // 電梯
-const createElevator = (id, waitingMap) => {
+const createElevator = (id: number, waitingMap: Map<number, any[]>) => {
   return {
     id,
     floor: 1,
     direction: 'idle',
     status: ELEVATOR_STATUS.IDLE,
     statusTimer: 0,
-    passengers: [],
-    targetFloors: new Set(),
+    passengers: [] as any[],
+    targetFloors: new Set<number>(),
     waitingMap,
 
     canStop() {
@@ -100,7 +100,7 @@ const createElevator = (id, waitingMap) => {
       const hasWaiting =
         this.waitingMap &&
         Array.from(this.waitingMap.values()).some((list) =>
-          list.some((p) => p.status === PASSENGER_STATUS.WAITING)
+          (list as any[]).some((p: any) => p.status === PASSENGER_STATUS.WAITING)
         );
 
       if (!hasPassengers && !hasWaiting) {
@@ -115,7 +115,8 @@ const createElevator = (id, waitingMap) => {
         );
         const hasUpperFloorWaiting = Array.from(this.waitingMap.entries()).some(
           ([floor, passengers]) =>
-            floor > this.floor && passengers.some((p) => p.status === PASSENGER_STATUS.WAITING)
+            floor > this.floor &&
+            (passengers as any[]).some((p: any) => p.status === PASSENGER_STATUS.WAITING)
         );
 
         if (hasUpperFloorTargets || hasUpperFloorWaiting) {
@@ -130,7 +131,8 @@ const createElevator = (id, waitingMap) => {
         );
         const hasLowerFloorWaiting = Array.from(this.waitingMap.entries()).some(
           ([floor, passengers]) =>
-            floor < this.floor && passengers.some((p) => p.status === PASSENGER_STATUS.WAITING)
+            floor < this.floor &&
+            (passengers as any[]).some((p: any) => p.status === PASSENGER_STATUS.WAITING)
         );
 
         if (hasLowerFloorTargets || hasLowerFloorWaiting) {
@@ -143,13 +145,14 @@ const createElevator = (id, waitingMap) => {
         const currentFloor = this.floor;
         const nearestWaiting = Array.from(this.waitingMap.entries())
           .filter(([_, passengers]) =>
-            passengers.some((p) => p.status === PASSENGER_STATUS.WAITING)
+            (passengers as any[]).some((p: any) => p.status === PASSENGER_STATUS.WAITING)
           )
-          .reduce((nearest, [floor]) => {
-            if (nearest === null) return floor;
+          .reduce<number | null>((nearest, [floor]) => {
+            const floorNum = Number(floor);
+            if (nearest === null) return floorNum;
             const currentDiff = Math.abs(currentFloor - nearest);
-            const newDiff = Math.abs(currentFloor - floor);
-            return newDiff < currentDiff ? floor : nearest;
+            const newDiff = Math.abs(currentFloor - floorNum);
+            return newDiff < currentDiff ? floorNum : nearest;
           }, null);
 
         if (nearestWaiting !== null) {
@@ -201,15 +204,15 @@ const createElevator = (id, waitingMap) => {
 // 建築物管理
 const createBuilding = () => {
   // 先建立 waitingMap
-  const waitingMap = new Map();
+  const waitingMap = new Map<number, any[]>();
   for (let i = FLOOR_MIN; i <= FLOOR_MAX; i++) {
     waitingMap.set(i, []);
   }
 
 
   const elevators = [createElevator(1, waitingMap), createElevator(2, waitingMap)];
-  const people = [];
-  const logs = [];
+  const people: any[] = [];
+  const logs: Array<{ time: number; message: string }> = [];
   let time = 0;
   let generated = 0;
 
@@ -318,11 +321,11 @@ const createBuilding = () => {
 
 // 主要元件
 export default function ElevatorPage() {
-  const [logs, setLogs] = useState([]);
-  const [floors, setFloors] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [logs, setLogs] = useState<Array<{ time: number; message: string }>>([]);
+  const [floors, setFloors] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [isComplete, setIsComplete] = useState(false);
-  const buildingRef = useRef(null);
+  const buildingRef = useRef<any>(null);
 
   useEffect(() => {
     buildingRef.current = createBuilding();

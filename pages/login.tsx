@@ -35,7 +35,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <input
             type="text"
-            placeholder="帳號 admin"
+            placeholder=""
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
@@ -43,7 +43,7 @@ export default function LoginPage() {
 
           <input
             type="password"
-            placeholder="密碼 admin"
+            placeholder=""
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"

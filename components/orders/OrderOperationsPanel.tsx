@@ -20,6 +20,8 @@ interface OrderOperationsPanelProps {
   onRefundOrder: () => void;
   onRetryOrder: () => void;
   onSimulateFailure: () => void;
+  isOperating: boolean;
+  operatingType: 'cancel' | 'refund' | 'retry' | 'simulate' | null;
 }
 
 export function OrderOperationsPanel({
@@ -30,6 +32,8 @@ export function OrderOperationsPanel({
   onRefundOrder,
   onRetryOrder,
   onSimulateFailure,
+  isOperating,
+  operatingType,
 }: OrderOperationsPanelProps) {
   return (
     <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
@@ -45,6 +49,7 @@ export function OrderOperationsPanel({
           <select
             value={selectedOrder?.id || ''}
             onChange={(e) => onSelectOrderById(e.target.value)}
+            disabled={isOperating}
             className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
           >
             {orders.map((order) => (
@@ -110,31 +115,31 @@ export function OrderOperationsPanel({
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <button
               onClick={onCancelOrder}
-              disabled={!selectedOrder || !['未付款', '付款失敗'].includes(selectedOrder.status)}
+              disabled={isOperating || !selectedOrder || !['未付款', '付款失敗'].includes(selectedOrder.status)}
               className="rounded-md border border-[#ff9f9f55] bg-[#4a202a] px-3 py-2 text-sm font-semibold text-[#ffd6d6] transition hover:bg-[#66303c] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              取消訂單
+              {operatingType === 'cancel' ? '取消中...' : '取消訂單'}
             </button>
             <button
               onClick={onRefundOrder}
-              disabled={!selectedOrder || selectedOrder.status !== '已付款'}
+              disabled={isOperating || !selectedOrder || selectedOrder.status !== '已付款'}
               className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              退款
+              {operatingType === 'refund' ? '退款中...' : '退款'}
             </button>
             <button
               onClick={onRetryOrder}
-              disabled={!selectedOrder || selectedOrder.status !== '付款失敗'}
+              disabled={isOperating || !selectedOrder || selectedOrder.status !== '付款失敗'}
               className="rounded-md border border-[#66c0f455] bg-[#193142] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24445a] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              重新付款
+              {operatingType === 'retry' ? '處理中...' : '重新付款'}
             </button>
             <button
               onClick={onSimulateFailure}
-              disabled={!selectedOrder || selectedOrder.status !== '未付款'}
+              disabled={isOperating || !selectedOrder || selectedOrder.status !== '未付款'}
               className="rounded-md border border-[#ffcf5a55] bg-[#3f3318] px-3 py-2 text-sm font-semibold text-[#ffe0a6] transition hover:bg-[#524423] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              模擬付款失敗
+              {operatingType === 'simulate' ? '處理中...' : '模擬付款失敗'}
             </button>
           </div>
         </>

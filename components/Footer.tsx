@@ -19,7 +19,7 @@ export default function Footer() {
           <Link href="mailto:ga2006049738@gmail.com" className="transition hover:text-[#66c0f4]">
             Email
           </Link>
-          <span className="text-xs text-[#7e98ab]">UI Iteration v1</span>
+          <span className="text-xs text-[#7e98ab]">v1</span>
         </div>
       </div>
     </footer>

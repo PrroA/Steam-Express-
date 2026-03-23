@@ -9,10 +9,10 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const Stripe = require('stripe');
 const OpenAI = require('openai');
-const state = require('../backend/state');
-const { hydrateState } = require('../backend/persistence');
-const { createAuthMiddleware } = require('../backend/middleware/auth');
-const { registerRoutes } = require('../backend/registerRoutes');
+const state = require('../backend-build/state');
+const { hydrateState } = require('../backend-build/persistence');
+const { createAuthMiddleware } = require('../backend-build/middleware/auth');
+const { registerRoutes } = require('../backend-build/registerRoutes');
 
 const app = express();
 const server = http.createServer(app);

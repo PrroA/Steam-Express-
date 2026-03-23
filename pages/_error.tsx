@@ -1,4 +1,5 @@
 import { ErrorPageView } from '../components/ErrorPageView';
+import type { NextPage, NextPageContext } from 'next';
 
 function getErrorText(statusCode) {
   if (statusCode === 404) {
@@ -24,14 +25,24 @@ function getErrorText(statusCode) {
   };
 }
 
-export default function Error({ statusCode }) {
+type ErrorPageProps = {
+  statusCode: number;
+};
+
+type ErrorPageComponent = NextPage<ErrorPageProps> & {
+  getInitialProps?: (context: NextPageContext) => ErrorPageProps;
+};
+
+const ErrorPage: ErrorPageComponent = ({ statusCode }) => {
   const copy = getErrorText(statusCode);
   return (
     <ErrorPageView code={copy.code} title={copy.title} description={copy.description} />
   );
-}
+};
 
-Error.getInitialProps = ({ res, err }) => {
+ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
   const statusCode = res ? res.statusCode : err ? err.statusCode : 500;
   return { statusCode };
 };
+
+export default ErrorPage;

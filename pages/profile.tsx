@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { fetchProfile, updateProfile } from '../services/profileService';
+import { ErrorState, LoadingState } from '../components/ui/PageStates';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [defaultFullName, setDefaultFullName] = useState('');
@@ -11,28 +13,31 @@ export default function ProfilePage() {
   const [defaultAddress, setDefaultAddress] = useState('');
   const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<'credit-card' | 'line-pay' | 'wallet'>('credit-card');
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const data = await fetchProfile(token);
-        setUsername(data.username || '');
-        localStorage.setItem('profile_username', data.username || '');
-        window.dispatchEvent(new Event('auth-user-updated'));
-        setEmail(data.email === '未提供' ? '' : data.email || '');
-        setDefaultFullName(data.defaultFullName || '');
-        setDefaultPhone(data.defaultPhone || '');
-        setDefaultAddress(data.defaultAddress || '');
-        setDefaultPaymentMethod(data.defaultPaymentMethod || 'credit-card');
-      } catch (error) {
-        toast.error('無法載入個人資料');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
+  const loadProfile = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    setLoading(true);
+    setLoadError('');
+    try {
+      const data = await fetchProfile(token);
+      setUsername(data.username || '');
+      localStorage.setItem('profile_username', data.username || '');
+      window.dispatchEvent(new Event('auth-user-updated'));
+      setEmail(data.email === '未提供' ? '' : data.email || '');
+      setDefaultFullName(data.defaultFullName || '');
+      setDefaultPhone(data.defaultPhone || '');
+      setDefaultAddress(data.defaultAddress || '');
+      setDefaultPaymentMethod(data.defaultPaymentMethod || 'credit-card');
+    } catch (error) {
+      setLoadError('無法載入個人資料，請稍後再試。');
+      toast.error('無法載入個人資料');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleUpdateProfile = async () => {
     const token = localStorage.getItem('token');
@@ -50,14 +55,11 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return (
-      <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
-          <p className="mt-4 text-sm text-[#9eb4c8]">載入個人資料中...</p>
-        </div>
-      </main>
-    );
+    return <LoadingState title="載入個人資料中" description="正在同步你的帳號設定..." />;
+  }
+
+  if (loadError) {
+    return <ErrorState title="個人資料暫時不可用" description={loadError} onAction={loadProfile} />;
   }
 
   return (

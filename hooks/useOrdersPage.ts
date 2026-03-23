@@ -13,6 +13,10 @@ export function useOrdersPage() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [operationLoading, setOperationLoading] = useState(false);
+  const [operationType, setOperationType] = useState<
+    'cancel' | 'refund' | 'retry' | 'simulate' | null
+  >(null);
 
   const loadOrders = useCallback(async (preferredOrderId?: string) => {
     setLoading(true);
@@ -73,9 +77,12 @@ export function useOrdersPage() {
   const mutateOrder = useCallback(
     async (
       runner: (orderId: string, token?: string | null) => Promise<any>,
-      successText: string
+      successText: string,
+      nextOperationType: 'cancel' | 'refund' | 'retry' | 'simulate'
     ) => {
       if (!selectedOrder?.id) return;
+      setOperationLoading(true);
+      setOperationType(nextOperationType);
       try {
         const token = localStorage.getItem('token');
         await runner(selectedOrder.id, token);
@@ -84,6 +91,9 @@ export function useOrdersPage() {
       } catch (error) {
         const message = error instanceof Error ? error.message : '操作失敗';
         toast.error(message);
+      } finally {
+        setOperationLoading(false);
+        setOperationType(null);
       }
     },
     [loadOrders, selectedOrder?.id]
@@ -148,6 +158,8 @@ export function useOrdersPage() {
     clientSecret,
     loading,
     error,
+    operationLoading,
+    operationType,
     chartData,
     stats,
     loadOrders,

@@ -28,9 +28,14 @@ beforeEach(() => {
 test('成功登入：寫入 token、toast.success、導向 "/"', async () => {
   loginUser.mockResolvedValueOnce({ token: 'JWT123' });
 
-  render(<LoginPage />);
-  fireEvent.change(screen.getByPlaceholderText(/帳號/i), { target: { value: 'admin' } });
-  fireEvent.change(screen.getByPlaceholderText(/密碼/i), { target: { value: 'admin' } });
+  const { container } = render(<LoginPage />);
+  const usernameInput = container.querySelector('input[type="text"]');
+  const passwordInput = container.querySelector('input[type="password"]');
+  expect(usernameInput).toBeTruthy();
+  expect(passwordInput).toBeTruthy();
+
+  fireEvent.change(usernameInput!, { target: { value: 'admin' } });
+  fireEvent.change(passwordInput!, { target: { value: 'admin' } });
   fireEvent.click(screen.getByRole('button', { name: /登入/i }));
 
   await waitFor(() => expect(localStorage.getItem('token')).toBe('JWT123'));
@@ -41,7 +46,11 @@ test('成功登入：寫入 token、toast.success、導向 "/"', async () => {
 test('登入失敗：顯示 toast.error', async () => {
   loginUser.mockRejectedValueOnce({ response: { data: { message: 'wrong' } } });
 
-  render(<LoginPage />);
+  const { container } = render(<LoginPage />);
+  const usernameInput = container.querySelector('input[type="text"]');
+  const passwordInput = container.querySelector('input[type="password"]');
+  fireEvent.change(usernameInput!, { target: { value: 'admin' } });
+  fireEvent.change(passwordInput!, { target: { value: 'bad-password' } });
   fireEvent.click(screen.getByRole('button', { name: /登入/i }));
 
   await waitFor(() => expect(toast.error).toHaveBeenCalled());

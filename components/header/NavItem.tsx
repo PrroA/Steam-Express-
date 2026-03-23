@@ -1,6 +1,13 @@
 import Link from 'next/link';
+import type { MouseEventHandler } from 'react';
 
-export function NavItem({ href, label, onClick }) {
+type NavItemProps = {
+  href: string;
+  label: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+};
+
+export function NavItem({ href, label, onClick }: NavItemProps) {
   return (
     <Link
       href={href}
