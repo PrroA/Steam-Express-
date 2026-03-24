@@ -22,6 +22,10 @@ export function Header() {
     setIsAlertOpen,
     setAuthUser,
     handleOpenAlerts,
+    handleMarkAlertsRead,
+    handleClearAlerts,
+    handleRemoveAlert,
+    handleMarkSingleAlertRead,
   } = useHeaderState(router.asPath);
 
   const handleLogout = useCallback(() => {
@@ -57,6 +61,10 @@ export function Header() {
             onToggle={handleOpenAlerts}
             alerts={alerts}
             onClose={handleCloseAlerts}
+            onMarkRead={handleMarkAlertsRead}
+            onClearAlerts={handleClearAlerts}
+            onRemoveAlert={handleRemoveAlert}
+            onMarkSingleRead={handleMarkSingleAlertRead}
           />
 
           <AuthControls
@@ -74,6 +82,10 @@ export function Header() {
             onToggle={handleOpenAlerts}
             alerts={alerts}
             onClose={handleCloseAlerts}
+            onMarkRead={handleMarkAlertsRead}
+            onClearAlerts={handleClearAlerts}
+            onRemoveAlert={handleRemoveAlert}
+            onMarkSingleRead={handleMarkSingleAlertRead}
             mobile
           />
 

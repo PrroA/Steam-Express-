@@ -26,6 +26,7 @@ export default function WishlistPage() {
   const [priceDropAlerts, setPriceDropAlerts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
+  const [priceDropFilter, setPriceDropFilter] = useState('all');
 
   const loadWishlist = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -87,8 +88,21 @@ export default function WishlistPage() {
   const stats = useMemo(() => {
     const itemCount = wishlist.length;
     const totalPrice = wishlist.reduce((sum, game) => sum + parsePrice(game.price), 0);
-    return { itemCount, totalPrice };
-  }, [wishlist]);
+    const highDropCount = priceDropAlerts.filter((alert) => {
+      const dropRate = ((alert.previousPrice - alert.currentPrice) / Math.max(0.01, alert.previousPrice)) * 100;
+      return dropRate >= 20;
+    }).length;
+    return { itemCount, totalPrice, highDropCount };
+  }, [priceDropAlerts, wishlist]);
+
+  const priceDropPercentMap = useMemo(() => {
+    const map = new Map();
+    priceDropAlerts.forEach((alert) => {
+      const dropRate = ((alert.previousPrice - alert.currentPrice) / Math.max(0.01, alert.previousPrice)) * 100;
+      map.set(alert.id, Number(dropRate.toFixed(1)));
+    });
+    return map;
+  }, [priceDropAlerts]);
 
   const filteredWishlist = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
@@ -98,8 +112,18 @@ export default function WishlistPage() {
       return text.includes(keyword);
     });
 
-    if (sortOrder === 'default') return matched;
-    const next = [...matched];
+    const passPriceDrop = matched.filter((game) => {
+      const dropPercent = priceDropPercentMap.get(game.id) || 0;
+      if (priceDropFilter === 'all') return true;
+      if (priceDropFilter === 'drop-any') return dropPercent > 0;
+      if (priceDropFilter === 'drop-10') return dropPercent >= 10;
+      if (priceDropFilter === 'drop-20') return dropPercent >= 20;
+      if (priceDropFilter === 'drop-30') return dropPercent >= 30;
+      return true;
+    });
+
+    if (sortOrder === 'default') return passPriceDrop;
+    const next = [...passPriceDrop];
     if (sortOrder === 'price-low') {
       next.sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
     } else if (sortOrder === 'price-high') {
@@ -108,11 +132,11 @@ export default function WishlistPage() {
       next.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
     }
     return next;
-  }, [searchQuery, sortOrder, wishlist]);
+  }, [priceDropFilter, priceDropPercentMap, searchQuery, sortOrder, wishlist]);
 
   const hasActiveFilters = useMemo(
-    () => searchQuery.trim().length > 0 || sortOrder !== 'default',
-    [searchQuery, sortOrder]
+    () => searchQuery.trim().length > 0 || sortOrder !== 'default' || priceDropFilter !== 'all',
+    [priceDropFilter, searchQuery, sortOrder]
   );
 
   const handleRemoveFromWishlist = async (gameId) => {
@@ -144,6 +168,7 @@ export default function WishlistPage() {
   const clearFilters = () => {
     setSearchQuery('');
     setSortOrder('default');
+    setPriceDropFilter('all');
   };
 
   if (loading) {
@@ -181,10 +206,10 @@ export default function WishlistPage() {
             <StatCard label="收藏遊戲" value={`${stats.itemCount} 款`} />
             <StatCard label="目前總額" value={`$${stats.totalPrice.toFixed(2)}`} />
             <StatCard label="本次降價" value={`${priceDropAlerts.length} 款`} />
-            <StatCard label="通知方式" value="站內鈴鐺" />
+            <StatCard label="降價 20%+" value={`${stats.highDropCount} 款`} />
           </div>
 
-          <div className="mt-4 grid gap-2 md:grid-cols-[1fr_200px_auto]">
+          <div className="mt-4 grid gap-2 md:grid-cols-[1fr_200px_180px_auto]">
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -200,6 +225,17 @@ export default function WishlistPage() {
               <option value="price-low">價格：低到高</option>
               <option value="price-high">價格：高到低</option>
               <option value="name">名稱 A-Z</option>
+            </select>
+            <select
+              value={priceDropFilter}
+              onChange={(event) => setPriceDropFilter(event.target.value)}
+              className="rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+            >
+              <option value="all">降價：全部</option>
+              <option value="drop-any">有降價</option>
+              <option value="drop-10">降價 10% 以上</option>
+              <option value="drop-20">降價 20% 以上</option>
+              <option value="drop-30">降價 30% 以上</option>
             </select>
             <button
               type="button"
@@ -242,6 +278,18 @@ export default function WishlistPage() {
                 排序：{sortOrder === 'price-low' ? '低到高' : sortOrder === 'price-high' ? '高到低' : '名稱 A-Z'}
               </span>
             )}
+            {priceDropFilter !== 'all' && (
+              <span className="rounded-full border border-[#8bc53f66] bg-[#243b2a] px-2.5 py-1 text-xs text-[#d6ecb2]">
+                降價：
+                {priceDropFilter === 'drop-any'
+                  ? '有降價'
+                  : priceDropFilter === 'drop-10'
+                    ? '10% 以上'
+                    : priceDropFilter === 'drop-20'
+                      ? '20% 以上'
+                      : '30% 以上'}
+              </span>
+            )}
           </div>
         )}
 
@@ -263,6 +311,7 @@ export default function WishlistPage() {
           <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
             {filteredWishlist.map((game) => {
             const price = parsePrice(game.price);
+            const dropPercent = priceDropPercentMap.get(game.id) || 0;
             return (
               <article
                 key={game.id}
@@ -289,6 +338,11 @@ export default function WishlistPage() {
                         {game.name}
                       </h2>
                     </Link>
+                    {dropPercent > 0 && (
+                      <p className="mt-1 inline-flex rounded-md border border-[#8bc53f66] bg-[#243b2a] px-2 py-1 text-xs font-bold text-[#d6ecb2]">
+                        降價 {dropPercent.toFixed(1)}%
+                      </p>
+                    )}
                     <p className="mt-1 line-clamp-2 text-sm text-[#9eb4c8]">
                       {game.description || '尚無描述'}
                     </p>

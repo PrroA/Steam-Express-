@@ -7,6 +7,10 @@ export function AlertBell({
   onToggle,
   alerts,
   onClose,
+  onMarkRead,
+  onClearAlerts,
+  onRemoveAlert,
+  onMarkSingleRead,
   mobile = false,
 }) {
   return (
@@ -29,7 +33,17 @@ export function AlertBell({
         )}
       </button>
 
-      {isAlertOpen && <AlertDropdown alerts={alerts} onClose={onClose} mobile={mobile} />}
+      {isAlertOpen && (
+        <AlertDropdown
+          alerts={alerts}
+          onClose={onClose}
+          onMarkRead={onMarkRead}
+          onClearAlerts={onClearAlerts}
+          onRemoveAlert={onRemoveAlert}
+          onMarkSingleRead={onMarkSingleRead}
+          mobile={mobile}
+        />
+      )}
     </div>
   );
 }

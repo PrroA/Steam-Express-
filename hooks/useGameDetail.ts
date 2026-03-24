@@ -10,6 +10,7 @@ import {
 import type { Game, Review } from '../types/domain';
 import type { GalleryShot } from '../components/game-detail/GameGallery';
 import type { PriceInfo } from '../components/game-detail/PurchasePanel';
+import { trackJourneyEvent } from '../utils/journeyTracker';
 
 interface UseGameDetailParams {
   id: string | string[] | undefined;
@@ -118,6 +119,11 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
         ...(Array.isArray(parsed) ? parsed.filter((item) => item?.id !== game.id) : []),
       ].slice(0, 12);
       localStorage.setItem(key, JSON.stringify(nextList));
+      trackJourneyEvent({
+        type: 'view_game',
+        title: '瀏覽商品',
+        subtitle: game.name,
+      });
     } catch (error) {
       console.error('Failed to save recently viewed games');
     }
@@ -185,6 +191,11 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
     try {
       await addWishlist(numericGameId, token);
       toast.success('已加入願望清單');
+      trackJourneyEvent({
+        type: 'add_wishlist',
+        title: '加入願望清單',
+        subtitle: game?.name || `商品 #${numericGameId}`,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知錯誤';
       console.error('添加到收藏清單失敗:', message);
@@ -203,6 +214,11 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
     try {
       await addToCart(numericGameId, token, selectedVariantId || undefined);
       toast.success('已加入購物車');
+      trackJourneyEvent({
+        type: 'add_cart',
+        title: '加入購物車',
+        subtitle: game?.name || `商品 #${numericGameId}`,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知錯誤';
       console.error('加入購物車失敗:', message);

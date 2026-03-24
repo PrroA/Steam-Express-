@@ -16,24 +16,28 @@ interface OrderOperationsPanelProps {
   orders: Order[];
   selectedOrder: Order | null;
   onSelectOrderById: (orderId: string) => void;
+  onReorder: (orderId: string) => void;
   onCancelOrder: () => void;
   onRefundOrder: () => void;
   onRetryOrder: () => void;
   onSimulateFailure: () => void;
   isOperating: boolean;
   operatingType: 'cancel' | 'refund' | 'retry' | 'simulate' | null;
+  reorderingOrderId?: string | null;
 }
 
 export function OrderOperationsPanel({
   orders,
   selectedOrder,
   onSelectOrderById,
+  onReorder,
   onCancelOrder,
   onRefundOrder,
   onRetryOrder,
   onSimulateFailure,
   isOperating,
   operatingType,
+  reorderingOrderId,
 }: OrderOperationsPanelProps) {
   return (
     <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
@@ -113,6 +117,13 @@ export function OrderOperationsPanel({
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              onClick={() => selectedOrder?.id && onReorder(selectedOrder.id)}
+              disabled={isOperating || !selectedOrder || Boolean(reorderingOrderId)}
+              className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reorderingOrderId && selectedOrder?.id === reorderingOrderId ? '加入中...' : '再買一次（此訂單）'}
+            </button>
             <button
               onClick={onCancelOrder}
               disabled={isOperating || !selectedOrder || !['未付款', '付款失敗'].includes(selectedOrder.status)}

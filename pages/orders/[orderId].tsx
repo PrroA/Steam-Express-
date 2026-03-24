@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { FaCheckCircle, FaClock, FaTimesCircle, FaUndoAlt } from 'react-icons/fa';
 import { fetchOrderById, reorderOrder } from '../../services/orderService';
@@ -44,6 +44,8 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [reorderLoading, setReorderLoading] = useState(false);
+  const [flashFromAlert, setFlashFromAlert] = useState(false);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -65,6 +67,18 @@ export default function OrderDetail() {
       loadOrder();
     }
   }, [orderId]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const fromAlert = router.query.fromAlert === '1';
+    if (!fromAlert) return;
+    setFlashFromAlert(true);
+    window.setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    const timer = window.setTimeout(() => setFlashFromAlert(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [router.isReady, router.query.fromAlert]);
 
   const totalItems = useMemo(
     () => (order?.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0),
@@ -138,7 +152,12 @@ export default function OrderDetail() {
           </button>
         </div>
 
-        <div className="steam-panel rounded-2xl p-5 md:p-6">
+        <div
+          ref={highlightRef}
+          className={`steam-panel rounded-2xl p-5 transition-all md:p-6 ${
+            flashFromAlert ? 'ring-2 ring-[#66c0f4aa] shadow-[0_0_0_2px_rgba(102,192,244,0.25)]' : ''
+          }`}
+        >
           <h1 className="text-3xl font-black text-[#d8e6f3]">訂單詳情</h1>
           <p className="mt-1 text-sm text-[#9eb4c8]">訂單編號：{order.id}</p>
 

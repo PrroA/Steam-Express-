@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export function GameCard({ game }) {
+export function GameCard({ game, onQuickView, onToggleCompare, isCompared = false }) {
   const priceNumber = parseFloat((game.price || '$0').replace('$', '')) || 0;
   const basePrice = priceNumber > 0 ? priceNumber * 1.35 : 1;
   const originalPrice = basePrice.toFixed(2);
@@ -32,9 +32,29 @@ export function GameCard({ game }) {
             <span className="text-lg font-black text-[#8bc53f]">{game.price}</span>
           </div>
         </div>
-        <Link href={`/game/${game.id}`}>
-          <button className="steam-btn mt-4 w-full rounded-md py-2 text-sm transition-all">查看詳情</button>
-        </Link>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link href={`/game/${game.id}`}>
+            <button className="steam-btn w-full rounded-md py-2 text-sm transition-all">查看詳情</button>
+          </Link>
+          <button
+            type="button"
+            onClick={() => onQuickView?.(game)}
+            className="rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+          >
+            快速預覽
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleCompare?.(game.id)}
+            className={`col-span-2 rounded-md border py-2 text-sm font-semibold transition ${
+              isCompared
+                ? 'border-[#8bc53f88] bg-[#2d4727] text-[#d9f1ba] hover:bg-[#375a30]'
+                : 'border-[#66c0f455] bg-[#1b2f44] text-[#d8e6f3] hover:bg-[#24384d]'
+            }`}
+          >
+            {isCompared ? '已加入比較' : '加入比較'}
+          </button>
+        </div>
       </div>
     </article>
   );

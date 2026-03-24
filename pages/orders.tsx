@@ -20,6 +20,7 @@ import { ErrorState } from '../components/ui/PageStates';
 import { OrdersPageSkeleton } from '../components/ui/PageSkeletons';
 import { OrderActionSummary } from '../components/orders/OrderActionSummary';
 import type { Order } from '../types/domain';
+import { trackJourneyEvent } from '../utils/journeyTracker';
 
 type OrderStatusFilter = 'ALL' | Order['status'];
 
@@ -69,6 +70,11 @@ export default function CheckoutPage() {
   const handlePaymentSuccess = useCallback(
     async (paidOrderId: string) => {
       await confirmPaidOrder(paidOrderId);
+      trackJourneyEvent({
+        type: 'payment_success',
+        title: '付款成功',
+        subtitle: `訂單 ${paidOrderId.slice(0, 8)}...`,
+      });
       toast.success('付款完成，正在返回首頁');
       setTimeout(() => {
         router.push({
@@ -216,12 +222,14 @@ export default function CheckoutPage() {
             orders={orders}
             selectedOrder={selectedOrder}
             onSelectOrderById={setSelectedOrderById}
+            onReorder={handleReorder}
             onCancelOrder={handleCancelOrder}
             onRefundOrder={handleRefundOrder}
             onRetryOrder={handleRetryOrder}
             onSimulateFailure={handleSimulateFailure}
             isOperating={operationLoading}
             operatingType={operationType}
+            reorderingOrderId={reorderingOrderId}
           />
 
           <OrderPaymentPanel

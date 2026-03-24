@@ -15,6 +15,7 @@ import type { CartItem } from '../types/domain';
 import { fetchProfile } from '../services/profileService';
 import { ErrorState } from '../components/ui/PageStates';
 import { CartPageSkeleton } from '../components/ui/PageSkeletons';
+import { trackJourneyEvent } from '../utils/journeyTracker';
 
 type CheckoutStep = 1 | 2 | 3;
 
@@ -34,6 +35,8 @@ function isValidPhone(phone: string) {
   const digits = phone.replace(/[^\d]/g, '');
   return digits.length >= 8 && digits.length <= 15;
 }
+
+type ShippingTier = 'local' | 'domestic' | 'remote';
 
 const promoRules: Record<string, number> = {
   STEAM10: 0.1,
@@ -132,7 +135,22 @@ export default function CartPage() {
   const total = useMemo(() => calculateTotalPrice(cart), [cart]);
   const discountRate = useMemo(() => promoRules[appliedPromo] || 0, [appliedPromo]);
   const discountAmount = useMemo(() => total * discountRate, [total, discountRate]);
-  const payableTotal = useMemo(() => Math.max(0, total - discountAmount), [total, discountAmount]);
+  const shippingTier = useMemo(
+    () => getShippingTier(shippingAddress),
+    [shippingAddress]
+  );
+  const shippingFee = useMemo(
+    () => getShippingFee(shippingTier, paymentMethod, total - discountAmount),
+    [discountAmount, paymentMethod, shippingTier, total]
+  );
+  const estimatedDelivery = useMemo(
+    () => getEstimatedDeliveryText(shippingTier),
+    [shippingTier]
+  );
+  const payableTotal = useMemo(
+    () => Math.max(0, total - discountAmount + shippingFee),
+    [total, discountAmount, shippingFee]
+  );
   const itemCount = useMemo(
     () => cart.reduce((sum, item) => sum + (item.quantity || 0), 0),
     [cart]
@@ -279,6 +297,11 @@ export default function CartPage() {
       );
       const orderId = result?.order?.id;
       setCreatedOrderId(orderId || 'new-order');
+      trackJourneyEvent({
+        type: 'checkout_created',
+        title: '建立訂單',
+        subtitle: orderId ? `訂單 ${orderId.slice(0, 8)}...` : '新訂單',
+      });
       toast.success('訂單建立成功，正在前往付款頁');
       setCart([]);
       localStorage.removeItem(checkoutDraftKey);
@@ -611,6 +634,8 @@ export default function CartPage() {
                       label={appliedPromo ? `優惠碼 (${appliedPromo})` : '優惠折抵'}
                       value={appliedPromo ? `-$${discountAmount.toFixed(2)}` : '$0.00'}
                     />
+                    <InfoRow label="預估運費" value={`$${shippingFee.toFixed(2)}`} />
+                    <InfoRow label="預計送達" value={estimatedDelivery} />
                     <InfoRow label="總金額" value={`$${payableTotal.toFixed(2)}`} strong />
                   </div>
                   {orderNote.trim() && (
@@ -637,10 +662,18 @@ export default function CartPage() {
                 <span>$0.00</span>
               </div>
               <div className="flex items-center justify-between text-[#9eb4c8]">
+                <span>預估運費</span>
+                <span>${shippingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[#9eb4c8]">
                 <span>優惠折抵</span>
                 <span className={discountAmount > 0 ? 'text-[#8bc53f]' : ''}>
                   -${discountAmount.toFixed(2)}
                 </span>
+              </div>
+              <div className="flex items-center justify-between text-[#9eb4c8]">
+                <span>預計送達</span>
+                <span>{estimatedDelivery}</span>
               </div>
               <div className="mt-2 border-t border-[#66c0f433] pt-2 text-base font-black text-[#d8e6f3]">
                 <div className="flex items-center justify-between">
@@ -713,6 +746,7 @@ export default function CartPage() {
                 Step {activeStep}/3
                 {activeStep === 1 ? '・確認購物清單' : activeStep === 2 ? '・付款資訊' : '・確認送出'}
               </p>
+              <p className="truncate text-[11px] text-[#9eb4c8]">預計送達：{estimatedDelivery}</p>
               <p className="text-sm font-black text-[#8bc53f]">${payableTotal.toFixed(2)}</p>
             </div>
 
@@ -760,6 +794,31 @@ function paymentMethodLabel(method: PaymentMethod) {
   if (method === 'credit-card') return '信用卡';
   if (method === 'line-pay') return 'LINE Pay';
   return 'Steam 錢包';
+}
+
+function getShippingTier(address: string): ShippingTier {
+  const text = address.trim();
+  if (!text) return 'domestic';
+  if (/(台北|新北|taipei)/i.test(text)) return 'local';
+  if (/(金門|馬祖|澎湖|連江|kinmen|matsu|penghu)/i.test(text)) return 'remote';
+  return 'domestic';
+}
+
+function getShippingFee(
+  tier: ShippingTier,
+  paymentMethod: PaymentMethod,
+  subtotalAfterDiscount: number
+) {
+  if (subtotalAfterDiscount >= 60) return 0;
+  const base = tier === 'local' ? 2 : tier === 'remote' ? 8 : 5;
+  if (paymentMethod === 'wallet') return Math.max(0, base - 1);
+  return base;
+}
+
+function getEstimatedDeliveryText(tier: ShippingTier) {
+  if (tier === 'local') return '1-2 天';
+  if (tier === 'remote') return '4-6 天';
+  return '2-4 天';
 }
 
 function InfoRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {

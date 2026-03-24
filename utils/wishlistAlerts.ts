@@ -139,9 +139,43 @@ export function markSiteAlertsAsRead() {
   return next;
 }
 
+export function markSiteAlertsAsReadByType(type) {
+  if (!isBrowser()) return [];
+  const existing = getSiteAlerts();
+  const next = existing.map((item) => (item.type === type ? { ...item, unread: false } : item));
+  writeAlerts(next);
+  return next;
+}
+
 export function clearSiteAlerts() {
   if (!isBrowser()) return;
   writeAlerts([]);
+}
+
+export function clearSiteAlertsByType(type) {
+  if (!isBrowser()) return [];
+  const next = getSiteAlerts().filter((item) => item.type !== type);
+  writeAlerts(next);
+  return next;
+}
+
+export function removeSiteAlert(id, createdAt) {
+  if (!isBrowser()) return [];
+  const next = getSiteAlerts().filter((item) => !(String(item.id) === String(id) && item.createdAt === createdAt));
+  writeAlerts(next);
+  return next;
+}
+
+export function markSiteAlertAsRead(id, createdAt) {
+  if (!isBrowser()) return [];
+  const next = getSiteAlerts().map((item) => {
+    if (String(item.id) === String(id) && item.createdAt === createdAt) {
+      return { ...item, unread: false };
+    }
+    return item;
+  });
+  writeAlerts(next);
+  return next;
 }
 
 export function upsertWishlistPriceDropAlerts(drops) {

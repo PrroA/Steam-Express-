@@ -1,7 +1,9 @@
 import { useRouter } from 'next/router';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { GameGallery } from '../../components/game-detail/GameGallery';
 import { PurchasePanel } from '../../components/game-detail/PurchasePanel';
+import { PriceTrendChart } from '../../components/game-detail/PriceTrendChart';
 import { ReviewForm } from '../../components/game-detail/ReviewForm';
 import { ReviewList } from '../../components/game-detail/ReviewList';
 import {
@@ -12,6 +14,8 @@ import { useGameDetail } from '../../hooks/useGameDetail';
 
 export default function GameDetail() {
   const router = useRouter();
+  const [flashFromAlert, setFlashFromAlert] = useState(false);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const {
     game,
     loading,
@@ -30,6 +34,18 @@ export default function GameDetail() {
     handleAddToCart,
   } = useGameDetail({ id: router.query.id, isReady: router.isReady });
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    const fromAlert = router.query.fromAlert === '1';
+    if (!fromAlert) return;
+    setFlashFromAlert(true);
+    window.setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    const timer = window.setTimeout(() => setFlashFromAlert(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [router.isReady, router.query.fromAlert]);
+
   if (loading) {
     return <GameDetailLoadingState />;
   }
@@ -45,7 +61,12 @@ export default function GameDetail() {
           ← 返回商店
         </Link>
 
-        <div className="steam-panel rounded-2xl p-4 md:p-6">
+        <div
+          ref={highlightRef}
+          className={`steam-panel rounded-2xl p-4 transition-all md:p-6 ${
+            flashFromAlert ? 'ring-2 ring-[#66c0f4aa] shadow-[0_0_0_2px_rgba(102,192,244,0.25)]' : ''
+          }`}
+        >
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <GameGallery
               gameName={game.name}
@@ -54,15 +75,18 @@ export default function GameDetail() {
               selectedShot={selectedShot}
               onSelectShot={setSelectedShot}
             />
-            <PurchasePanel
-              priceInfo={priceInfo}
-              variants={game.variants}
-              selectedVariantId={selectedVariantId}
-              onSelectVariant={setSelectedVariantId}
-              onAddToCart={handleAddToCart}
-              onAddToWishlist={handleAddToWishlist}
-              onGoToCart={() => router.push('/cart')}
-            />
+            <div className="space-y-4">
+              <PurchasePanel
+                priceInfo={priceInfo}
+                variants={game.variants}
+                selectedVariantId={selectedVariantId}
+                onSelectVariant={setSelectedVariantId}
+                onAddToCart={handleAddToCart}
+                onAddToWishlist={handleAddToWishlist}
+                onGoToCart={() => router.push('/cart')}
+              />
+              <PriceTrendChart gameId={game.id} currentPriceText={priceInfo.currentText} />
+            </div>
           </div>
         </div>
 

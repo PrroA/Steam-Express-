@@ -4,7 +4,12 @@ import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { fetchGames as fetchGamesList } from '../services/storeService'
+import { fetchGames as fetchGamesList } from '../services/storeService';
+import { getJourneyEvents, trackJourneyEvent, type JourneyEvent } from '../utils/journeyTracker';
+import type { Game } from '../types/domain';
+import { LiveMetricsStrip } from '../components/home/LiveMetricsStrip';
+import { QuickViewDrawer } from '../components/home/QuickViewDrawer';
+import { TrendingSearches } from '../components/home/TrendingSearches';
 
 function parsePrice(priceText) {
   return parseFloat((priceText || '$0').replace('$', '')) || 0;
@@ -18,9 +23,24 @@ function extractKeywords(text = '') {
     .filter((word) => word.length >= 2);
 }
 
+const compareStorageKey = 'compareGameIds';
+
+function formatViewedAgo(isoString?: string) {
+  if (!isoString) return '最近瀏覽';
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  if (Number.isNaN(diffMs) || diffMs < 0) return '最近瀏覽';
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return '剛剛瀏覽';
+  if (minutes < 60) return `${minutes} 分鐘前瀏覽`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小時前瀏覽`;
+  const days = Math.floor(hours / 24);
+  return `${days} 天前瀏覽`;
+}
+
 export default function Home() {
   const router = useRouter();
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
@@ -29,10 +49,14 @@ export default function Home() {
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [showTip, setShowTip] = useState(true);
-  const [recentIds, setRecentIds] = useState([]);
+  const [recentIds, setRecentIds] = useState<number[]>([]);
+  const [recentViewedAtById, setRecentViewedAtById] = useState<Record<number, string>>({});
   const [paymentToast, setPaymentToast] = useState({ visible: false, orderId: '' });
+  const [journeyEvents, setJourneyEvents] = useState<JourneyEvent[]>([]);
+  const [quickViewGame, setQuickViewGame] = useState<Game | null>(null);
+  const [comparedIds, setComparedIds] = useState<number[]>([]);
 
-  const fetchGames = useCallback(async (query) => {
+  const fetchGames = useCallback(async (query: string) => {
     try {
       const data = await fetchGamesList(query);
       setGames(data);
@@ -83,6 +107,13 @@ export default function Home() {
 
     if (payment === 'success') {
       setPaymentToast({ visible: true, orderId });
+      if (orderId) {
+        trackJourneyEvent({
+          type: 'payment_success',
+          title: '付款成功（首頁回跳）',
+          subtitle: `訂單 ${orderId.slice(0, 8)}...`,
+        });
+      }
       router.replace({ pathname: '/' }, undefined, { shallow: true });
     }
   }, [router, router.isReady, router.query.orderId, router.query.payment]);
@@ -92,11 +123,48 @@ export default function Home() {
       const raw = localStorage.getItem('recentlyViewedGames');
       const parsed = raw ? JSON.parse(raw) : [];
       if (Array.isArray(parsed)) {
-        setRecentIds(parsed.map((item) => item.id).filter(Boolean));
+        const ids = parsed.map((item) => Number(item?.id)).filter(Boolean);
+        const viewedAtMap: Record<number, string> = {};
+        parsed.forEach((item) => {
+          const id = Number(item?.id);
+          if (id) viewedAtMap[id] = item?.viewedAt || '';
+        });
+        setRecentIds(ids);
+        setRecentViewedAtById(viewedAtMap);
       }
     } catch (error) {
       setRecentIds([]);
+      setRecentViewedAtById({});
     }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(compareStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) {
+        setComparedIds(parsed.map((id) => Number(id)).filter(Boolean).slice(0, 3));
+      }
+    } catch (error) {
+      setComparedIds([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(compareStorageKey, JSON.stringify(comparedIds));
+  }, [comparedIds]);
+
+  useEffect(() => {
+    const syncJourneyEvents = () => {
+      setJourneyEvents(getJourneyEvents(10));
+    };
+    syncJourneyEvents();
+    window.addEventListener('journey-events-updated', syncJourneyEvents);
+    window.addEventListener('storage', syncJourneyEvents);
+    return () => {
+      window.removeEventListener('journey-events-updated', syncJourneyEvents);
+      window.removeEventListener('storage', syncJourneyEvents);
+    };
   }, []);
 
   const recentlyViewedGames = useMemo(() => {
@@ -104,6 +172,12 @@ export default function Home() {
     const gameMap = new Map(games.map((game) => [game.id, game]));
     return recentIds.map((id) => gameMap.get(id)).filter(Boolean).slice(0, 4);
   }, [recentIds, games]);
+
+  const comparedGames = useMemo(() => {
+    if (!comparedIds.length || !games.length) return [];
+    const gameMap = new Map(games.map((game) => [game.id, game]));
+    return comparedIds.map((id) => gameMap.get(id)).filter(Boolean);
+  }, [comparedIds, games]);
 
   const recentPreference = useMemo(() => {
     if (recentlyViewedGames.length === 0) {
@@ -213,9 +287,73 @@ export default function Home() {
     setOnlyInStock(false);
   }, []);
 
+  const handleSelectTrending = useCallback((keyword: string) => {
+    setGenreKeyword(keyword);
+    setSearchQuery(keyword);
+  }, []);
+
+  const openQuickView = useCallback((game: Game) => {
+    setQuickViewGame(game);
+  }, []);
+
+  const closeQuickView = useCallback(() => {
+    setQuickViewGame(null);
+  }, []);
+
+  const handleToggleCompare = useCallback((id: number) => {
+    setComparedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      }
+      const next = [...prev, id];
+      return next.slice(-3);
+    });
+  }, []);
+
   return (
     <main className="steam-shell pb-8">
       <Carousel />
+      <LiveMetricsStrip
+        journeyEvents={journeyEvents}
+        recentlyViewedCount={recentlyViewedGames.length}
+        recommendedCount={recommendedGames.length}
+        filteredCount={filteredGames.length}
+        totalCount={games.length}
+      />
+      <TrendingSearches
+        keywords={genreOptions.slice(0, 6)}
+        activeKeyword={genreKeyword === 'all' ? '' : genreKeyword}
+        onSelectKeyword={handleSelectTrending}
+        onClear={() => {
+          setGenreKeyword('all');
+          setSearchQuery('');
+        }}
+      />
+      {comparedIds.length > 0 && (
+        <section className="steam-fade-up mx-auto mt-4 flex w-[95%] max-w-6xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8bc53f55] bg-[#1b3322] px-4 py-3">
+          <div>
+            <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">COMPARE READY</p>
+            <p className="text-sm text-[#d8f3da]">
+              已選 {comparedIds.length} 款：{comparedGames.map((game) => game.name).join(' / ')}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setComparedIds([])}
+              className="rounded-md border border-[#8bc53f66] bg-[#29412f] px-3 py-1.5 text-xs font-semibold text-[#d8f3da] transition hover:bg-[#335139]"
+            >
+              清空比較
+            </button>
+            <Link
+              href={`/compare?ids=${comparedIds.join(',')}`}
+              className="rounded-md border border-[#8bc53f88] bg-[#3d5e35] px-3 py-1.5 text-xs font-bold text-[#e7ffcc] transition hover:bg-[#4d7443]"
+            >
+              前往比較頁
+            </Link>
+          </div>
+        </section>
+      )}
 
       {paymentToast.visible && (
         <section className="steam-fade-up mx-auto mt-4 flex w-[95%] max-w-6xl items-center justify-between gap-3 rounded-xl border border-[#8bc53f66] bg-[#1d3528] px-4 py-3 text-sm text-[#d9f1ba]">
@@ -260,7 +398,23 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {recentlyViewedGames.map((game) => (
-                <GameCard key={`recent-${game.id}`} game={game} />
+                <div key={`recent-${game.id}`} className="space-y-2">
+                  <GameCard
+                    game={game}
+                    onQuickView={openQuickView}
+                    onToggleCompare={handleToggleCompare}
+                    isCompared={comparedIds.includes(game.id)}
+                  />
+                  <div className="rounded-md border border-[#66c0f433] bg-[#132434] px-3 py-2 text-xs text-[#9eb4c8]">
+                    <p>{formatViewedAgo(recentViewedAtById[game.id])}</p>
+                    <Link
+                      href={`/game/${game.id}`}
+                      className="mt-1 inline-block font-semibold text-[#8fd1ff] transition hover:text-[#b8e6ff]"
+                    >
+                      繼續瀏覽 →
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -287,7 +441,13 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {recommendedGames.map((game) => (
-                <GameCard key={`recommended-${game.id}`} game={game} />
+                <GameCard
+                  key={`recommended-${game.id}`}
+                  game={game}
+                  onQuickView={openQuickView}
+                  onToggleCompare={handleToggleCompare}
+                  isCompared={comparedIds.includes(game.id)}
+                />
               ))}
             </div>
           </div>
@@ -404,11 +564,20 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              filteredGames.map((game) => <GameCard key={game.id} game={game} />)
+              filteredGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  onQuickView={openQuickView}
+                  onToggleCompare={handleToggleCompare}
+                  isCompared={comparedIds.includes(game.id)}
+                />
+              ))
             )}
           </div>
         )}
       </section>
+      <QuickViewDrawer game={quickViewGame} onClose={closeQuickView} />
     </main>
   );
 }
