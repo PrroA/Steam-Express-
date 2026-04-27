@@ -4,12 +4,15 @@ import { GameCard } from '../components/GameCard';
 import debounce from 'lodash.debounce';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { toast } from 'react-toastify';
 import { fetchGames as fetchGamesList } from '../services/storeService';
 import { getJourneyEvents, trackJourneyEvent, type JourneyEvent } from '../utils/journeyTracker';
+import { buildAiRecommendations } from '../services/aiRecommendationService';
 import type { Game } from '../types/domain';
 import { LiveMetricsStrip } from '../components/home/LiveMetricsStrip';
 import { QuickViewDrawer } from '../components/home/QuickViewDrawer';
 import { TrendingSearches } from '../components/home/TrendingSearches';
+import { AiRecommendationSection } from '../components/home/AiRecommendationSection';
 
 function parsePrice(priceText) {
   return parseFloat((priceText || '$0').replace('$', '')) || 0;
@@ -24,6 +27,50 @@ function extractKeywords(text = '') {
 }
 
 const compareStorageKey = 'compareGameIds';
+
+function normalizeAiSearchQuery(value: string) {
+  const text = (value || '').trim();
+  if (!text) return '';
+  const hasSentencePunctuation = /[，。,、！？!?]/.test(text);
+  const tokenCount = text.split(/\s+/).filter(Boolean).length;
+  // Avoid applying long natural sentences as strict keyword search.
+  if (hasSentencePunctuation || tokenCount > 4 || text.length > 18) return '';
+  return text;
+}
+
+function countMatchingGames(
+  sourceGames: Game[],
+  filters: {
+    searchQuery: string;
+    priceRange: 'all' | 'under20' | '20to50' | '50plus';
+    genreKeyword: string;
+    onlyInStock: boolean;
+  }
+) {
+  const keyword = (filters.searchQuery || '').trim().toLowerCase();
+  return sourceGames.filter((game) => {
+    const text = `${game.name || ''} ${game.description || ''}`.toLowerCase();
+    if (keyword && !text.includes(keyword)) return false;
+
+    const price = parsePrice(game.price);
+    const passPrice =
+      filters.priceRange === 'all' ||
+      (filters.priceRange === 'under20' && price < 20) ||
+      (filters.priceRange === '20to50' && price >= 20 && price <= 50) ||
+      (filters.priceRange === '50plus' && price > 50);
+    if (!passPrice) return false;
+
+    const hasStock =
+      !Array.isArray(game.variants) || game.variants.some((variant) => Number(variant.stock) > 0);
+    if (filters.onlyInStock && !hasStock) return false;
+
+    if (filters.genreKeyword) {
+      if (!text.includes(filters.genreKeyword.toLowerCase())) return false;
+    }
+
+    return true;
+  }).length;
+}
 
 function formatViewedAgo(isoString?: string) {
   if (!isoString) return '最近瀏覽';
@@ -49,12 +96,24 @@ export default function Home() {
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [showTip, setShowTip] = useState(true);
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiAppliedSummary, setAiAppliedSummary] = useState<{
+    searchQuery: string;
+    priceRange: 'all' | 'under20' | '20to50' | '50plus';
+    genreKeyword: string;
+    onlyInStock: boolean;
+    sortOrder: 'default' | 'low-to-high' | 'high-to-low';
+    reason: string;
+    source?: string;
+  } | null>(null);
   const [recentIds, setRecentIds] = useState<number[]>([]);
   const [recentViewedAtById, setRecentViewedAtById] = useState<Record<number, string>>({});
   const [paymentToast, setPaymentToast] = useState({ visible: false, orderId: '' });
   const [journeyEvents, setJourneyEvents] = useState<JourneyEvent[]>([]);
   const [quickViewGame, setQuickViewGame] = useState<Game | null>(null);
   const [comparedIds, setComparedIds] = useState<number[]>([]);
+  const [aiReasonsById, setAiReasonsById] = useState<Record<number, string[]>>({});
 
   const fetchGames = useCallback(async (query: string) => {
     try {
@@ -232,6 +291,78 @@ export default function Home() {
       .slice(0, 4);
   }, [games, recentlyViewedGames, recentPreference]);
 
+  const aiRecommendations = useMemo(
+    () =>
+      buildAiRecommendations({
+        games,
+        recentlyViewedGames,
+        preference: recentPreference,
+        limit: 3,
+      }),
+    [games, recentlyViewedGames, recentPreference]
+  );
+
+  const aiRecommendationsWithNarrative = useMemo(
+    () =>
+      aiRecommendations.map((item) => ({
+        ...item,
+        reasons: aiReasonsById[item.game.id] || item.reasons,
+      })),
+    [aiReasonsById, aiRecommendations]
+  );
+
+  useEffect(() => {
+    if (aiRecommendations.length === 0) {
+      setAiReasonsById({});
+      return;
+    }
+
+    let canceled = false;
+
+    const enhanceReasons = async () => {
+      try {
+        const response = await fetch('/api/ai-recommend-reasons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: aiRecommendations.map((item) => ({
+              id: item.game.id,
+              name: item.game.name,
+              price: item.game.price,
+              description: item.game.description,
+              baseReasons: item.reasons,
+            })),
+            topKeywords: recentPreference.topKeywords,
+            averagePrice: recentPreference.averagePrice,
+          }),
+        });
+
+        const data = await response.json();
+        if (canceled) return;
+        const nextMap: Record<number, string[]> = {};
+        const payload = data?.reasonsById || {};
+
+        aiRecommendations.forEach((item) => {
+          const key = String(item.game.id);
+          const reasons = Array.isArray(payload[key]) ? payload[key] : [];
+          if (reasons.length > 0) {
+            nextMap[item.game.id] = reasons.slice(0, 2);
+          }
+        });
+
+        setAiReasonsById(nextMap);
+      } catch (error) {
+        if (canceled) return;
+        setAiReasonsById({});
+      }
+    };
+
+    enhanceReasons();
+    return () => {
+      canceled = true;
+    };
+  }, [aiRecommendations, recentPreference.averagePrice, recentPreference.topKeywords]);
+
   const genreOptions = useMemo(() => {
     const counter = new Map();
     games.forEach((game) => {
@@ -286,6 +417,99 @@ export default function Home() {
     setGenreKeyword('all');
     setOnlyInStock(false);
   }, []);
+
+  const handleAiSearchApply = useCallback(async () => {
+    const query = aiSearchQuery.trim();
+    if (!query) {
+      toast.error('請先輸入你想找的條件');
+      return;
+    }
+
+    try {
+      setAiSearching(true);
+      const response = await fetch('/api/ai-search-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'AI 搜尋解析失敗');
+      }
+
+      const nextSortOrder =
+        result?.sortOrder === 'low-to-high' || result?.sortOrder === 'high-to-low'
+          ? result.sortOrder
+          : 'default';
+      const nextPriceRange =
+        result?.priceRange === 'under20' || result?.priceRange === '20to50' || result?.priceRange === '50plus'
+          ? result.priceRange
+          : 'all';
+
+      setSortOrder(nextSortOrder);
+      setPriceRange(nextPriceRange);
+      setOnlyInStock(Boolean(result?.onlyInStock));
+
+      const rawGenre = typeof result?.genreKeyword === 'string' ? result.genreKeyword.trim() : '';
+      const baseQuery = typeof result?.searchQuery === 'string' ? result.searchQuery.trim() : query;
+      let normalizedQuery = normalizeAiSearchQuery(baseQuery);
+
+      const allGames = await fetchGamesList('');
+      if (normalizedQuery) {
+        const hasKeywordMatch = allGames.some((game) =>
+          `${game.name || ''} ${game.description || ''}`.toLowerCase().includes(normalizedQuery.toLowerCase())
+        );
+        if (!hasKeywordMatch) {
+          normalizedQuery = '';
+        }
+      }
+      let candidate = {
+        searchQuery: normalizedQuery,
+        priceRange: nextPriceRange,
+        genreKeyword: rawGenre,
+        onlyInStock: Boolean(result?.onlyInStock),
+      };
+
+      let matchCount = countMatchingGames(allGames, candidate);
+      if (matchCount === 0) {
+        candidate = { ...candidate, genreKeyword: '' };
+        matchCount = countMatchingGames(allGames, candidate);
+      }
+      if (matchCount === 0) {
+        candidate = { ...candidate, priceRange: 'all' };
+        matchCount = countMatchingGames(allGames, candidate);
+      }
+      if (matchCount === 0) {
+        candidate = { ...candidate, onlyInStock: false };
+        matchCount = countMatchingGames(allGames, candidate);
+      }
+      if (matchCount === 0) {
+        candidate = { ...candidate, searchQuery: '' };
+      }
+
+      setGenreKeyword(candidate.genreKeyword || 'all');
+      setSearchQuery(candidate.searchQuery);
+      setPriceRange(candidate.priceRange);
+      setOnlyInStock(candidate.onlyInStock);
+      setAiAppliedSummary({
+        searchQuery: candidate.searchQuery,
+        priceRange: candidate.priceRange,
+        genreKeyword: candidate.genreKeyword || '',
+        onlyInStock: candidate.onlyInStock,
+        sortOrder: nextSortOrder,
+        reason: result?.reason || 'AI 已套用篩選條件',
+        source: result?.source,
+      });
+
+      toast.success(result?.reason || 'AI 已套用篩選條件');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI 搜尋解析失敗';
+      toast.error(message);
+    } finally {
+      setAiSearching(false);
+    }
+  }, [aiSearchQuery, games]);
 
   const handleSelectTrending = useCallback((keyword: string) => {
     setGenreKeyword(keyword);
@@ -453,6 +677,13 @@ export default function Home() {
           </div>
         )}
 
+        <AiRecommendationSection
+          items={aiRecommendationsWithNarrative}
+          comparedIds={comparedIds}
+          onToggleCompare={handleToggleCompare}
+          onQuickView={openQuickView}
+        />
+
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">STORE BROWSE</p>
@@ -518,6 +749,52 @@ export default function Home() {
               只看有庫存
             </label>
           </div>
+        </div>
+
+        <div className="mb-4 rounded-lg border border-[#8bc53f44] bg-[#183022] p-3">
+          <p className="text-xs font-bold tracking-[0.12em] text-[#b8dbb7]">AI SEARCH</p>
+          <div className="mt-2 flex flex-col gap-2 md:flex-row">
+            <input
+              value={aiSearchQuery}
+              onChange={(event) => setAiSearchQuery(event.target.value)}
+              placeholder="例如：找 20 美金內、多人、有庫存、價格低到高"
+              className="w-full rounded-md border border-[#8bc53f55] bg-[#132737] px-4 py-2.5 text-sm text-[#d8e6f3] placeholder:text-[#95b39a] focus:border-[#8bc53f] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleAiSearchApply}
+              disabled={aiSearching}
+              className="rounded-md border border-[#8bc53f88] bg-[#2b4a34] px-4 py-2.5 text-sm font-semibold text-[#e6f6d9] transition hover:bg-[#33593e] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {aiSearching ? '解析中...' : '篩選'}
+            </button>
+          </div>
+          {aiAppliedSummary && (
+            <div className="mt-2 rounded-md border border-[#8bc53f66] bg-[#132737] px-3 py-2 text-xs text-[#cde7c7]">
+              <p className="font-semibold text-[#e5f5da]">
+                AI 套用條件{aiAppliedSummary.source ? `（${aiAppliedSummary.source}）` : ''}
+              </p>
+              <p className="mt-1">
+                搜尋：{aiAppliedSummary.searchQuery || '（未使用）'} ｜ 價格：
+                {aiAppliedSummary.priceRange === 'all'
+                  ? '全部'
+                  : aiAppliedSummary.priceRange === 'under20'
+                    ? '低於 $20'
+                    : aiAppliedSummary.priceRange === '20to50'
+                      ? '$20 - $50'
+                      : '高於 $50'}{' '}
+                ｜ 排序：
+                {aiAppliedSummary.sortOrder === 'default'
+                  ? '預設'
+                  : aiAppliedSummary.sortOrder === 'low-to-high'
+                    ? '低到高'
+                    : '高到低'}{' '}
+                ｜ 類型：{aiAppliedSummary.genreKeyword || '全部'} ｜ 庫存：
+                {aiAppliedSummary.onlyInStock ? '只看有庫存' : '全部'}
+              </p>
+              <p className="mt-1 text-[#b8d4b2]">原因：{aiAppliedSummary.reason}</p>
+            </div>
+          )}
         </div>
 
         {hasActiveFilters && (

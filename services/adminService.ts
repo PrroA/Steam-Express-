@@ -20,6 +20,13 @@ export interface AdminDashboard {
   }>;
 }
 
+export interface AiGameCopyDraft {
+  shortDescription: string;
+  sellingPoints: string[];
+  seoTitle: string;
+  source?: 'openai' | 'fallback';
+}
+
 export async function fetchAdminGames(token?: string | null): Promise<Game[]> {
   const response = await apiClient.get('/admin/games', {
     headers: authHeader(token),
@@ -159,4 +166,26 @@ export async function fetchAdminDashboard(token?: string | null): Promise<AdminD
     headers: authHeader(token),
   });
   return response.data;
+}
+
+export async function generateAdminGameCopy(payload: {
+  name: string;
+  price?: string;
+  description?: string;
+}): Promise<AiGameCopyDraft> {
+  const response = await fetch('/api/ai-admin-copy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || 'AI 文案生成失敗');
+  }
+  return {
+    shortDescription: data?.shortDescription || '',
+    sellingPoints: Array.isArray(data?.sellingPoints) ? data.sellingPoints : [],
+    seoTitle: data?.seoTitle || '',
+    source: data?.source || 'fallback',
+  };
 }

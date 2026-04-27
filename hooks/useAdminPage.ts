@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { addGame } from '../services/storeService';
 import {
+  generateAdminGameCopy,
   ensureAdminGameVariant,
   fetchAdminDashboard,
   fetchAdminGames,
@@ -13,6 +14,7 @@ import {
   updateAdminShippingDetails,
   updateGameActiveStatus,
   updateGameVariant,
+  type AiGameCopyDraft,
   type AdminDashboard,
   type AdminOrder,
 } from '../services/adminService';
@@ -44,6 +46,8 @@ export function useAdminPage() {
     imageUrlError: '',
     uploadingImage: false,
   });
+  const [aiDraft, setAiDraft] = useState<AiGameCopyDraft | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
 
@@ -89,6 +93,7 @@ export function useAdminPage() {
       imageUrlError: '',
       uploadingImage: false,
     });
+    setAiDraft(null);
   }, []);
 
   const handleImageChange = useCallback((raw: string) => {
@@ -160,6 +165,49 @@ export function useAdminPage() {
       toast.error(`添加遊戲失敗：${getApiErrorMessage(error, '添加遊戲失敗')}`);
     }
   }, [addGameForm, loadAdminData, resetAddGameForm]);
+
+  const handleGenerateAiCopy = useCallback(async () => {
+    if (!addGameForm.name.trim()) {
+      toast.warn('請先輸入遊戲名稱，再生成文案');
+      return;
+    }
+    try {
+      setAiGenerating(true);
+      const draft = await generateAdminGameCopy({
+        name: addGameForm.name,
+        price: addGameForm.price,
+        description: addGameForm.description,
+      });
+      setAiDraft(draft);
+      toast.success(`AI 文案已生成（${draft.source || 'fallback'}）`);
+    } catch (error: any) {
+      toast.error(getApiErrorMessage(error, 'AI 文案生成失敗'));
+    } finally {
+      setAiGenerating(false);
+    }
+  }, [addGameForm.description, addGameForm.name, addGameForm.price]);
+
+  const handleApplyAiShortDescription = useCallback(() => {
+    if (!aiDraft?.shortDescription) return;
+    setAddGameForm((prev) => ({ ...prev, description: aiDraft.shortDescription }));
+    toast.success('已套用短描述到商品描述欄位');
+  }, [aiDraft?.shortDescription]);
+
+  const handleAppendAiSellingPoints = useCallback(() => {
+    if (!aiDraft?.sellingPoints || aiDraft.sellingPoints.length === 0) return;
+    const bullets = aiDraft.sellingPoints.map((point) => `• ${point}`).join('\n');
+    setAddGameForm((prev) => ({
+      ...prev,
+      description: prev.description ? `${prev.description}\n${bullets}` : bullets,
+    }));
+    toast.success('已將賣點加入商品描述');
+  }, [aiDraft?.sellingPoints]);
+
+  const handleApplyAiSeoTitle = useCallback(() => {
+    if (!aiDraft?.seoTitle) return;
+    setAddGameForm((prev) => ({ ...prev, name: aiDraft.seoTitle }));
+    toast.success('已套用 SEO 標題到遊戲名稱欄位');
+  }, [aiDraft?.seoTitle]);
 
   const handleToggleActive = useCallback(
     async (game: Game) => {
@@ -272,6 +320,12 @@ export function useAdminPage() {
     handleImageChange,
     handleImageFileChange,
     handleAddGame,
+    aiDraft,
+    aiGenerating,
+    handleGenerateAiCopy,
+    handleApplyAiShortDescription,
+    handleAppendAiSellingPoints,
+    handleApplyAiSeoTitle,
     handleToggleActive,
     handleVariantUpdate,
     handleGameBasicUpdate,

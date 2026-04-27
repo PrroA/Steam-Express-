@@ -11,10 +11,16 @@ export default function AdminPage() {
     games,
     sortedOrders,
     addGameForm,
+    aiDraft,
+    aiGenerating,
     updateAddGameField,
     handleImageChange,
     handleImageFileChange,
     handleAddGame,
+    handleGenerateAiCopy,
+    handleApplyAiShortDescription,
+    handleAppendAiSellingPoints,
+    handleApplyAiSeoTitle,
     handleToggleActive,
     handleVariantUpdate,
     handleGameBasicUpdate,
@@ -50,6 +56,12 @@ export default function AdminPage() {
               onImageUrlChange={handleImageChange}
               onImageFileChange={handleImageFileChange}
               onSubmit={handleAddGame}
+              aiDraft={aiDraft}
+              aiGenerating={aiGenerating}
+              onGenerateAiCopy={handleGenerateAiCopy}
+              onApplyAiShortDescription={handleApplyAiShortDescription}
+              onAppendAiSellingPoints={handleAppendAiSellingPoints}
+              onApplyAiSeoTitle={handleApplyAiSeoTitle}
             />
 
             <GameManagementPanel
