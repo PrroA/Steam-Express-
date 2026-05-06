@@ -14,10 +14,15 @@ export function GameCard({ game, onQuickView, onToggleCompare, isCompared = fals
   const basePrice = priceNumber > 0 ? priceNumber * 1.35 : 1;
   const originalPrice = basePrice.toFixed(2);
   const discountPercent = Math.min(70, Math.max(5, Math.round((1 - priceNumber / basePrice) * 100)));
+  const hasExtraActions = Boolean(onQuickView || onToggleCompare);
 
   return (
-    <article className="steam-panel group flex h-[370px] flex-col overflow-hidden rounded-xl transition duration-300 hover:-translate-y-1 hover:border-[#66c0f477] hover:bg-[#24384d]">
-      <div className="relative h-[205px] w-full overflow-hidden">
+    <article
+      className={`steam-panel group flex flex-col overflow-hidden rounded-xl transition duration-300 hover:-translate-y-1 hover:border-[#66c0f477] hover:bg-[#24384d] ${
+        hasExtraActions ? 'min-h-[370px]' : 'min-h-[330px]'
+      }`}
+    >
+      <div className="relative aspect-[16/10] w-full overflow-hidden">
         <Image
           src={game.image || '/vercel.svg'}
           alt={game.name}
@@ -31,11 +36,15 @@ export function GameCard({ game, onQuickView, onToggleCompare, isCompared = fals
           -{discountPercent}%
         </div>
       </div>
-      <div className="flex flex-1 flex-col justify-between p-4">
+      <div className="flex flex-1 flex-col justify-between p-3.5">
         <div className="space-y-2">
-          <h3 className="min-h-14 text-lg font-extrabold text-[#d8e6f3]">{game.name}</h3>
-          <p className="text-xs text-[#9eb4c8]">{game.description || 'No description available.'}</p>
-          <div className="flex items-end gap-2">
+          <h3 className="line-clamp-2 min-h-[48px] text-base font-extrabold leading-6 text-[#d8e6f3]">
+            {game.name}
+          </h3>
+          <p className="line-clamp-2 min-h-[36px] text-xs leading-[18px] text-[#9eb4c8]">
+            {game.description || 'No description available.'}
+          </p>
+          <div className="flex items-end justify-between gap-2">
             <span className="text-xs text-[#8ca7bc] line-through">${originalPrice}</span>
             <span className="text-lg font-black text-[#8bc53f]">{game.price}</span>
           </div>

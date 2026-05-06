@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
@@ -8,10 +8,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
+  const demoAutoStartedRef = useRef(false);
   const router = useRouter();
 
-  const getRedirectPath = () =>
-    typeof router.query?.redirect === 'string' ? router.query.redirect : '/';
+  const getRedirectPath = useCallback(
+    () => (typeof router.query?.redirect === 'string' ? router.query.redirect : '/'),
+    [router.query?.redirect]
+  );
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -27,7 +30,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = useCallback(async () => {
     try {
       setDemoLoading(true);
       const response = await loginDemoUser();
@@ -46,7 +49,13 @@ export default function LoginPage() {
     } finally {
       setDemoLoading(false);
     }
-  };
+  }, [getRedirectPath, router]);
+
+  useEffect(() => {
+    if (!router.isReady || router.query.demo !== '1' || demoAutoStartedRef.current) return;
+    demoAutoStartedRef.current = true;
+    handleDemoLogin();
+  }, [handleDemoLogin, router.isReady, router.query.demo]);
 
   return (
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
@@ -64,7 +73,7 @@ export default function LoginPage() {
           {demoLoading ? 'Demo 登入中...' : '免註冊 Demo 登入'}
         </button>
         <p className="mt-2 text-xs leading-5 text-[#9eb4c8]">
-          給面試官與 HR 快速體驗用，權限為一般會員，不能進入後台管理。
+          使用一般會員權限快速進入商店流程，不能進入後台管理。
         </p>
 
         <div className="my-5 flex items-center gap-3 text-xs text-[#708ba1]">
@@ -74,21 +83,27 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="text"
-            placeholder=""
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
-          />
+          <label className="block text-sm font-semibold text-[#c5dced]">
+            帳號
+            <input
+              type="text"
+              placeholder="輸入帳號"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+            />
+          </label>
 
-          <input
-            type="password"
-            placeholder=""
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
-          />
+          <label className="block text-sm font-semibold text-[#c5dced]">
+            密碼
+            <input
+              type="password"
+              placeholder="輸入密碼"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-2 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+            />
+          </label>
 
           <button type="submit" className="steam-btn w-full rounded-md py-2.5 text-sm">
             登入
@@ -103,6 +118,9 @@ export default function LoginPage() {
             忘記密碼?
           </Link>
         </div>
+        <p className="mt-4 rounded-md border border-[#66c0f433] bg-[#132434] px-3 py-2 text-xs leading-5 text-[#9eb4c8]">
+          管理員請使用管理員帳號登入，登入後會在導覽列看到後台管理入口。
+        </p>
       </section>
     </main>
   );

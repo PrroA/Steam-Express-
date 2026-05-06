@@ -11,6 +11,8 @@ export function MobileMenuDrawer({
   onClose,
   onLogout,
 }) {
+  const isDemoUser = authUser?.username === 'demo_user' || authUser?.username?.startsWith('demo_');
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -52,6 +54,22 @@ export function MobileMenuDrawer({
                       {isAdmin ? ' (Admin)' : ''}
                     </p>
                   </Link>
+                  <Link
+                    href="/transactions"
+                    onClick={onClose}
+                    className="mt-1.5 block rounded-md border border-[#66c0f433] bg-[#13283a] px-3 py-2 text-center text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044]"
+                  >
+                    交易記錄
+                  </Link>
+                  {isDemoUser && (
+                    <Link
+                      href="/login?demo=1"
+                      onClick={onClose}
+                      className="mt-1.5 block rounded-md border border-[#8bc53f55] bg-[#193023] px-3 py-2 text-center text-xs font-semibold text-[#d9f1ba] transition hover:bg-[#233d2c]"
+                    >
+                      重置 Demo
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={onLogout}

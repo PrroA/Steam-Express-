@@ -19,16 +19,31 @@ export function GameManagementPanel({
   onSaveVariant,
   onEnsureVariant,
 }: GameManagementPanelProps) {
+  const activeCount = games.filter((game) => game.isActive !== false).length;
+  const lowStockCount = games.reduce(
+    (sum, game) => sum + (game.variants || []).filter((variant) => variant.stock <= 5).length,
+    0
+  );
+
   return (
     <div className="steam-panel mt-5 rounded-2xl p-6">
-      <h2 className="text-xl font-black text-[#d8e6f3]">商品管理</h2>
+      <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-[#d8e6f3]">商品管理</h2>
+          <p className="mt-1 text-xs text-[#8faac0]">
+            上架 {activeCount} / {games.length} 款，低庫存版本 {lowStockCount} 個
+          </p>
+        </div>
+      </div>
       <div className="mt-4 space-y-3">
         {games.map((game) => (
           <div key={game.id} className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-bold text-[#d8e6f3]">{game.name}</p>
-                <p className="text-xs text-[#8fb8d5]">ID: {game.id}</p>
+                <p className="text-xs text-[#8fb8d5]">
+                  ID: {game.id} · {game.isActive !== false ? '上架中' : '已下架'}
+                </p>
               </div>
               <button
                 onClick={() => onToggleActive(game)}
@@ -178,8 +193,17 @@ function VariantEditor({
   };
 
   return (
-    <div className="rounded-md border border-[#66c0f433] bg-[#102131] p-3">
-      <p className="text-sm font-bold text-[#d8e6f3]">{variant.name}</p>
+    <div className={`rounded-md border p-3 ${
+      variant.stock <= 5 ? 'border-[#ffcf5a66] bg-[#2c2617]' : 'border-[#66c0f433] bg-[#102131]'
+    }`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-bold text-[#d8e6f3]">{variant.name}</p>
+        {variant.stock <= 5 && (
+          <span className="rounded border border-[#ffcf5a66] bg-[#463a1d] px-2 py-0.5 text-[11px] font-bold text-[#ffe0a6]">
+            低庫存
+          </span>
+        )}
+      </div>
       <p className="text-xs text-[#8faac0]">價格 {variant.price}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input

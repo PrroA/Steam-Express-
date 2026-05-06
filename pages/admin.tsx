@@ -1,3 +1,4 @@
+import { AdminActionPanel } from '../components/admin/AdminActionPanel';
 import { AddGamePanel } from '../components/admin/AddGamePanel';
 import { GameManagementPanel } from '../components/admin/GameManagementPanel';
 import { MetricCard } from '../components/admin/MetricCard';
@@ -49,6 +50,8 @@ export default function AdminPage() {
                 <MetricCard label="售出件數" value={dashboard.totalItemsSold} />
               </div>
             )}
+
+            <AdminActionPanel dashboard={dashboard} orders={sortedOrders} games={games} />
 
             <AddGamePanel
               form={addGameForm}

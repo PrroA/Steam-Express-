@@ -52,7 +52,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
       existingUser.registeredAt = existingUser.registeredAt || new Date().toISOString();
       existingUser.defaultFullName = existingUser.defaultFullName || 'Demo User';
       existingUser.defaultPhone = existingUser.defaultPhone || '0912-345-678';
-      existingUser.defaultAddress = existingUser.defaultAddress || 'Demo address for interview review';
+      existingUser.defaultAddress = existingUser.defaultAddress || 'Demo checkout address';
       existingUser.defaultPaymentMethod = existingUser.defaultPaymentMethod || 'credit-card';
       persistState(state);
       return existingUser;
@@ -67,7 +67,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
       registeredAt: new Date().toISOString(),
       defaultFullName: 'Demo User',
       defaultPhone: '0912-345-678',
-      defaultAddress: 'Demo address for interview review',
+      defaultAddress: 'Demo checkout address',
       defaultPaymentMethod: 'credit-card' as const,
     };
 

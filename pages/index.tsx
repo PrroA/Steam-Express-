@@ -73,40 +73,63 @@ export default function Home() {
       <Carousel />
 
       <section className="mx-auto mt-6 w-[95%] max-w-6xl">
+        <div className="mb-5 rounded-xl border border-[#8bc53f44] bg-[#142a20] p-4">
+          <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">快速開始</p>
+          <div className="mt-3 grid gap-3 text-sm text-[#d8e6f3] md:grid-cols-4">
+            {['登入商店', '加入購物車', '完成結帳付款', '查看訂單狀態'].map((label, index) => (
+              <div key={label} className="flex items-center gap-3 rounded-md border border-[#8bc53f33] bg-[#10251a] px-3 py-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#8bc53f] text-xs font-black text-[#0d1b12]">
+                  {index + 1}
+                </span>
+                <span className="font-semibold">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mb-5 flex flex-col gap-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">BROWSE</p>
+            <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">瀏覽商品</p>
             <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">全部遊戲</h2>
             <p className="mt-1 text-xs text-[#8faac0]">顯示 {filteredGames.length} / {games.length} 款</p>
           </div>
 
           <div className="grid w-full gap-3 md:w-auto md:grid-cols-[minmax(220px,320px)_160px_150px]">
-            <input
-              type="text"
-              placeholder="搜尋遊戲名稱..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
-            />
-            <select
-              value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value)}
-              className="rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
-            >
-              <option value="default">預設排序</option>
-              <option value="low-to-high">價格低到高</option>
-              <option value="high-to-low">價格高到低</option>
-            </select>
-            <select
-              value={priceRange}
-              onChange={(event) => setPriceRange(event.target.value)}
-              className="rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
-            >
-              <option value="all">全部價格</option>
-              <option value="under20">低於 $20</option>
-              <option value="20to50">$20 - $50</option>
-              <option value="50plus">高於 $50</option>
-            </select>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-[#8faac0]">搜尋</span>
+              <input
+                type="text"
+                placeholder="搜尋遊戲名稱..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-2.5 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-[#8faac0]">排序</span>
+              <select
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+                className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-2.5 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+              >
+                <option value="default">預設排序</option>
+                <option value="low-to-high">價格低到高</option>
+                <option value="high-to-low">價格高到低</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-[#8faac0]">價格</span>
+              <select
+                value={priceRange}
+                onChange={(event) => setPriceRange(event.target.value)}
+                className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-2.5 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
+              >
+                <option value="all">全部價格</option>
+                <option value="under20">低於 $20</option>
+                <option value="20to50">$20 - $50</option>
+                <option value="50plus">高於 $50</option>
+              </select>
+            </label>
           </div>
         </div>
 
@@ -130,7 +153,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {filteredGames.length === 0 ? (
               <div className="steam-panel col-span-full rounded-xl p-10 text-center text-[#9eb4c8]">
                 <p>沒有符合搜尋條件的遊戲。</p>

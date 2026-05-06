@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useMemo, useState } from 'react';
+import { FaHeadset } from 'react-icons/fa';
 
 export function FloatingSupportWidget() {
   const router = useRouter();
@@ -34,9 +35,10 @@ export function FloatingSupportWidget() {
       <button
         onClick={() => setOpen((prev) => !prev)}
         aria-label={open ? '收合客服面板' : '展開客服面板'}
-        className="steam-btn flex h-12 w-12 items-center justify-center rounded-full border border-[#ffffff44] text-lg shadow-[0_12px_24px_rgba(0,0,0,0.35)] transition hover:scale-[1.03]"
+        className="steam-btn flex items-center gap-2 rounded-full border border-[#ffffff44] px-4 py-3 text-sm shadow-[0_12px_24px_rgba(0,0,0,0.35)] transition hover:scale-[1.03]"
       >
-        {open ? '▾' : '▴'}
+        <FaHeadset aria-hidden="true" />
+        AI 客服
       </button>
     </aside>
   );

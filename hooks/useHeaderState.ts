@@ -50,8 +50,6 @@ export function useHeaderState(pathname) {
       { href: '/cart', label: '購物車' },
       { href: '/wishlist', label: '願望清單' },
       { href: '/orders', label: '訂單' },
-      { href: '/transactions', label: '交易記錄' },
-      { href: '/profile', label: '個人資料' },
     ],
     []
   );

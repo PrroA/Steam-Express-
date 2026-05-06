@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Order } from '../../types/domain';
 import { statusBadgeClass } from './statusStyles';
 
@@ -44,9 +45,15 @@ export function OrderOperationsPanel({
       <h2 className="text-xl font-black text-[#d8e6f3]">訂單操作台</h2>
 
       {orders.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-          目前沒有訂單，先到購物車建立新訂單。
-        </p>
+        <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
+          <p className="text-base font-bold text-[#d8e6f3]">目前還沒有訂單</p>
+          <p className="mt-2 text-sm leading-6 text-[#9eb4c8]">
+            先挑一款遊戲加入購物車，完成一次結帳後，這裡會顯示付款、退款與訂單狀態操作。
+          </p>
+          <Link href="/" className="steam-btn mt-4 inline-flex rounded-md px-4 py-2 text-sm">
+            返回商店挑選遊戲
+          </Link>
+        </div>
       ) : (
         <>
           <label className="mt-4 block text-sm text-[#9eb4c8]">要付款的訂單</label>

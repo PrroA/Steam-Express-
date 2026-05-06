@@ -31,7 +31,7 @@ export function PurchasePanel({
 
   return (
     <aside className="rounded-xl border border-[#66c0f433] bg-[#142536] p-5">
-      <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">PURCHASE PANEL</p>
+      <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">購買選項</p>
       <div className="mt-4 rounded-xl border border-[#66c0f433] bg-[#1a2f43] p-4">
         <p className="text-xs text-[#9eb4c8]">限時優惠</p>
         <div className="mt-2 flex items-center gap-2">
@@ -88,7 +88,7 @@ export function PurchasePanel({
       </div>
 
       <div className="mt-5 rounded-lg border border-[#66c0f433] bg-[#122131] p-3 text-xs text-[#9eb4c8]">
-        提示：此頁面為作品集練習用途，付款流程為模擬。
+        下一步：加入購物車後前往結帳。此作品使用模擬付款，不會產生真實交易。
       </div>
     </aside>
   );

@@ -41,7 +41,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
             existingUser.registeredAt = existingUser.registeredAt || new Date().toISOString();
             existingUser.defaultFullName = existingUser.defaultFullName || 'Demo User';
             existingUser.defaultPhone = existingUser.defaultPhone || '0912-345-678';
-            existingUser.defaultAddress = existingUser.defaultAddress || 'Demo address for interview review';
+            existingUser.defaultAddress = existingUser.defaultAddress || 'Demo checkout address';
             existingUser.defaultPaymentMethod = existingUser.defaultPaymentMethod || 'credit-card';
             (0, persistence_1.persistState)(state);
             return existingUser;
@@ -55,7 +55,7 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
             registeredAt: new Date().toISOString(),
             defaultFullName: 'Demo User',
             defaultPhone: '0912-345-678',
-            defaultAddress: 'Demo address for interview review',
+            defaultAddress: 'Demo checkout address',
             defaultPaymentMethod: 'credit-card',
         };
         users.push(demoUser);

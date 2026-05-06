@@ -21,17 +21,26 @@ export function OrderManagementPanel({
 }) {
   return (
     <div className="steam-panel mt-5 rounded-2xl p-6">
-      <h2 className="text-xl font-black text-[#d8e6f3]">訂單管理</h2>
+      <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+        <h2 className="text-xl font-black text-[#d8e6f3]">訂單管理</h2>
+        <p className="text-xs text-[#8faac0]">共 {orders.length} 筆訂單</p>
+      </div>
       <div className="mt-4 space-y-3">
-        {orders.map((order) => (
-          <OrderRow
-            key={order.id}
-            order={order}
-            onUpdateStatus={onUpdateStatus}
-            onUpdateFulfillmentStatus={onUpdateFulfillmentStatus}
-            onUpdateShippingDetails={onUpdateShippingDetails}
-          />
-        ))}
+        {orders.length === 0 ? (
+          <div className="rounded-lg border border-[#66c0f433] bg-[#132434] p-5 text-sm text-[#9eb4c8]">
+            目前沒有訂單。使用者完成結帳後，訂單會出現在這裡。
+          </div>
+        ) : (
+          orders.map((order) => (
+            <OrderRow
+              key={order.id}
+              order={order}
+              onUpdateStatus={onUpdateStatus}
+              onUpdateFulfillmentStatus={onUpdateFulfillmentStatus}
+              onUpdateShippingDetails={onUpdateShippingDetails}
+            />
+          ))
+        )}
       </div>
     </div>
   );

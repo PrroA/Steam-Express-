@@ -362,6 +362,11 @@ export default function CartPage() {
       <section className="mx-auto w-full max-w-6xl">
         <h1 className="text-3xl font-black text-[#d8e6f3]">一頁式結帳</h1>
         <p className="mt-1 text-sm text-[#9eb4c8]">三步完成下單，建立訂單後會自動帶你到付款頁。</p>
+        {(fullName || phone || contactEmail || shippingAddress) && (
+          <p className="mt-3 rounded-md border border-[#8bc53f44] bg-[#16301f] px-3 py-2 text-xs font-semibold text-[#d9f1ba]">
+            已套用帳號預設聯絡資料，可直接確認或自行修改後送出。
+          </p>
+        )}
         <p className="mt-2 text-xs font-semibold tracking-[0.08em] text-[#8fb8d5]">
           STEP {activeStep} / {checkoutSteps.length}
         </p>
