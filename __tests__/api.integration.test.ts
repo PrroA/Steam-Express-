@@ -28,6 +28,32 @@ describe('API integration', () => {
     return { status: res.status, body: payload };
   };
 
+  test('demo-login issues a non-admin token that can access member profile', async () => {
+    const demoLoginRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(demoLoginRes.status).toBe(200);
+    expect(demoLoginRes.body.token).toBeTruthy();
+    expect(demoLoginRes.body.user).toMatchObject({
+      username: 'demo_user',
+      role: 'user',
+    });
+
+    const profileRes = await requestJson('/profile', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${demoLoginRes.body.token}` },
+    });
+    expect(profileRes.status).toBe(200);
+    expect(profileRes.body.username).toBe('demo_user');
+
+    const adminRes = await requestJson('/admin/dashboard', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${demoLoginRes.body.token}` },
+    });
+    expect(adminRes.status).toBe(403);
+  });
+
   test('forgot-password + confirm-reset-password can reset and login with new password', async () => {
     const username = `reset_user_${Date.now()}`;
     const oldPassword = 'Password1!';

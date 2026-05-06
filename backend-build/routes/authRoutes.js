@@ -32,6 +32,36 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
             },
         })
         : null;
+    const ensureDemoUser = async () => {
+        const demoUsername = 'demo_user';
+        const existingUser = users.find((u) => u.username === demoUsername);
+        if (existingUser) {
+            existingUser.role = 'user';
+            existingUser.email = existingUser.email || 'demo@example.com';
+            existingUser.registeredAt = existingUser.registeredAt || new Date().toISOString();
+            existingUser.defaultFullName = existingUser.defaultFullName || 'Demo User';
+            existingUser.defaultPhone = existingUser.defaultPhone || '0912-345-678';
+            existingUser.defaultAddress = existingUser.defaultAddress || 'Demo address for interview review';
+            existingUser.defaultPaymentMethod = existingUser.defaultPaymentMethod || 'credit-card';
+            (0, persistence_1.persistState)(state);
+            return existingUser;
+        }
+        const demoUser = {
+            id: users.reduce((maxId, user) => Math.max(maxId, Number(user.id) || 0), 0) + 1,
+            username: demoUsername,
+            password: await bcrypt_1.default.hash(crypto_1.default.randomBytes(16).toString('hex'), 10),
+            role: 'user',
+            email: 'demo@example.com',
+            registeredAt: new Date().toISOString(),
+            defaultFullName: 'Demo User',
+            defaultPhone: '0912-345-678',
+            defaultAddress: 'Demo address for interview review',
+            defaultPaymentMethod: 'credit-card',
+        };
+        users.push(demoUser);
+        (0, persistence_1.persistState)(state);
+        return demoUser;
+    };
     const sendResetEmail = async ({ username, toEmail, resetUrl, }) => {
         if (!mailTransporter || !smtpFrom) {
             return { emailSent: false, reason: 'SMTP 尚未設定完成' };
@@ -129,6 +159,24 @@ function registerAuthRoutes({ app, state, secretKey, authenticate }) {
             expiresIn: '1d',
         });
         return res.json({ token });
+    });
+    app.post('/demo-login', async (_req, res) => {
+        const user = await ensureDemoUser();
+        state.carts[user.id] = [];
+        state.orders[user.id] = [];
+        state.wishlists[user.id] = [];
+        (0, persistence_1.persistState)(state);
+        const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username, role: 'user' }, secretKey, {
+            expiresIn: '1d',
+        });
+        return res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: 'user',
+            },
+        });
     });
     app.post('/forgot-password', async (req, res) => {
         const rawInput = String(req.body?.account || req.body?.email || req.body?.username || '').trim();

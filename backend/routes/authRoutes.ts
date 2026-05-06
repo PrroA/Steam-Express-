@@ -43,6 +43,39 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
       })
     : null;
 
+  const ensureDemoUser = async () => {
+    const demoUsername = 'demo_user';
+    const existingUser = users.find((u) => u.username === demoUsername);
+    if (existingUser) {
+      existingUser.role = 'user';
+      existingUser.email = existingUser.email || 'demo@example.com';
+      existingUser.registeredAt = existingUser.registeredAt || new Date().toISOString();
+      existingUser.defaultFullName = existingUser.defaultFullName || 'Demo User';
+      existingUser.defaultPhone = existingUser.defaultPhone || '0912-345-678';
+      existingUser.defaultAddress = existingUser.defaultAddress || 'Demo address for interview review';
+      existingUser.defaultPaymentMethod = existingUser.defaultPaymentMethod || 'credit-card';
+      persistState(state);
+      return existingUser;
+    }
+
+    const demoUser = {
+      id: users.reduce((maxId, user) => Math.max(maxId, Number(user.id) || 0), 0) + 1,
+      username: demoUsername,
+      password: await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10),
+      role: 'user' as const,
+      email: 'demo@example.com',
+      registeredAt: new Date().toISOString(),
+      defaultFullName: 'Demo User',
+      defaultPhone: '0912-345-678',
+      defaultAddress: 'Demo address for interview review',
+      defaultPaymentMethod: 'credit-card' as const,
+    };
+
+    users.push(demoUser);
+    persistState(state);
+    return demoUser;
+  };
+
   const sendResetEmail = async ({
     username,
     toEmail,
@@ -154,6 +187,26 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
       expiresIn: '1d',
     });
     return res.json({ token });
+  });
+
+  app.post('/demo-login', async (_req: Request, res: Response) => {
+    const user = await ensureDemoUser();
+    state.carts[user.id] = [];
+    state.orders[user.id] = [];
+    state.wishlists[user.id] = [];
+    persistState(state);
+
+    const token = jwt.sign({ id: user.id, username: user.username, role: 'user' }, secretKey, {
+      expiresIn: '1d',
+    });
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: 'user',
+      },
+    });
   });
 
   app.post('/forgot-password', async (req: TypedRequest<ForgotPasswordBody>, res: Response) => {
