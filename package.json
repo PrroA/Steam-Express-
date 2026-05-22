@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "npm run build:backend && npm run build:server",
-    "dev": "next dev",
+    "dev": "node scripts/dev.js",
     "prebuild": "if [ \"$VERCEL\" != \"1\" ]; then npm run build:backend && npm run build:server; fi",
     "build": "next build",
     "prestart": "npm run build:backend && npm run build:server",
@@ -17,7 +17,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "format": "prettier --write .",
-    "prepare": "husky install || true"
+    "prepare": "husky"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.0",

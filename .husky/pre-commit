@@ -1,4 +1,9 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+if ! command -v node >/dev/null 2>&1; then
+  echo "node was not found in this Git hook PATH; skipping pre-commit tests."
+  echo "Run npm test manually before pushing."
+  exit 0
+fi
 
-npm test
+node ./node_modules/typescript/bin/tsc -p tsconfig.backend.json
+node ./node_modules/typescript/bin/tsc -p tsconfig.server.json
+node ./node_modules/jest/bin/jest.js
