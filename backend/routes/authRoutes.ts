@@ -31,6 +31,8 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
     'http://localhost:3000';
 
   const hasSmtpConfig = Boolean(smtpHost && smtpUser && smtpPass && smtpFrom);
+  const shouldExposeResetToken =
+    process.env.NODE_ENV !== 'production' || process.env.EXPOSE_RESET_TOKEN === 'true';
   const mailTransporter = hasSmtpConfig
     ? nodemailer.createTransport({
         host: smtpHost,
@@ -210,6 +212,73 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
   });
 
   app.post('/forgot-password', async (req: TypedRequest<ForgotPasswordBody>, res: Response) => {
+    const rawInput = String(req.body?.account || req.body?.email || req.body?.username || '').trim();
+    if (!rawInput) {
+      return res.status(400).json({ message: '請輸入帳號或 Email' });
+    }
+
+    const normalizedInput = rawInput.toLowerCase();
+    const user = users.find(
+      (u) =>
+        u.username.toLowerCase() === normalizedInput ||
+        (u.email || '').toLowerCase() === normalizedInput
+    );
+    if (!user) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.json({
+          message: '如果帳號存在，重設密碼信將會寄出。',
+          emailSent: false,
+        });
+      }
+      return res.status(404).json({ message: '找不到符合的帳號或 Email' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    resetTokens[resetToken] = {
+      username: user.username,
+      expires: Date.now() + 15 * 60 * 1000,
+    };
+    persistState(state);
+
+    const baseUrl = frontendBaseUrl.replace(/\/$/, '');
+    const resetUrl = `${baseUrl}/ConfirmResetPassword?token=${encodeURIComponent(resetToken)}`;
+    const email = (user.email || '').trim();
+    const withOptionalToken = (payload: Record<string, unknown>) => {
+      if (shouldExposeResetToken) {
+        payload.resetToken = resetToken;
+        payload.resetUrl = resetUrl;
+      }
+      return payload;
+    };
+
+    if (!email) {
+      return res.json(
+        withOptionalToken({
+          message: '帳號尚未設定 Email，請先到個人資料頁補上 Email。',
+          emailSent: false,
+        })
+      );
+    }
+
+    const sendResult = await sendResetEmail({ username: user.username, toEmail: email, resetUrl });
+    if (sendResult.emailSent) {
+      return res.json(
+        withOptionalToken({
+          message: `重設密碼信已寄到 ${email}`,
+          emailSent: true,
+        })
+      );
+    }
+
+    return res.json(
+      withOptionalToken({
+        message: sendResult.reason || '重設密碼信寄送失敗',
+        emailSent: false,
+      })
+    );
+  });
+
+  app.post('/forgot-password-legacy-disabled', async (req: TypedRequest<ForgotPasswordBody>, res: Response) => {
     const rawInput = String(req.body?.account || req.body?.email || req.body?.username || '').trim();
     if (!rawInput) {
       return res.status(400).json({ message: '請輸入帳號或 Email' });

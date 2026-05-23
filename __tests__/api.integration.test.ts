@@ -195,6 +195,56 @@ describe('API integration', () => {
     expect(overflowRes.status).toBe(400);
   });
 
+  test('cart update and delete target the selected variant only', async () => {
+    const username = `variant_cart_${Date.now()}`;
+    const password = 'Password1!';
+
+    await requestJson('/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    const loginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    const token = loginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => Array.isArray(item.variants) && item.variants.length >= 2);
+    expect(game).toBeTruthy();
+    const [firstVariant, secondVariant] = game.variants;
+
+    await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id, variantId: firstVariant.id }),
+    });
+    await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id, variantId: secondVariant.id }),
+    });
+
+    const updateSecond = await requestJson(`/cart/${game.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ quantity: 3, variantId: secondVariant.id }),
+    });
+    expect(updateSecond.status).toBe(200);
+    const firstLine = updateSecond.body.cart.find((item) => item.variantId === firstVariant.id);
+    const secondLine = updateSecond.body.cart.find((item) => item.variantId === secondVariant.id);
+    expect(firstLine.quantity).toBe(1);
+    expect(secondLine.quantity).toBe(3);
+
+    const deleteFirst = await requestJson(`/cart/${game.id}?variantId=${encodeURIComponent(firstVariant.id)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(deleteFirst.status).toBe(200);
+    expect(deleteFirst.body.cart.some((item) => item.variantId === firstVariant.id)).toBe(false);
+    expect(deleteFirst.body.cart.some((item) => item.variantId === secondVariant.id)).toBe(true);
+  });
+
   test('order lifecycle supports failure, retry, payment and refund with timeline', async () => {
     const username = `life_user_${Date.now()}`;
     const password = 'Password1!';

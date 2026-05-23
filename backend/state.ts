@@ -4,8 +4,8 @@ import type { CartItem, Game, Order, ResetTokenEntry, Review, User } from '../ty
 export const users: User[] = [
   {
     id: 1,
-    username: 'admin',
-    password: bcrypt.hashSync('admin', 10),
+    username: process.env.ADMIN_USERNAME || 'admin',
+    password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10),
     role: 'admin',
   },
 ];

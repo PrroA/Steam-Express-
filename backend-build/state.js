@@ -8,8 +8,8 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 exports.users = [
     {
         id: 1,
-        username: 'admin',
-        password: bcrypt_1.default.hashSync('admin', 10),
+        username: process.env.ADMIN_USERNAME || 'admin',
+        password: bcrypt_1.default.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10),
         role: 'admin',
     },
 ];

@@ -195,13 +195,15 @@ export default function CartPage() {
     shippingAddress,
   ]);
 
-  const handleRemove = async (id: number) => {
+  const handleRemove = async (itemToRemove: CartItem) => {
     const token = localStorage.getItem('token');
     const previousCart = cart;
-    const updatedCart = cart.filter((item) => item.id !== id);
+    const updatedCart = cart.filter(
+      (item) => !(item.id === itemToRemove.id && item.variantId === itemToRemove.variantId)
+    );
     setCart(updatedCart);
     try {
-      await removeFromCart(id, token);
+      await removeFromCart(Number(itemToRemove.id), token, itemToRemove.variantId);
       toast.success('商品已移除');
     } catch (error) {
       setCart(previousCart);
@@ -212,7 +214,9 @@ export default function CartPage() {
   const handleClearCart = async () => {
     const token = localStorage.getItem('token');
     try {
-      const results = await Promise.allSettled(cart.map((item) => removeFromCart(item.id, token)));
+      const results = await Promise.allSettled(
+        cart.map((item) => removeFromCart(Number(item.id), token, item.variantId))
+      );
       const failedItems = results.filter((result) => result.status === 'rejected');
       if (failedItems.length > 0) {
         toast.error(`部分商品清空失敗 (${failedItems.length} 項)`);
@@ -226,14 +230,17 @@ export default function CartPage() {
     }
   };
 
-  const handleQuantityChange = async (id: number, change: number) => {
+  const handleQuantityChange = async (targetItem: CartItem, change: number) => {
     const token = localStorage.getItem('token');
-    const item = cart.find((cartItem) => cartItem.id === id);
-    if (!item) return;
-    const newQuantity = Math.max(1, item.quantity + change);
+    const newQuantity = Math.max(1, targetItem.quantity + change);
 
     try {
-      const response = await updateCartQuantity(id, newQuantity, token);
+      const response = await updateCartQuantity(
+        Number(targetItem.id),
+        newQuantity,
+        token,
+        targetItem.variantId
+      );
       if (response.cart) {
         setCart(response.cart);
       }
@@ -414,7 +421,7 @@ export default function CartPage() {
                     const subtotal = unitPrice * item.quantity;
                     return (
                       <li
-                        key={item.id}
+                        key={`${item.id}-${item.variantId || 'default'}`}
                         className="rounded-xl border border-[#66c0f433] bg-[#142536] p-3 md:p-4"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -441,7 +448,7 @@ export default function CartPage() {
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 rounded-md border border-[#66c0f433] bg-[#1a2f43] px-2 py-1">
                               <button
-                                onClick={() => handleQuantityChange(item.id, -1)}
+                                onClick={() => handleQuantityChange(item, -1)}
                                 className="rounded p-1 text-[#c6ddef] transition hover:bg-[#24384d]"
                                 aria-label="減少數量"
                               >
@@ -451,7 +458,7 @@ export default function CartPage() {
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => handleQuantityChange(item.id, 1)}
+                                onClick={() => handleQuantityChange(item, 1)}
                                 className="rounded p-1 text-[#c6ddef] transition hover:bg-[#24384d]"
                                 aria-label="增加數量"
                               >
@@ -462,7 +469,7 @@ export default function CartPage() {
                               ${subtotal.toFixed(2)}
                             </p>
                             <button
-                              onClick={() => handleRemove(item.id)}
+                              onClick={() => handleRemove(item)}
                               className="rounded-md border border-[#ff8d8d66] bg-[#4a212a] px-3 py-1.5 text-xs font-semibold text-[#ffd6d6] transition hover:bg-[#65313d]"
                             >
                               移除

@@ -26,11 +26,12 @@ export async function addToCart(
 export async function updateCartQuantity(
   id: number,
   quantity: number,
-  token?: string | null
+  token?: string | null,
+  variantId?: string
 ): Promise<{ message: string; cart: CartItem[] }> {
   const response = await apiClient.patch(
     `/cart/${id}`,
-    { quantity },
+    { quantity, variantId },
     {
       headers: authHeader(token),
     }
@@ -40,9 +41,11 @@ export async function updateCartQuantity(
 
 export async function removeFromCart(
   id: number,
-  token?: string | null
+  token?: string | null,
+  variantId?: string
 ): Promise<{ message: string; cart: CartItem[] }> {
-  const response = await apiClient.delete(`/cart/${id}`, {
+  const suffix = variantId ? `?variantId=${encodeURIComponent(variantId)}` : '';
+  const response = await apiClient.delete(`/cart/${id}${suffix}`, {
     headers: authHeader(token),
   });
   return response.data;

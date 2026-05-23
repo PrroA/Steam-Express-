@@ -64,6 +64,21 @@ export async function createPaymentIntent(
   }
 }
 
+export async function confirmPaymentIntent(
+  orderId: string,
+  paymentIntentId: string,
+  token?: string | null
+): Promise<{ message: string; order: Order }> {
+  const response = await apiClient.post(
+    '/confirm-payment-intent',
+    { orderId, paymentIntentId },
+    {
+      headers: authHeader(token),
+    }
+  );
+  return response.data;
+}
+
 export async function payOrder(
   orderId: string,
   token?: string | null,

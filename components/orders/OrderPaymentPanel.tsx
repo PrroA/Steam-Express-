@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Elements, CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type { Stripe } from '@stripe/stripe-js';
 import { toast } from 'react-toastify';
-import { payOrder } from '../../services/orderService';
+import { confirmPaymentIntent, payOrder } from '../../services/orderService';
 import type { Order } from '../../types/domain';
 import { ORDER_STATUS, getOrderStatusLabel } from '../../utils/orderStatus';
 import { statusBadgeClass } from './statusStyles';
@@ -196,6 +196,7 @@ function CheckoutForm({
     }
 
     if (paymentIntent?.status === 'succeeded') {
+      await confirmPaymentIntent(orderId, paymentIntent.id, localStorage.getItem('token'));
       toast.success('Stripe 付款成功，正在更新訂單狀態');
       setMessage('Stripe 付款已完成，正在同步訂單...');
       await onPaid(orderId);

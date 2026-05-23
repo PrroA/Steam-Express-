@@ -52,6 +52,25 @@ function getOrderAmountInCents(order) {
     const total = Number(order.total || 0);
     return Math.round(total * 100);
 }
+function markOrderPaidFromStripe(order, paymentIntentId, note) {
+    (0, orderStatus_1.normalizeOrderRecord)(order);
+    if ([orderStatus_1.ORDER_STATUS.CANCELLED, orderStatus_1.ORDER_STATUS.REFUNDED].includes(order.status)) {
+        return false;
+    }
+    if (!order.paymentDetails) {
+        order.paymentDetails = {
+            transactionId: paymentIntentId,
+            paidAt: new Date().toISOString(),
+        };
+    }
+    if (!order.fulfillmentStatus) {
+        order.fulfillmentStatus = orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT;
+    }
+    if (order.status !== orderStatus_1.ORDER_STATUS.PAID) {
+        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAID, note);
+    }
+    return true;
+}
 function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }) {
     const { carts, orders, games } = state;
     const hasStripeSecret = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_dummy');
@@ -95,12 +114,12 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
     app.patch('/cart/:id', authenticate, (req, res) => {
         const userId = req.user.id;
         const itemId = parseInt(req.params.id, 10);
-        const { quantity } = req.body;
+        const { quantity, variantId } = req.body;
         const cart = carts[userId];
         if (!cart) {
             return res.status(404).json({ message: '購物車不存在' });
         }
-        const item = cart.find((i) => i.id === itemId);
+        const item = cart.find((i) => i.id === itemId && (!variantId || i.variantId === variantId));
         if (!item) {
             return res.status(404).json({ message: '商品未找到' });
         }
@@ -121,11 +140,13 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
     app.delete('/cart/:id', authenticate, (req, res) => {
         const userId = req.user.id;
         const itemId = parseInt(req.params.id, 10);
+        const query = req.query;
+        const variantId = typeof query.variantId === 'string' ? query.variantId : undefined;
         const cart = carts[userId];
         if (!cart) {
             return res.status(404).json({ message: '購物車不存在' });
         }
-        carts[userId] = cart.filter((item) => item.id !== itemId);
+        carts[userId] = cart.filter((item) => !(item.id === itemId && (!variantId || item.variantId === variantId)));
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '商品已移除', cart: carts[userId] });
     });
@@ -497,15 +518,9 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
                     (0, orderStatus_1.normalizeOrderRecord)(order);
                     if (![orderStatus_1.ORDER_STATUS.CANCELLED, orderStatus_1.ORDER_STATUS.REFUNDED].includes(order.status) &&
                         order.status !== orderStatus_1.ORDER_STATUS.PAID) {
-                        order.paymentDetails = {
-                            transactionId: intent.id,
-                            paidAt: new Date().toISOString(),
-                        };
-                        if (!order.fulfillmentStatus) {
-                            order.fulfillmentStatus = orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT;
+                        if (markOrderPaidFromStripe(order, intent.id, 'Stripe webhook: payment_intent.succeeded')) {
+                            (0, persistence_1.persistState)(state);
                         }
-                        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAID, 'Stripe webhook: payment_intent.succeeded');
-                        (0, persistence_1.persistState)(state);
                     }
                 }
                 else if ((0, orderStatus_1.normalizeOrderStatus)(order.status) === orderStatus_1.ORDER_STATUS.PENDING) {
@@ -557,6 +572,41 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         catch (error) {
             console.error('付款失敗:', error);
             return res.status(500).json({ error: error.message });
+        }
+    });
+    app.post('/confirm-payment-intent', authenticate, async (req, res) => {
+        try {
+            if (!hasStripeSecret) {
+                return res.status(503).json({
+                    error: {
+                        code: 'STRIPE_NOT_CONFIGURED',
+                        message: 'Stripe 金鑰尚未設定，無法確認付款結果。',
+                    },
+                });
+            }
+            const userId = req.user.id;
+            const { orderId, paymentIntentId } = req.body;
+            if (!orderId || !paymentIntentId) {
+                return res.status(400).json({ error: '缺少 orderId 或 paymentIntentId' });
+            }
+            const order = (orders[userId] || []).find((item) => item.id === orderId);
+            if (!order) {
+                return res.status(404).json({ error: '訂單未找到' });
+            }
+            const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+            if (paymentIntent.metadata?.orderId !== orderId || paymentIntent.metadata?.userId !== String(userId)) {
+                return res.status(403).json({ error: '付款資訊與訂單不符' });
+            }
+            if (paymentIntent.status !== 'succeeded') {
+                return res.status(400).json({ error: `Stripe 付款尚未成功：${paymentIntent.status}` });
+            }
+            markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe confirm API: payment_intent.succeeded');
+            (0, persistence_1.persistState)(state);
+            return res.status(200).json({ message: 'Stripe 付款已確認', order });
+        }
+        catch (error) {
+            console.error('Stripe 付款確認失敗:', error);
+            return res.status(500).json({ error: error.message || 'Stripe 付款確認失敗' });
         }
     });
 }

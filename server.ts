@@ -40,6 +40,14 @@ const io = new Server(server, {
 
 const stripeClient = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 const secretKey = process.env.SECRET_KEY || 'your_secret_key';
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.SECRET_KEY || secretKey === 'your_secret_key') {
+    throw new Error('SECRET_KEY must be configured in production.');
+  }
+  if (!process.env.ADMIN_PASSWORD) {
+    throw new Error('ADMIN_PASSWORD must be configured in production.');
+  }
+}
 const openaiClient = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;

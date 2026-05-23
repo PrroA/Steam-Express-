@@ -211,6 +211,7 @@ export interface AddCartBody {
 
 export interface UpdateCartBody {
   quantity: number;
+  variantId?: string;
 }
 
 export interface CheckoutBody {
@@ -229,6 +230,11 @@ export interface PayBody {
 
 export interface CreatePaymentIntentBody {
   orderId: string;
+}
+
+export interface ConfirmPaymentIntentBody {
+  orderId: string;
+  paymentIntentId: string;
 }
 
 export interface GptReplyBody {
