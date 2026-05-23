@@ -22,57 +22,67 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit fix (force)
+      - name: Run npm audit fix
         run: npm audit fix --force || echo "npm audit fix failed or requires manual intervention"
 
-      - name: Create .env file from secrets
+      - name: Create env file from secrets
         run: |
           echo "NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}" >> .env
           echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> .env
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
 
-      - name: Format (格式檢查)
+      - name: Format
         run: npm run format
 
-      - name: Lint (語法檢查)
+      - name: Lint check
         run: npm run lint
 
-      - name: Test (單元測試)
+      - name: Test
         run: npm test
 
-      - name: Build (編譯檢查)
+      - name: Build
         run: npm run build
 
-      - name: Check .env Variables
+      - name: Check env variables
         run: |
-          echo "Checking .env variables..."
+          echo "Checking env variables..."
           if [ ! -f .env ]; then
-            echo "❌ Error: .env file not found!";
-            exit 1;
+            echo "Error: .env file not found."
+            exit 1
           fi
           if ! grep -q "NEXT_PUBLIC_API_BASE_URL" .env; then
-            echo "❌ Error: Missing NEXT_PUBLIC_API_BASE_URL in .env!";
-            exit 1;
+            echo "Error: Missing NEXT_PUBLIC_API_BASE_URL in .env."
+            exit 1
           fi
           if ! grep -q "STRIPE_SECRET_KEY" .env; then
-            echo "❌ Error: Missing STRIPE_SECRET_KEY in .env!";
-            exit 1;
+            echo "Error: Missing STRIPE_SECRET_KEY in .env."
+            exit 1
           fi
-          echo "✅ All necessary environment variables are set."
+          echo "All necessary environment variables are set."
 
-      - name: Deploy to Vercel (Conditional Deploy)
+      - name: Deploy to Vercel
         if: github.event_name == 'push'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_TELEMETRY_CONSENT: 'no'
         run: |
           echo "Deploying to Vercel..."
-          npx vercel --prod --yes
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN is not set. Skipping Vercel deployment."
+            exit 0
+          fi
 
-      - name: Simulate Render Deployment (Optional)
+          if ! npx vercel@latest whoami --token "$VERCEL_TOKEN"; then
+            echo "::warning::VERCEL_TOKEN is invalid. Generate a new token in Vercel and update the GitHub Actions secret."
+            exit 0
+          fi
+
+          npx vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Simulate Render deployment
         if: github.event_name == 'push'
         run: |
-          echo "Simulating Render Deployment..."
-          npm run start & # 背景啟動
-          sleep 5 # 等待伺服器啟動
-          curl -I http://localhost:4000/games || echo "❌ Failed to connect to server"
+          echo "Simulating Render deployment..."
+          npm run start &
+          sleep 5
+          curl -I http://localhost:4000/games || echo "Failed to connect to server"

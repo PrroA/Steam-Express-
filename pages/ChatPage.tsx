@@ -1,177 +1,119 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { FaHeadset } from 'react-icons/fa';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FaHeadset, FaPaperPlane } from 'react-icons/fa';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://steam-express.onrender.com'
-    : 'http://localhost:4000');
-const possibleKeywords = [
-  '艾爾登',
-  'Elden',
-  '薩爾達',
-  'Zelda',
-  'Cyberpunk',
-  '2077',
-  '霍格華茲',
-  'Hogwarts',
-];
+  (process.env.NODE_ENV === 'production' ? 'https://steam-express.onrender.com' : 'http://localhost:4000');
+
+type ChatSource = {
+  id: string;
+  title: string;
+  type: 'faq' | 'policy' | 'catalog';
+  score?: number;
+};
+
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  status?: 'grounded' | 'general' | 'unavailable';
+  sources?: ChatSource[];
+};
+
+function createMessageId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function getStatusLabel(message: ChatMessage) {
+  if (message.status === 'grounded') return '根據商城資料回答';
+  if (message.status === 'unavailable') return '目前 AI 暫時無法使用';
+  return '一般客服回覆';
+}
+
+function getSourceTypeLabel(type: ChatSource['type']) {
+  if (type === 'catalog') return '商品資料';
+  if (type === 'policy') return '服務規則';
+  return '常見問題';
+}
 
 export default function ChatPage() {
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [socket, setSocket] = useState(null);
-  const [socketConnected, setSocketConnected] = useState(false);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      text: '你好，我是商城客服助理。可以問我商品推薦、付款方式、訂單狀態、退款、配送或帳號相關問題。',
+      status: 'general',
+      sources: [],
+    },
+  ]);
   const [isReplying, setIsReplying] = useState(false);
-  const user = '你';
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const inputRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const quickPrompts = useMemo(
+    () => ['怎麼付款？', '可以退款嗎？', '推薦便宜的遊戲', '訂單付款失敗怎麼辦？'],
+    []
+  );
 
-  // 初始化 socket
-  useEffect(() => {
-    const newSocket = io(`${API_BASE_URL}`, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-    });
-    setSocket(newSocket);
-
-    newSocket.on('connect', () => setSocketConnected(true));
-    newSocket.on('disconnect', () => setSocketConnected(false));
-    newSocket.on('connect_error', () => setSocketConnected(false));
-
-    newSocket.off('chatHistory').on('chatHistory', (chatHistory) => {
-      setMessages(chatHistory);
-    });
-
-    newSocket.off('receiveMessage').on('receiveMessage', (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
-    });
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
-
-  // 自動滾到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 初次 focus 輸入框
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const handleSendMessage = async () => {
-    const trimmedMessage = message.trim();
-    if (!trimmedMessage || isReplying) return;
+  const sendMessage = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || isReplying) return;
 
-    const userMessage = {
-      user,
-      text: trimmedMessage,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    if (socket && socketConnected) {
-      socket.emit('sendMessage', userMessage);
-    } else {
-      setMessages((prev) => [...prev, userMessage]);
-    }
-    setMessage('');
-
-    // 1️⃣ 檢查關鍵字
-    const matchedKeyword = possibleKeywords.find((kw) =>
-      trimmedMessage.toLowerCase().includes(kw.toLowerCase())
-    );
-
-    if (matchedKeyword) {
-      try {
-        setIsReplying(true);
-        const res = await fetch(
-          `${API_BASE_URL}/games?query=${encodeURIComponent(matchedKeyword)}`
-        );
-        const data = await res.json();
-        const aiReply = {
-          user: 'AI助手',
-          text:
-            Array.isArray(data) && data.length > 0
-              ? `🔍 找到：${data[0].name}，售價為 ${data[0].price}`
-              : `找不到和「${matchedKeyword}」相關的遊戲唷～`,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        if (socket && socketConnected) {
-          socket.emit('sendMessage', aiReply);
-        } else {
-          setMessages((prev) => [...prev, aiReply]);
-        }
-      } catch (err) {
-        console.error('查詢錯誤:', err);
-        setMessages((prev) => [
-          ...prev,
-          {
-            user: 'AI助手',
-            text: '查詢失敗，請稍後再試。',
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        ]);
-      } finally {
-        setIsReplying(false);
-      }
-      return;
-    }
+    setInput('');
+    setIsReplying(true);
+    setMessages((previous) => [...previous, { id: createMessageId(), role: 'user', text: content }]);
 
     try {
-      setIsReplying(true);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(`${API_BASE_URL}/chat/rag`, {
+      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${API_BASE_URL}/chat/rag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmedMessage }),
+        body: JSON.stringify({ message: content }),
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
+      window.clearTimeout(timeoutId);
 
-      let aiReply;
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data?.reply;
-        const sources = Array.isArray(data?.sources) ? data.sources : [];
-        const sourceText =
-          sources.length > 0
-            ? `\n\n參考來源：${sources
-                .slice(0, 2)
-                .map((source) => source.title || source)
-                .join('、')}`
-            : '';
-        aiReply = {
-          user: 'AI助手',
-          text: (reply || '抱歉，我暫時無法回答這個問題。') + sourceText,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-      } else {
-        aiReply = {
-          user: 'AI助手',
-          text: '客服系統暫時忙碌中，先提供簡短指引：未付款可取消、已付款可退款、付款失敗可重試付款。',
-          timestamp: new Date().toLocaleTimeString(),
-        };
+      if (!response.ok) {
+        throw new Error('request failed');
       }
 
-      if (socket && socketConnected) {
-        socket.emit('sendMessage', aiReply);
-      } else {
-        setMessages((prev) => [...prev, aiReply]);
-      }
-    } catch (err) {
-      console.error('GPT 回覆錯誤:', err);
-      setMessages((prev) => [
-        ...prev,
+      const data = await response.json();
+      const sources = Array.isArray(data?.sources) ? data.sources.slice(0, 2) : [];
+      const status = data?.grounded
+        ? 'grounded'
+        : data?.mode === 'service-fallback'
+          ? 'unavailable'
+          : 'general';
+
+      setMessages((previous) => [
+        ...previous,
         {
-          user: 'AI助手',
-          text: '目前網路或客服服務異常。先給你重點：未付款可取消、已付款可退款、付款失敗可在訂單頁重試。',
-          timestamp: new Date().toLocaleTimeString(),
+          id: createMessageId(),
+          role: 'assistant',
+          text: data?.reply || '我暫時沒有整理出合適回答，請換個方式再問一次。',
+          status,
+          sources,
+        },
+      ]);
+    } catch {
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: createMessageId(),
+          role: 'assistant',
+          text: '目前 AI 暫時無法使用。你可以先到訂單中心查看付款與退款狀態，或回到商店確認商品資訊。',
+          status: 'unavailable',
+          sources: [],
         },
       ]);
     } finally {
@@ -180,56 +122,113 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 min-h-screen flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
-        <FaHeadset className="text-blue-400" aria-hidden />
-        <span>客服中心</span>
-      </h1>
-        <div className="w-full max-w-2xl flex flex-col bg-gray-800 p-4 rounded-lg shadow-md h-[500px] overflow-y-auto">
-          {messages.map((msg, index) => {
-            const isMe = msg.user === user;
-            const isSystem = msg.user === '系統通知';
+    <main className="steam-shell min-h-screen px-4 py-6 md:px-6">
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+        <div>
+          <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">AI 商城客服</p>
+          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black text-[#d8e6f3]">
+            <FaHeadset className="text-[#66c0f4]" aria-hidden />
+            有問題可以先問我
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#9eb4c8]">
+            我可以協助商品、購物車、付款、訂單、退款、配送、帳號與願望清單問題。回答會盡量根據目前商城資料整理。
+          </p>
+        </div>
 
-            return (
-              <div key={index} className={`flex mb-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`p-3 rounded-lg max-w-xs ${
-                    isMe
-                      ? 'bg-green-500 text-white'
-                      : isSystem
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-700 text-white'
-                  }`}
+        <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+          <section className="steam-panel flex min-h-[560px] flex-col rounded-2xl border border-[#66c0f433]">
+            <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
+              {messages.map((message) => {
+                const isUser = message.role === 'user';
+                return (
+                  <article key={message.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[82%] rounded-2xl border px-4 py-3 text-sm leading-6 ${
+                        isUser
+                          ? 'border-[#8bc53f66] bg-[#24402b] text-[#edf8de]'
+                          : 'border-[#66c0f433] bg-[#132434] text-[#d8e6f3]'
+                      }`}
+                    >
+                      {!isUser && (
+                        <p className="mb-1 text-[11px] font-bold tracking-[0.12em] text-[#8fb8d5]">
+                          {getStatusLabel(message)}
+                        </p>
+                      )}
+                      <p className="whitespace-pre-wrap">{message.text}</p>
+                      {!isUser && message.sources && message.sources.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-[#66c0f433] bg-[#101d2a] p-2">
+                          <p className="text-[11px] font-bold text-[#8faac0]">參考資料</p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {message.sources.map((source) => (
+                              <span
+                                key={source.id}
+                                className="rounded-full border border-[#66c0f433] bg-[#1a3044] px-2 py-1 text-[11px] text-[#c5dced]"
+                              >
+                                {getSourceTypeLabel(source.type)}：{source.title}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              {isReplying && (
+                <article className="flex justify-start">
+                  <div className="rounded-2xl border border-[#66c0f433] bg-[#132434] px-4 py-3 text-sm text-[#9eb4c8]">
+                    正在整理回答...
+                  </div>
+                </article>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="border-t border-[#66c0f433] p-3 md:p-4">
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="輸入你的問題，例如：怎麼付款？"
+                  className="min-w-0 flex-1 rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
+                  onKeyDown={(event) => event.key === 'Enter' && sendMessage()}
+                />
+                <button
+                  type="button"
+                  onClick={() => sendMessage()}
+                  disabled={isReplying || !input.trim()}
+                  className="steam-btn inline-flex items-center gap-2 rounded-md px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <span className="block text-sm font-bold">{msg.user}</span>
-                  <span className="block">{msg.text}</span>
-                  <span className="block text-xs text-gray-300 mt-1">{msg.timestamp}</span>
-                </div>
+                  <FaPaperPlane aria-hidden />
+                  送出
+                </button>
               </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
-        {isReplying && <p className="mt-2 w-full max-w-2xl text-xs text-[#9eb4c8]">客服思考中...</p>}
+            </div>
+          </section>
 
-        <div className="mt-4 w-full max-w-2xl flex">
-          <input
-            ref={inputRef}
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="輸入訊息..."
-            className="flex-1 p-3 border rounded-lg bg-gray-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isReplying}
-            className="ml-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isReplying ? '回覆中...' : '發送'}
-          </button>
+          <aside className="steam-panel h-fit rounded-2xl border border-[#66c0f433] p-4">
+            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速提問</p>
+            <div className="mt-3 grid gap-2">
+              {quickPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => sendMessage(prompt)}
+                  disabled={isReplying}
+                  className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 text-left text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3 text-xs leading-5 text-[#9eb4c8]">
+              客服助理不會直接替你付款、退款或取消訂單；需要操作時，會引導你到對應頁面完成。
+            </p>
+          </aside>
         </div>
-    </div>
+      </section>
+    </main>
   );
 }

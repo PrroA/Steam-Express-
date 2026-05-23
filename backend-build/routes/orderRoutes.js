@@ -52,6 +52,15 @@ function getOrderAmountInCents(order) {
     const total = Number(order.total || 0);
     return Math.round(total * 100);
 }
+function getCartSubtotal(items) {
+    return items.reduce((sum, item) => {
+        const price = parseFloat((item.price || '0').replace('$', ''));
+        return sum + (isNaN(price) ? 0 : price * item.quantity);
+    }, 0);
+}
+function getShippingFee(subtotal) {
+    return subtotal >= 60 ? 0 : 5;
+}
 function markOrderPaidFromStripe(order, paymentIntentId, note) {
     (0, orderStatus_1.normalizeOrderRecord)(order);
     if ([orderStatus_1.ORDER_STATUS.CANCELLED, orderStatus_1.ORDER_STATUS.REFUNDED].includes(order.status)) {
@@ -408,13 +417,11 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
                 orderNote: req.body?.orderNote?.trim() || undefined,
                 paymentMethod: req.body?.paymentMethod || undefined,
             };
+            const subtotal = getCartSubtotal(userCart);
             const newOrder = {
                 id: (0, uuid_1.v4)(),
                 items: [...userCart],
-                total: userCart.reduce((sum, item) => {
-                    const price = parseFloat((item.price || '0').replace('$', ''));
-                    return sum + (isNaN(price) ? 0 : price * item.quantity);
-                }, 0),
+                total: subtotal + getShippingFee(subtotal),
                 date: new Date().toISOString(),
                 status: orderStatus_1.ORDER_STATUS.PENDING,
                 statusHistory: [

@@ -6,31 +6,37 @@ const staticKnowledge = [
         id: 'faq-payment-001',
         title: '付款方式',
         type: 'faq',
-        content: '平台目前提供模擬付款流程。若付款失敗，訂單會進入付款失敗狀態，可在結帳頁重新付款。',
+        content: '結帳後會建立待付款訂單。使用者可以在訂單中心選擇信用卡測試付款，或在本機展示時使用 Demo 快速付款完成流程。付款完成後，訂單狀態會更新為付款完成。',
     },
     {
         id: 'faq-order-002',
-        title: '訂單狀態說明',
+        title: '訂單狀態',
         type: 'faq',
-        content: '訂單狀態包含：未付款、付款失敗、已付款、已取消、已退款。每張訂單都會記錄狀態時間軸。',
+        content: '訂單狀態包含待付款、付款未成功、付款完成、已取消與已退款。使用者可以在訂單中心查看訂單狀態、重新付款、取消訂單、申請退款或再次購買。',
     },
     {
         id: 'policy-refund-003',
-        title: '退款與取消',
+        title: '退款規則',
         type: 'policy',
-        content: '未付款或付款失敗的訂單可取消。已付款訂單可申請退款。取消與退款會回補商品庫存。',
+        content: '付款完成的訂單可以在訂單中心申請退款。退款完成後，訂單狀態會更新為已退款，展示資料中的商品庫存也會回補。實際正式環境需要串接付款服務 webhook 與退款審核流程。',
     },
     {
         id: 'policy-account-004',
         title: '帳號與登入',
         type: 'policy',
-        content: '使用者需先登入才能使用購物車、願望清單、下單與訂單查詢功能。',
+        content: '使用者可以註冊帳號、登入、使用 Demo 帳號快速體驗，也可以在忘記密碼時使用重設密碼流程。管理後台只允許管理員帳號進入。',
     },
     {
-        id: 'policy-security-005',
-        title: '平台安全',
+        id: 'policy-shipping-005',
+        title: '配送與出貨',
         type: 'policy',
-        content: '平台 API 具備 request id、基礎 rate limit 與統一錯誤格式，方便追蹤問題。',
+        content: '訂單的出貨狀態包含準備出貨、已出貨與已送達。管理員可以在後台更新出貨狀態與物流資訊，使用者可以在訂單中心查看最新進度。',
+    },
+    {
+        id: 'faq-wishlist-006',
+        title: '願望清單',
+        type: 'faq',
+        content: '願望清單用來收藏想玩的遊戲。使用者可以從願望清單移除商品，或把商品加入購物車。本展示版本不提供自動降價通知。',
     },
 ];
 function buildCatalogDocuments(state) {
@@ -39,14 +45,14 @@ function buildCatalogDocuments(state) {
         .map((game) => {
         const variantText = game.variants && game.variants.length > 0
             ? game.variants
-                .map((variant) => `${variant.name} 價格 ${variant.price} 庫存 ${variant.stock}`)
+                .map((variant) => `${variant.name}，價格 ${variant.price}，庫存 ${variant.stock}`)
                 .join('；')
-            : '無版本資料';
+            : '目前沒有額外版本資訊';
         return {
             id: `catalog-game-${game.id}`,
             title: game.name,
             type: 'catalog',
-            content: `${game.name}。描述：${game.description}。基礎價格：${game.price}。版本：${variantText}`,
+            content: `${game.name}。介紹：${game.description || '暫無介紹'}。價格：${game.price}。版本：${variantText}`,
         };
     });
 }
@@ -78,17 +84,19 @@ function scoreDocument(query, doc) {
             score += 2;
         }
     }
-    if (doc.type === 'catalog' && /(遊戲|價格|庫存|版本|推薦|商品)/.test(query)) {
-        score += 1;
+    if (doc.type === 'catalog' && /(遊戲|商品|推薦|價格|庫存|版本|便宜|開放世界|game|price|stock)/i.test(query)) {
+        score += 3;
+    }
+    if ((doc.type === 'faq' || doc.type === 'policy') && /(付款|訂單|退款|出貨|配送|帳號|登入|願望清單)/.test(query)) {
+        score += 3;
     }
     return score;
 }
 function retrieveRagContext(state, message, topK = 4) {
     const docs = [...staticKnowledge, ...buildCatalogDocuments(state)];
-    const ranked = docs
+    return docs
         .map((doc) => ({ doc, score: scoreDocument(message, doc) }))
         .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, topK);
-    return ranked;
 }

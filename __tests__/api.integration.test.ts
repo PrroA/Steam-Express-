@@ -336,17 +336,55 @@ describe('API integration', () => {
     expect(stockAfterRefund).toBe(initialStock);
   });
 
-  test('rag endpoint returns grounded answer with sources for platform question', async () => {
+  test('rag endpoint rejects empty message', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',
-      body: JSON.stringify({ message: '退款規則是什麼？' }),
+      body: JSON.stringify({ message: '' }),
+    });
+
+    expect(ragRes.status).toBe(400);
+    expect(ragRes.body.error).toBeTruthy();
+  });
+
+  test('rag endpoint grounds product questions with catalog sources', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '推薦便宜的遊戲' }),
     });
 
     expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
     expect(typeof ragRes.body.reply).toBe('string');
     expect(ragRes.body.reply.length).toBeGreaterThan(0);
     expect(Array.isArray(ragRes.body.sources)).toBe(true);
-    expect(ragRes.body.sources.length).toBeGreaterThan(0);
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+  });
+
+  test('rag endpoint grounds refund and payment questions with service sources', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '可以退款嗎？付款失敗怎麼辦？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(typeof ragRes.body.reply).toBe('string');
+    expect(ragRes.body.reply.length).toBeGreaterThan(0);
+    expect(Array.isArray(ragRes.body.sources)).toBe(true);
+    expect(ragRes.body.sources.some((source) => ['faq', 'policy'].includes(source.type))).toBe(true);
+  });
+
+  test('rag endpoint keeps unrelated questions inside support scope', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '請解釋量子力學' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(false);
+    expect(ragRes.body.mode).toBe('out-of-scope');
+    expect(ragRes.body.reply).toContain('商城');
+    expect(ragRes.body.sources).toEqual([]);
   });
 
   test('admin routes enforce permission and allow basic game update for admin', async () => {

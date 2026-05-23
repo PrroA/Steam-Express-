@@ -1,14 +1,15 @@
-# Game Commerce Demo
+# Steam Practice 商城 Demo
 
-這是一個以 Next.js + Express 建立的遊戲商城 demo。專案包含商品瀏覽、購物車、結帳、訂單中心、Stripe 測試付款、管理後台、願望清單與 AI/chat 入口，目標是可本機展示完整購物流程，而不是正式上線商城。
+這是一個用 Next.js + Express 實作的遊戲商城 demo，重點展示會員登入、商品瀏覽、購物車、訂單付款、管理後台、願望清單與 AI 商城客服。專案以本機展示與面試說明為主要目標，保留 SQLite demo persistence，不追求正式上線架構。
 
 ## 技術棧
 
 - Frontend：Next.js、React、TypeScript、Tailwind CSS
 - Backend：Express、TypeScript、JWT、better-sqlite3
-- Payment：Stripe test mode + Demo 快速付款
+- Payment：Stripe test mode、Demo 快速付款
+- AI 客服：OpenAI、Ollama fallback、關鍵字/CJK bigram retrieval
 - Test：Jest、Playwright
-- Persistence：SQLite、本機 uploads 目錄
+- Persistence：SQLite、本機 uploads
 
 ## 本機啟動
 
@@ -17,16 +18,16 @@ npm install
 npm run dev
 ```
 
-預設服務：
+啟動後：
 
-- Frontend：http://localhost:3000
+- 前端：http://localhost:3000
 - Express API：http://localhost:4000
 
-`npm run dev` 會先編譯 backend/server，再同時啟動 Next.js 與 Express。
+`npm run dev` 會同時啟動 Express 與 Next.js。
 
-## 本機 demo 環境變數
+## 本機 Demo 環境變數
 
-請建立 `.env.local`，不要提交到 Git。
+請建立 `.env.local`，不要把正式 key commit 進 Git。
 
 ```env
 PORT=4000
@@ -42,38 +43,56 @@ STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 
 OPENAI_API_KEY=sk-xxx
+OPENAI_CHAT_MODEL=gpt-4o-mini
+
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b-instruct
 ```
-
-Stripe key 用途：
-
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`：前端載入信用卡輸入元件，使用 `pk_test_...`
-- `STRIPE_SECRET_KEY`：後端建立付款資料，使用 `sk_test_...`
-- `STRIPE_WEBHOOK_SECRET`：正式接 webhook 時使用，本機 demo 可先不填
-
-如果沒有設定 Stripe，訂單中心會顯示自然提示，並可用 Demo 快速付款完成流程。
 
 ## Demo 帳號
 
-- 一般展示：登入頁點「使用 Demo 帳號快速進入」
-- 管理後台：`admin / admin`
+- 一般會員：首頁可使用「重新開始 Demo」建立 demo user
+- 管理員：`admin / admin`
 
-`admin / admin` 只適合本機展示。正式環境請一定設定自己的 `ADMIN_PASSWORD`。
+`admin / admin` 只適合本機 demo。正式環境請改用 `ADMIN_USERNAME`、`ADMIN_PASSWORD`，並避免使用弱密碼。
 
-## 建議 Demo Flow
+## Stripe 測試付款
 
-1. 首頁選一款遊戲。
-2. 加入購物車。
-3. 前往購物車完成結帳。
-4. 到訂單中心選擇待付款訂單。
-5. 使用 Stripe 測試卡付款，或使用 Demo 快速付款。
-6. 確認訂單狀態變成「付款完成」。
-7. 切到管理後台查看訂單。
-
-Stripe 測試卡：
-
-- 卡號：`4242 4242 4242 4242`
-- 有效期限：任一未來月份
+- 測試卡號：`4242 4242 4242 4242`
+- 到期日：任意未來日期
 - CVC：任意三碼
+
+若 Stripe key 沒設定，畫面會引導使用 Demo 快速付款，讓展示流程仍可完成。
+
+## AI 商城客服
+
+AI 客服入口位於浮動客服按鈕與 `/chat` 頁面。它會優先回答商品、付款、訂單、退款、配送、帳號與願望清單相關問題，並在畫面上顯示回答是否根據商城資料。
+
+AI provider 順序：
+
+1. 有 `OPENAI_API_KEY` 時，正式環境優先使用 OpenAI。
+2. OpenAI 不可用時，本機可 fallback 到 Ollama。
+3. 兩者都不可用時，仍會回傳固定客服回覆，確保 demo 可展示。
+
+Ollama 是本機學習與 demo fallback，不會自動出現在 Vercel 或 Render 正式環境。若正式部署也想使用 Ollama，需要另外部署可被正式環境連到的模型服務；一般展示建議直接設定 OpenAI key。
+
+本機 Ollama 範例：
+
+```bash
+ollama pull qwen2.5:7b-instruct
+ollama serve
+```
+
+## 固定 Demo Flow
+
+1. 首頁選商品，加入購物車。
+2. 前往購物車，確認品項與數量。
+3. Checkout 建立訂單。
+4. 到訂單中心選擇付款。
+5. 使用 Stripe 測試卡或 Demo 快速付款。
+6. 訂單狀態變成付款完成。
+7. 管理員登入後台查看訂單與商品狀態。
+8. 從 AI 客服詢問「怎麼付款」、「可以退款嗎」、「推薦便宜的遊戲」。
 
 ## 測試與建置
 
@@ -84,20 +103,20 @@ npm test -- --runInBand
 npm run build
 ```
 
-也可以依需求執行：
+視情況可再跑 e2e：
 
 ```bash
 npm run test:e2e
 ```
 
-## 目前限制
+## 面試展示說明
 
-- SQLite 是 demo persistence，正式環境建議改 PostgreSQL、MySQL 或 managed database。
-- 圖片上傳目前存在 local disk，正式環境建議改 Vercel Blob、S3 或 Cloudinary。
-- Demo 快速付款是展示流程用途，不代表真實金流。
-- AI/chat 入口依賴外部模型 key，沒有 key 時應以基本 fallback 展示。
-- 本專案保留部分 demo seed data，正式上線需要補 migration、監控、rate limit 與更完整的權限控管。
+可直接口述的展示講稿放在 [docs/demo-script.md](./docs/demo-script.md)，內容包含專案介紹、demo flow、付款流程、AI/RAG 設計與正式化方向。
 
-## 面試說明
+## 部署注意事項
 
-可參考 [README.INTERVIEW.md](./README.INTERVIEW.md)，裡面整理了可直接口述的專案介紹、系統流程、付款流程與正式化改進方向。
+- SQLite 只適合 demo persistence，正式環境建議改成 PostgreSQL、MySQL 或 managed database。
+- 圖片上傳目前使用 local disk，正式環境建議改成 Vercel Blob、S3 或 Cloudinary。
+- Demo 快速付款只適合展示，不代表真實金流完成。
+- AI 客服不會直接操作訂單、付款或退款，只提供導引與商品問答。
+- `README.INTERVIEW.md` 保留面試講稿與專案說明，後續可再擴充部署架構與正式化 roadmap。
