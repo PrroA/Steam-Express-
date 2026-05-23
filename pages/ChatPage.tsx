@@ -1,23 +1,55 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaHeadset, FaPaperPlane } from 'react-icons/fa';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  (process.env.NODE_ENV === 'production' ? 'https://steam-express.onrender.com' : 'http://localhost:4000');
+function getApiBaseUrl() {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL;
+  }
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+      return 'http://localhost:4000';
+    }
+  }
+
+  return 'https://steam-express.onrender.com';
+}
 
 type ChatSource = {
   id: string;
   title: string;
-  type: 'faq' | 'policy' | 'catalog';
+  type: 'faq' | 'policy' | 'catalog' | 'order';
   score?: number;
+};
+
+type RagScoreBreakdown = {
+  exact?: number;
+  title?: number;
+  content?: number;
+  tags?: number;
+  intent?: number;
+};
+
+type RagDebug = {
+  retriever: string;
+  query: string;
+  matches: Array<{
+    id: string;
+    title: string;
+    type: string;
+    score: number;
+    scoreBreakdown?: RagScoreBreakdown;
+  }>;
 };
 
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
-  status?: 'grounded' | 'general' | 'unavailable';
+  status?: 'grounded' | 'general' | 'unavailable' | 'account';
   sources?: ChatSource[];
+  debug?: RagDebug;
 };
 
 function createMessageId() {
@@ -25,15 +57,40 @@ function createMessageId() {
 }
 
 function getStatusLabel(message: ChatMessage) {
+  if (message.status === 'account') return '根據你的訂單回答';
   if (message.status === 'grounded') return '根據商城資料回答';
-  if (message.status === 'unavailable') return '目前 AI 暫時無法使用';
+  if (message.status === 'unavailable') return '目前先用客服建議回覆';
   return '一般客服回覆';
 }
 
 function getSourceTypeLabel(type: ChatSource['type']) {
   if (type === 'catalog') return '商品資料';
-  if (type === 'policy') return '服務規則';
-  return '常見問題';
+  if (type === 'policy') return '商店規則';
+  if (type === 'order') return '你的訂單';
+  return '客服說明';
+}
+
+function getAuthHeader() {
+  if (typeof window === 'undefined') return {};
+  const token = window.localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isLocalHost() {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+function formatScoreBreakdown(scoreBreakdown?: RagScoreBreakdown) {
+  if (!scoreBreakdown) return [];
+  return [
+    ['exact', scoreBreakdown.exact],
+    ['title', scoreBreakdown.title],
+    ['content', scoreBreakdown.content],
+    ['tags', scoreBreakdown.tags],
+    ['intent', scoreBreakdown.intent],
+  ].filter(([, value]) => Number(value || 0) > 0);
 }
 
 export default function ChatPage() {
@@ -42,17 +99,19 @@ export default function ChatPage() {
     {
       id: 'welcome',
       role: 'assistant',
-      text: '你好，我是商城客服助理。可以問我商品推薦、付款方式、訂單狀態、退款、配送或帳號相關問題。',
+      text: '你好，我可以幫你找商品、推薦適合的遊戲，也可以在你登入後整理最近的訂單狀態。',
       status: 'general',
       sources: [],
     },
   ]);
   const [isReplying, setIsReplying] = useState(false);
+  const [debugAvailable, setDebugAvailable] = useState(false);
+  const [debugEnabled, setDebugEnabled] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const quickPrompts = useMemo(
-    () => ['怎麼付款？', '可以退款嗎？', '推薦便宜的遊戲', '訂單付款失敗怎麼辦？'],
+    () => ['適合我的推薦', '推薦便宜的遊戲', '我的訂單狀態', '付款失敗怎麼辦？'],
     []
   );
 
@@ -62,6 +121,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     inputRef.current?.focus();
+    setDebugAvailable(isLocalHost());
   }, []);
 
   const sendMessage = async (text?: string) => {
@@ -75,9 +135,13 @@ export default function ChatPage() {
     try {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 15000);
-      const response = await fetch(`${API_BASE_URL}/chat/rag`, {
+      const debugQuery = debugAvailable && debugEnabled ? '?debug=1' : '';
+      const response = await fetch(`${getApiBaseUrl()}/chat/rag${debugQuery}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
         body: JSON.stringify({ message: content }),
         signal: controller.signal,
       });
@@ -89,20 +153,24 @@ export default function ChatPage() {
 
       const data = await response.json();
       const sources = Array.isArray(data?.sources) ? data.sources.slice(0, 2) : [];
-      const status = data?.grounded
-        ? 'grounded'
-        : data?.mode === 'service-fallback'
-          ? 'unavailable'
-          : 'general';
+      const status =
+        data?.mode === 'order-status'
+          ? 'account'
+          : data?.grounded
+            ? 'grounded'
+            : data?.mode === 'service-fallback'
+              ? 'unavailable'
+              : 'general';
 
       setMessages((previous) => [
         ...previous,
         {
           id: createMessageId(),
           role: 'assistant',
-          text: data?.reply || '我暫時沒有整理出合適回答，請換個方式再問一次。',
+          text: data?.reply || '我暫時沒有整理出答案，你可以換個方式問我商品、付款或訂單問題。',
           status,
           sources,
+          debug: data?.debug,
         },
       ]);
     } catch {
@@ -111,7 +179,7 @@ export default function ChatPage() {
         {
           id: createMessageId(),
           role: 'assistant',
-          text: '目前 AI 暫時無法使用。你可以先到訂單中心查看付款與退款狀態，或回到商店確認商品資訊。',
+          text: '目前客服助理暫時連不上。你仍然可以先逛商品、加入購物車，或到訂單中心查看狀態。',
           status: 'unavailable',
           sources: [],
         },
@@ -128,10 +196,10 @@ export default function ChatPage() {
           <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">AI 商城客服</p>
           <h1 className="mt-2 flex items-center gap-2 text-3xl font-black text-[#d8e6f3]">
             <FaHeadset className="text-[#66c0f4]" aria-hidden />
-            有問題可以先問我
+            需要我幫你找遊戲嗎？
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#9eb4c8]">
-            我可以協助商品、購物車、付款、訂單、退款、配送、帳號與願望清單問題。回答會盡量根據目前商城資料整理。
+            可以問商品推薦、付款、退款、配送、願望清單。登入後也能詢問自己的訂單狀態。
           </p>
         </div>
 
@@ -170,6 +238,37 @@ export default function ChatPage() {
                           </div>
                         </div>
                       )}
+                      {!isUser && debugEnabled && message.debug && (
+                        <div className="mt-3 rounded-lg border border-[#8bc53f55] bg-[#122816] p-3 text-xs text-[#cfe8c5]">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-bold tracking-[0.12em] text-[#b7df9e]">RAG 依據</p>
+                            <span className="rounded-full border border-[#8bc53f55] px-2 py-0.5 text-[11px]">
+                              {message.debug.retriever}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-[#adcda5]">查詢：{message.debug.query}</p>
+                          <div className="mt-2 space-y-2">
+                            {message.debug.matches.length === 0 && (
+                              <p className="text-[#adcda5]">這次沒有命中文件，使用一般客服範圍回覆。</p>
+                            )}
+                            {message.debug.matches.slice(0, 3).map((match) => (
+                              <div key={match.id} className="rounded-md border border-[#8bc53f33] bg-[#0f2113] p-2">
+                                <div className="flex flex-wrap justify-between gap-2">
+                                  <span className="font-semibold text-[#e0f4d9]">{match.title}</span>
+                                  <span>score {match.score}</span>
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-[#bddab4]">
+                                  {formatScoreBreakdown(match.scoreBreakdown).map(([label, value]) => (
+                                    <span key={String(label)} className="rounded border border-[#8bc53f33] px-1.5 py-0.5">
+                                      {label}: {value}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </article>
                 );
@@ -177,7 +276,7 @@ export default function ChatPage() {
               {isReplying && (
                 <article className="flex justify-start">
                   <div className="rounded-2xl border border-[#66c0f433] bg-[#132434] px-4 py-3 text-sm text-[#9eb4c8]">
-                    正在整理回答...
+                    正在整理回覆...
                   </div>
                 </article>
               )}
@@ -191,7 +290,7 @@ export default function ChatPage() {
                   type="text"
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
-                  placeholder="輸入你的問題，例如：怎麼付款？"
+                  placeholder="輸入你的問題，例如：推薦便宜的遊戲"
                   className="min-w-0 flex-1 rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
                   onKeyDown={(event) => event.key === 'Enter' && sendMessage()}
                 />
@@ -209,7 +308,7 @@ export default function ChatPage() {
           </section>
 
           <aside className="steam-panel h-fit rounded-2xl border border-[#66c0f433] p-4">
-            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速提問</p>
+            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速詢問</p>
             <div className="mt-3 grid gap-2">
               {quickPrompts.map((prompt) => (
                 <button
@@ -223,8 +322,22 @@ export default function ChatPage() {
                 </button>
               ))}
             </div>
+            {debugAvailable && (
+              <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#8bc53f55] bg-[#102217] p-3 text-xs text-[#d6edce]">
+                <span>
+                  <span className="block font-bold">顯示 RAG 依據</span>
+                  <span className="mt-1 block text-[#aacda1]">本機展示用，查看命中文件與分數。</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={debugEnabled}
+                  onChange={(event) => setDebugEnabled(event.target.checked)}
+                  className="h-4 w-4 accent-[#8bc53f]"
+                />
+              </label>
+            )}
             <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3 text-xs leading-5 text-[#9eb4c8]">
-              客服助理不會直接替你付款、退款或取消訂單；需要操作時，會引導你到對應頁面完成。
+              訂單狀態只會在你登入後顯示自己的資料。客服助理可以協助整理資訊，但不會替你付款、退款或取消訂單。
             </p>
           </aside>
         </div>

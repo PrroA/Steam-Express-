@@ -354,9 +354,43 @@ describe('API integration', () => {
 
     expect(ragRes.status).toBe(200);
     expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('product-recommendation');
     expect(typeof ragRes.body.reply).toBe('string');
     expect(ragRes.body.reply.length).toBeGreaterThan(0);
+    expect(ragRes.body.reply).toContain('最低');
     expect(Array.isArray(ragRes.body.sources)).toBe(true);
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+  });
+
+  test('rag endpoint personalizes recommendations for signed-in users', async () => {
+    const loginRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(loginRes.status).toBe(200);
+    const token = loginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => item.isActive !== false);
+
+    const wishlistRes = await requestJson('/wishlist', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id }),
+    });
+    expect(wishlistRes.status).toBe(200);
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: '適合我的推薦' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('personalized-recommendation');
+    expect(ragRes.body.reply).toContain('願望清單');
+    expect(ragRes.body.reply).toContain(game.name);
     expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
   });
 
@@ -374,6 +408,29 @@ describe('API integration', () => {
     expect(ragRes.body.sources.some((source) => ['faq', 'policy'].includes(source.type))).toBe(true);
   });
 
+  test('rag endpoint returns retriever debug details when requested locally', async () => {
+    const ragRes = await requestJson('/chat/rag?debug=1', {
+      method: 'POST',
+      body: JSON.stringify({ message: '可以退款嗎？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.debug).toBeTruthy();
+    expect(ragRes.body.debug.retriever).toBe('local-hybrid');
+    expect(ragRes.body.debug.query).toBe('可以退款嗎？');
+    expect(Array.isArray(ragRes.body.debug.matches)).toBe(true);
+    expect(ragRes.body.debug.matches.length).toBeGreaterThan(0);
+    expect(ragRes.body.debug.matches[0].scoreBreakdown).toEqual(
+      expect.objectContaining({
+        exact: expect.any(Number),
+        title: expect.any(Number),
+        content: expect.any(Number),
+        tags: expect.any(Number),
+        intent: expect.any(Number),
+      })
+    );
+  });
+
   test('rag endpoint keeps unrelated questions inside support scope', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',
@@ -385,6 +442,59 @@ describe('API integration', () => {
     expect(ragRes.body.mode).toBe('out-of-scope');
     expect(ragRes.body.reply).toContain('商城');
     expect(ragRes.body.sources).toEqual([]);
+  });
+
+  test('rag endpoint asks users to log in before checking personal orders', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '我的訂單狀態' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(false);
+    expect(ragRes.body.mode).toBe('order-auth-required');
+    expect(ragRes.body.reply).toContain('登入');
+    expect(ragRes.body.sources).toEqual([]);
+  });
+
+  test('rag endpoint summarizes personal order status for signed-in users', async () => {
+    const loginRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(loginRes.status).toBe(200);
+    const token = loginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => item.isActive !== false && item.variants?.some((variant) => variant.stock > 0));
+    const variant = game.variants.find((item) => item.stock > 0);
+
+    const addRes = await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id, variantId: variant.id }),
+    });
+    expect(addRes.status).toBe(201);
+
+    const checkoutRes = await requestJson('/checkout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    expect(checkoutRes.status).toBe(200);
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: '我的訂單狀態' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('order-status');
+    expect(ragRes.body.reply).toContain('待付款');
+    expect(ragRes.body.reply).toContain(checkoutRes.body.order.id.slice(-6));
+    expect(ragRes.body.sources.some((source) => source.type === 'order')).toBe(true);
   });
 
   test('admin routes enforce permission and allow basic game update for admin', async () => {
