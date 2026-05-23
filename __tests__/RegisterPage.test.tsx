@@ -1,6 +1,5 @@
-
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import RegisterPage from '../pages/register';         
+import RegisterPage from '../pages/register';
 import { toast } from 'react-toastify';
 import { registerUser } from '../services/authService';
 
@@ -21,35 +20,22 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPush.mockReset();
 });
+
 const fillForm = ({
   username = '',
   email = '',
   password = '',
   confirmPassword = '',
 } = {}) => {
-  if (username !== undefined) {
-    fireEvent.change(screen.getByPlaceholderText(/用戶名/i), {
-      target: { value: username },
-    });
-  }
-  if (email !== undefined) {
-    fireEvent.change(screen.getByPlaceholderText(/email/i), {
-      target: { value: email },
-    });
-  }
-  if (password !== undefined) {
-    fireEvent.change(screen.getByPlaceholderText(/^密碼$/i), {
-      target: { value: password },
-    });
-  }
-  if (confirmPassword !== undefined) {
-    fireEvent.change(screen.getByPlaceholderText(/確認密碼/i), {
-      target: { value: confirmPassword },
-    });
-  }
+  fireEvent.change(screen.getByTestId('register-username'), { target: { value: username } });
+  fireEvent.change(screen.getByTestId('register-email'), { target: { value: email } });
+  fireEvent.change(screen.getByTestId('register-password'), { target: { value: password } });
+  fireEvent.change(screen.getByTestId('register-confirm-password'), {
+    target: { value: confirmPassword },
+  });
 };
 
-test('欄位驗證：Email 格式錯誤', async () => {
+test('Email 格式錯誤時顯示提示', async () => {
   render(<RegisterPage />);
 
   fillForm({
@@ -58,11 +44,11 @@ test('欄位驗證：Email 格式錯誤', async () => {
     password: 'Password1',
     confirmPassword: 'Password1',
   });
-  fireEvent.click(screen.getByRole('button', { name: /註冊/i }));
-  expect(await screen.findByText('Email 格式不正確')).toBeInTheDocument();
+  fireEvent.click(screen.getByTestId('register-submit'));
+  expect(await screen.findByText('Email 格式看起來不正確。')).toBeInTheDocument();
 });
 
-test('欄位驗證：密碼過弱', async () => {
+test('密碼太弱時顯示提示', async () => {
   render(<RegisterPage />);
 
   fillForm({
@@ -71,13 +57,11 @@ test('欄位驗證：密碼過弱', async () => {
     password: 'short',
     confirmPassword: 'short',
   });
-  fireEvent.click(screen.getByRole('button', { name: /註冊/i }));
-  expect(
-    await screen.findByText('密碼必須包含至少 8 個字符、數字、字母和特殊符號')
-  ).toBeInTheDocument();
+  fireEvent.click(screen.getByTestId('register-submit'));
+  expect(await screen.findByText('密碼至少 8 個字元，並包含英文與數字。')).toBeInTheDocument();
 });
 
-test('欄位驗證：兩次密碼不一致', async () => {
+test('兩次密碼不一致時顯示提示', async () => {
   render(<RegisterPage />);
 
   fillForm({
@@ -86,38 +70,35 @@ test('欄位驗證：兩次密碼不一致', async () => {
     password: 'Password1',
     confirmPassword: 'Password2',
   });
-  fireEvent.click(screen.getByRole('button', { name: /註冊/i }));
-  expect(await screen.findByText('兩次輸入的密碼不一致')).toBeInTheDocument();
+  fireEvent.click(screen.getByTestId('register-submit'));
+  expect(await screen.findByText('兩次輸入的密碼不一致。')).toBeInTheDocument();
 });
 
-test('成功註冊：呼叫 API、toast.success、導向 /login', async () => {
+test('註冊成功後導向登入頁', async () => {
   registerUser.mockResolvedValueOnce({ ok: true });
 
   render(<RegisterPage />);
 
   fillForm({ username: 'gooduser', email: 'good@test.com', password: 'Password1', confirmPassword: 'Password1' });
-  fireEvent.click(screen.getByRole('button', { name: /註冊/i }));
+  fireEvent.click(screen.getByTestId('register-submit'));
 
-  // 等待 API 被打（可選擇性驗證）
   await waitFor(() => {
     expect(registerUser).toHaveBeenCalledWith('gooduser', 'Password1', 'good@test.com');
   });
 
-  expect(toast.success).toHaveBeenCalled();      
+  expect(toast.success).toHaveBeenCalledWith('帳號建立完成，請登入。');
   expect(mockPush).toHaveBeenCalledWith('/login');
 });
 
-test('註冊失敗：顯示 toast.error', async () => {
-  registerUser.mockRejectedValueOnce({
-    response: { data: { message: '帳號已存在' } },
-  });
+test('註冊失敗時顯示提示', async () => {
+  registerUser.mockRejectedValueOnce(new Error('duplicate'));
 
   render(<RegisterPage />);
 
   fillForm({ username: 'dupuser', email: 'dup@test.com', password: 'Password1', confirmPassword: 'Password1' });
-  fireEvent.click(screen.getByRole('button', { name: /註冊/i }));
+  fireEvent.click(screen.getByTestId('register-submit'));
 
   await waitFor(() => {
-    expect(toast.error).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('註冊沒有完成，請確認資料後再試一次。');
   });
 });

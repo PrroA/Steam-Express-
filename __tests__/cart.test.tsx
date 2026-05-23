@@ -23,10 +23,10 @@ describe('CartPage Component', () => {
     fetchCart.mockResolvedValue([]);
   });
 
-  test('應該要出現「你的購物車是空的」提示', async () => {
+  test('購物車為空時顯示空狀態', async () => {
     render(<CartPage />);
     await waitFor(() => {
-      expect(screen.getByText('你的購物車是空的')).toBeInTheDocument();
+      expect(screen.getByText('購物車是空的')).toBeInTheDocument();
     });
   });
 });

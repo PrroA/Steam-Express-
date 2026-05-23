@@ -5,52 +5,48 @@ import { confirmPasswordReset } from '../services/authService';
 
 export default function ConfirmResetPasswordPage() {
   const router = useRouter();
-  const initialToken = typeof router.query?.token === 'string' ? router.query.token : '';
-  const [resetToken, setResetToken] = useState(initialToken);
+  const initialCode = typeof router.query?.token === 'string' ? router.query.token : '';
+  const [resetCode, setResetCode] = useState(initialCode);
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    if (!resetToken && initialToken) {
-      setResetToken(initialToken);
-    }
-  }, [initialToken, resetToken]);
+    if (!resetCode && initialCode) setResetCode(initialCode);
+  }, [initialCode, resetCode]);
 
-  const handleConfirmReset = async (e) => {
-    e.preventDefault();
-    if (!resetToken || !newPassword) {
+  const handleConfirmReset = async (event) => {
+    event.preventDefault();
+    if (!resetCode || !newPassword) {
       setIsError(true);
-      setMessage('請輸入所有欄位');
+      setMessage('請輸入驗證碼與新密碼。');
       return;
     }
 
     try {
-      await confirmPasswordReset(resetToken, newPassword);
+      await confirmPasswordReset(resetCode, newPassword);
       setIsError(false);
-      setMessage('密碼重設成功，正在跳轉至登入頁面...');
-      setTimeout(() => {
-        router.push('/login');
-      }, 1200);
-    } catch (error) {
+      setMessage('密碼已更新，正在帶你回登入頁。');
+      setTimeout(() => router.push('/login'), 1200);
+    } catch {
       setIsError(true);
-      setMessage(error.response?.data?.message || '密碼重設失敗，請確認 Token 是否正確');
+      setMessage('密碼還沒更新成功，請確認驗證碼後再試一次。');
     }
   };
 
   return (
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
       <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
-        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">VERIFY TOKEN</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">重設密碼</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">輸入臨時 Token 與新密碼完成設定。</p>
+        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">重設密碼</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">設定新密碼</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">輸入收到的驗證碼與新密碼，即可完成設定。</p>
 
         <form onSubmit={handleConfirmReset} className="mt-6 space-y-4">
           <input
             type="text"
-            placeholder="輸入臨時 Token"
-            value={resetToken}
-            onChange={(e) => setResetToken(e.target.value)}
+            placeholder="輸入驗證碼"
+            value={resetCode}
+            onChange={(event) => setResetCode(event.target.value)}
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
             required
           />
@@ -58,23 +54,21 @@ export default function ConfirmResetPasswordPage() {
             type="password"
             placeholder="輸入新密碼"
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={(event) => setNewPassword(event.target.value)}
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
             required
           />
           <button type="submit" className="steam-btn w-full rounded-md py-2.5 text-sm">
-            提交新密碼
+            更新密碼
           </button>
         </form>
 
-        {message && (
-          <p className={`mt-4 text-sm ${isError ? 'text-[#ff9e9e]' : 'text-[#8bc53f]'}`}>{message}</p>
-        )}
+        {message && <p className={`mt-4 text-sm ${isError ? 'text-[#ff9e9e]' : 'text-[#8bc53f]'}`}>{message}</p>}
 
         <p className="mt-4 text-sm text-[#9eb4c8]">
-          想直接登入？
+          想起密碼了？
           <Link href="/login" className="ml-1 text-[#8fb8d5] transition hover:text-[#66c0f4]">
-            返回登入
+            回到登入
           </Link>
         </p>
       </section>

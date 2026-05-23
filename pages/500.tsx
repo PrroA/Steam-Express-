@@ -4,8 +4,8 @@ export default function Custom500() {
   return (
     <ErrorPageView
       code="500"
-      title="伺服器暫時忙碌"
-      description="系統目前發生錯誤，請稍後再試，或先返回首頁繼續瀏覽。"
+      title="頁面暫時無法顯示"
+      description="剛剛的操作沒有順利完成，請稍後再試，或先回到商店繼續瀏覽。"
     />
   );
 }

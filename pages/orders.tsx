@@ -32,13 +32,10 @@ const statusFilters: Array<{ id: OrderStatusFilter; label: string }> = [
   { id: ORDER_STATUS.PAID, label: getOrderStatusLabel(ORDER_STATUS.PAID) },
 ];
 
-const stripePublishableKey =
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-  'pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB';
-
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = loadStripe(stripePublishableKey);
 
-export default function CheckoutPage() {
+export default function OrdersPage() {
   const router = useRouter();
   const isPaymentSuccess = router.query.payment === 'success';
   const successOrderId = typeof router.query.orderId === 'string' ? router.query.orderId : '';
@@ -66,8 +63,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!router.isReady) return;
-    const preferredOrderId =
-      typeof router.query.orderId === 'string' ? router.query.orderId : undefined;
+    const preferredOrderId = typeof router.query.orderId === 'string' ? router.query.orderId : undefined;
     loadOrders(preferredOrderId);
   }, [loadOrders, router.isReady, router.query.orderId]);
 
@@ -76,10 +72,10 @@ export default function CheckoutPage() {
       await confirmPaidOrder(paidOrderId);
       trackJourneyEvent({
         type: 'payment_success',
-        title: '付款成功',
+        title: '付款完成',
         subtitle: `訂單 ${paidOrderId.slice(0, 8)}...`,
       });
-      toast.success('付款完成，正在返回首頁');
+      toast.success('付款完成，訂單已更新');
       setTimeout(() => {
         router.push({
           pathname: '/',
@@ -100,17 +96,17 @@ export default function CheckoutPage() {
 
   const handleRefundOrder = useCallback(() => {
     if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
-    return mutateOrder(refundOrder, '退款完成', 'refund');
+    return mutateOrder(refundOrder, '退款已完成', 'refund');
   }, [mutateOrder, selectedOrder?.id]);
 
   const handleRetryOrder = useCallback(() => {
     if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
-    return mutateOrder(retryOrderPayment, '訂單已轉為待付款', 'retry');
+    return mutateOrder(retryOrderPayment, '可以重新付款了', 'retry');
   }, [mutateOrder, selectedOrder?.id]);
 
   const handleSimulateFailure = useCallback(() => {
     if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
-    return mutateOrder((orderId, token) => payOrder(orderId, token, true), '已模擬付款失敗', 'simulate');
+    return mutateOrder((orderId, token) => payOrder(orderId, token, true), '已模擬付款未成功', 'simulate');
   }, [mutateOrder, selectedOrder?.id]);
 
   const handleViewOrderDetail = useCallback(
@@ -127,14 +123,13 @@ export default function CheckoutPage() {
       try {
         const result = await reorderOrder(orderId, token);
         if (result.skipped?.length) {
-          toast.info(`已加入 ${result.addedCount} 項，${result.skipped.length} 項因庫存/下架略過`);
+          toast.info(`已加入 ${result.addedCount} 件商品，另有 ${result.skipped.length} 件暫時無法加入。`);
         } else {
-          toast.success('已將訂單商品加入購物車');
+          toast.success('已把這筆訂單的商品加入購物車。');
         }
         router.push('/cart');
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '再買一次失敗';
-        toast.error(message);
+      } catch {
+        toast.error('暫時無法重新加入購物車，請稍後再試。');
       } finally {
         setReorderingOrderId(null);
       }
@@ -171,22 +166,24 @@ export default function CheckoutPage() {
   }
 
   if (error && orders.length === 0) {
-    return <ErrorState title="訂單資料載入失敗" description={error} onAction={() => loadOrders()} />;
+    return <ErrorState title="訂單載入失敗" description="目前無法取得訂單，請稍後再試。" onAction={() => loadOrders()} />;
   }
 
   return (
     <main className="steam-shell px-4 py-6 md:px-6">
       <section className="mx-auto w-full max-w-6xl">
-        <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">ORDER CENTER</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">結帳與付款</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">選擇訂單後完成付款，狀態會即時更新。</p>
+        <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">訂單中心</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">我的訂單</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">
+          查看訂單狀態、完成付款，或再次購買喜歡的遊戲。
+        </p>
 
         {isPaymentSuccess && <PaymentSuccessBanner successOrderId={successOrderId} />}
 
-        {loading && <p className="mt-3 text-sm text-[#9eb4c8]">正在同步最新訂單狀態...</p>}
+        {loading && <p className="mt-3 text-sm text-[#9eb4c8]">正在更新訂單...</p>}
         {error && (
           <div className="mt-3 rounded-md border border-[#ff9e9e66] bg-[#4a202a] px-3 py-2 text-sm text-[#ffd6d6]">
-            {error}
+            訂單暫時沒有更新成功，請稍後再試。
           </div>
         )}
 
@@ -194,8 +191,8 @@ export default function CheckoutPage() {
         <OrderActionSummary orders={orders} />
 
         <section className="mt-5 rounded-2xl border border-[#66c0f433] bg-[#132434] p-4">
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">FIND ORDERS FAST</p>
-          <h2 className="mt-2 text-xl font-black text-[#d8e6f3]">快速篩選與查找</h2>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速找到訂單</p>
+          <h2 className="mt-2 text-xl font-black text-[#d8e6f3]">篩選與搜尋</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {statusFilters.map((filter) => (
               <button
@@ -215,10 +212,12 @@ export default function CheckoutPage() {
           <input
             value={orderKeyword}
             onChange={(event) => setOrderKeyword(event.target.value)}
-            placeholder="輸入訂單編號關鍵字（例如 8a4f）"
+            placeholder="輸入訂單編號，例如 8a4f"
             className="mt-3 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
           />
-          <p className="mt-2 text-xs text-[#8faac0]">目前顯示 {filteredOrders.length} / {orders.length} 筆</p>
+          <p className="mt-2 text-xs text-[#8faac0]">
+            目前顯示 {filteredOrders.length} / {orders.length} 筆
+          </p>
         </section>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1fr]">
@@ -257,13 +256,12 @@ export default function CheckoutPage() {
           />
         ) : (
           <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-6 text-center">
-            <p className="text-lg font-black text-[#d8e6f3]">沒有符合條件的訂單</p>
-            <p className="mt-2 text-sm text-[#9eb4c8]">可以改變狀態篩選或清空關鍵字重新查找。</p>
+            <p className="text-lg font-black text-[#d8e6f3]">找不到符合條件的訂單</p>
+            <p className="mt-2 text-sm text-[#9eb4c8]">可以切換篩選條件，或回到商店建立新的訂單。</p>
           </div>
         )}
 
         <OrderTimeline selectedOrder={selectedOrder} />
-
       </section>
     </main>
   );

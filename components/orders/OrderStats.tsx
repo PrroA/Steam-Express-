@@ -20,11 +20,11 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export function OrderStats({ stats }: OrderStatsProps) {
   return (
     <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      <StatCard label="總訂單數" value={`${stats.totalOrders} 筆`} />
-      <StatCard label="已付款" value={`${stats.paidCount} 筆`} />
+      <StatCard label="全部訂單" value={`${stats.totalOrders} 筆`} />
+      <StatCard label="付款完成" value={`${stats.paidCount} 筆`} />
       <StatCard label="待付款" value={`${stats.unpaidCount} 筆`} />
-      <StatCard label="付款失敗" value={`${stats.failedCount} 筆`} />
-      <StatCard label="已收款總額" value={`$${stats.paidRevenue.toFixed(2)}`} />
+      <StatCard label="付款未成功" value={`${stats.failedCount} 筆`} />
+      <StatCard label="已付款金額" value={`$${stats.paidRevenue.toFixed(2)}`} />
     </div>
   );
 }

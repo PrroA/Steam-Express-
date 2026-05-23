@@ -3,7 +3,7 @@ import { FaExclamationTriangle } from 'react-icons/fa';
 
 export function LoadingState({
   title = '載入中',
-  description = '資料整理中，請稍候...',
+  description = '正在整理內容，請稍候...',
 }) {
   return (
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
@@ -17,9 +17,9 @@ export function LoadingState({
 }
 
 export function ErrorState({
-  title = '載入失敗',
-  description = '目前無法取得資料，請稍後重試。',
-  actionLabel = '重新整理',
+  title = '暫時無法載入',
+  description = '內容還沒準備好，請稍後再試。',
+  actionLabel = '再試一次',
   onAction,
 }) {
   return (
@@ -30,7 +30,7 @@ export function ErrorState({
         <p className="mt-2 text-sm text-[#9eb4c8]">{description}</p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {typeof onAction === 'function' && (
-            <button onClick={onAction} className="steam-btn rounded-md px-4 py-2 text-sm">
+            <button type="button" onClick={onAction} className="steam-btn rounded-md px-4 py-2 text-sm">
               {actionLabel}
             </button>
           )}
@@ -38,11 +38,10 @@ export function ErrorState({
             href="/"
             className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-4 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
           >
-            返回首頁
+            回到商店
           </Link>
         </div>
       </div>
     </main>
   );
 }
-

@@ -30,14 +30,14 @@ export function OrderPaymentPanel({
 
   return (
     <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
-      <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">PAYMENT</p>
-      <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">付款流程</h2>
+      <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">付款</p>
+      <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">完成這筆訂單</h2>
       <p className="mt-1 text-sm text-[#9eb4c8]">
-        Stripe 信用卡欄位只會在待付款訂單，且後端已設定 Stripe Secret Key 時顯示。
+        你可以使用測試卡號完成信用卡付款；若暫時無法載入，也能用 Demo 快速付款跑完整流程。
       </p>
 
       <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
-        <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">CURRENT ORDER</p>
+        <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">目前訂單</p>
         {selectedOrder ? (
           <>
             <div className="mt-2 flex items-center justify-between gap-2">
@@ -62,24 +62,20 @@ export function OrderPaymentPanel({
             </div>
           </>
         ) : (
-          <p className="mt-2 text-sm text-[#9eb4c8]">請先建立或選擇一筆待付款訂單。</p>
+          <p className="mt-2 text-sm text-[#9eb4c8]">請先從左側選擇一筆待付款訂單。</p>
         )}
       </div>
 
       {selectedOrder?.status !== ORDER_STATUS.PENDING ? (
         <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-          目前選中的訂單不是待付款狀態，不能進行付款。請切換到待付款訂單。
+          這筆訂單目前不需要付款。若要重新付款，請先在訂單操作中選擇重新付款。
         </p>
       ) : clientSecret ? (
         <Elements stripe={stripePromise} options={elementOptions}>
           <CheckoutForm clientSecret={clientSecret} orderId={selectedOrder?.id} onPaid={onPaid} />
         </Elements>
       ) : (
-        <DemoPaymentFallback
-          orderId={selectedOrder?.id}
-          errorMessage={paymentIntentError}
-          onPaid={onPaid}
-        />
+        <DemoPaymentFallback orderId={selectedOrder?.id} errorMessage={paymentIntentError} onPaid={onPaid} />
       )}
     </div>
   );
@@ -99,7 +95,7 @@ function DemoPaymentFallback({
 
   const handleQuickPay = async () => {
     if (!orderId) {
-      setMessage('找不到訂單 ID，請重新選擇訂單。');
+      setMessage('請先選擇一筆訂單。');
       return;
     }
 
@@ -107,12 +103,11 @@ function DemoPaymentFallback({
       setQuickPayLoading(true);
       setMessage('');
       await payOrder(orderId, localStorage.getItem('token'));
-      toast.success('Demo 付款成功');
-      setMessage('Demo 付款成功，正在更新訂單狀態...');
+      toast.success('付款完成');
+      setMessage('付款完成，訂單正在更新...');
       await onPaid(orderId);
-    } catch (error) {
-      const text = error instanceof Error ? error.message : 'Demo 付款失敗，請稍後再試';
-      setMessage(text);
+    } catch {
+      setMessage('付款還沒完成，請再試一次。');
     } finally {
       setQuickPayLoading(false);
     }
@@ -120,22 +115,18 @@ function DemoPaymentFallback({
 
   return (
     <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-      <p className="font-bold text-[#d8e6f3]">Demo 快速付款</p>
-      {errorMessage ? (
-        <p className="mt-2 text-[#ffd079]">{errorMessage}</p>
-      ) : (
-        <p className="mt-2">Stripe 付款表單尚未載入，通常是付款流程還在建立中。</p>
-      )}
-      <p className="mt-2 text-xs text-[#8faac0]">
-        如果要看到信用卡卡號輸入框，請在後端環境變數設定 STRIPE_SECRET_KEY，然後重新啟動 dev server。
+      <p className="font-bold text-[#d8e6f3]">目前無法載入信用卡付款</p>
+      <p className="mt-2 text-[#ffd079]">
+        {errorMessage || '請使用 Demo 快速付款完成流程，或稍後再回來嘗試信用卡付款。'}
       </p>
       <button
         type="button"
+        data-testid="demo-quick-pay"
         onClick={handleQuickPay}
         disabled={quickPayLoading}
         className="mt-3 w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {quickPayLoading ? '處理中...' : 'Demo 快速付款（不走 Stripe）'}
+        {quickPayLoading ? '付款處理中...' : '使用 Demo 快速付款'}
       </button>
       {message && <p className="mt-2 text-sm text-[#ffd079]">{message}</p>}
     </div>
@@ -175,12 +166,12 @@ function CheckoutForm({
     setMessage('');
 
     if (!stripe || !elements) {
-      setMessage('Stripe 尚未初始化完成，請稍後再試。');
+      setMessage('信用卡付款還在載入，請稍後再試。');
       setLoading(false);
       return;
     }
     if (!orderId) {
-      setMessage('缺少訂單 ID，請重新選擇訂單。');
+      setMessage('請先選擇一筆訂單。');
       setLoading(false);
       return;
     }
@@ -190,16 +181,18 @@ function CheckoutForm({
     });
 
     if (error) {
-      setMessage(error.message || 'Stripe 付款失敗，請稍後再試。');
+      setMessage(error.message || '付款還沒完成，請確認卡片資料後再試一次。');
       setLoading(false);
       return;
     }
 
     if (paymentIntent?.status === 'succeeded') {
       await confirmPaymentIntent(orderId, paymentIntent.id, localStorage.getItem('token'));
-      toast.success('Stripe 付款成功，正在更新訂單狀態');
-      setMessage('Stripe 付款已完成，正在同步訂單...');
+      toast.success('付款完成，訂單已更新');
+      setMessage('付款完成，訂單正在更新...');
       await onPaid(orderId);
+    } else {
+      setMessage('付款還沒完成，請再試一次。');
     }
 
     setLoading(false);
@@ -207,7 +200,7 @@ function CheckoutForm({
 
   const handleQuickPay = async () => {
     if (!orderId) {
-      setMessage('缺少訂單 ID，請重新選擇訂單。');
+      setMessage('請先選擇一筆訂單。');
       return;
     }
 
@@ -215,40 +208,41 @@ function CheckoutForm({
       setQuickPayLoading(true);
       setMessage('');
       await payOrder(orderId, localStorage.getItem('token'));
-      toast.success('Demo 付款成功');
-      setMessage('Demo 付款成功，正在更新訂單狀態...');
+      toast.success('付款完成');
+      setMessage('付款完成，訂單正在更新...');
       await onPaid(orderId);
-    } catch (error) {
-      const text = error instanceof Error ? error.message : 'Demo 付款失敗，請稍後再試';
-      setMessage(text);
+    } catch {
+      setMessage('付款還沒完成，請再試一次。');
     } finally {
       setQuickPayLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-      <div className="rounded-lg border border-[#66c0f444] bg-[#132434] p-4">
-        <p className="mb-3 text-sm font-bold text-[#d8e6f3]">Stripe 測試信用卡</p>
+    <form onSubmit={handleSubmit} data-testid="stripe-payment-form" className="mt-4 space-y-3">
+      <div data-testid="stripe-card-box" className="rounded-lg border border-[#66c0f444] bg-[#132434] p-4">
+        <p className="mb-3 text-sm font-bold text-[#d8e6f3]">信用卡資料</p>
         <CardElement options={cardOptions} />
         <p className="mt-3 text-xs text-[#8faac0]">
-          測試卡號可用 4242 4242 4242 4242，日期填未來月份，CVC 任意三碼。
+          測試可使用 4242 4242 4242 4242，日期填未來月份，CVC 任意三碼。
         </p>
       </div>
       <button
         type="submit"
+        data-testid="stripe-pay-button"
         className="steam-btn w-full rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         disabled={loading || quickPayLoading || !stripe || !elements}
       >
-        {loading ? 'Stripe 付款中...' : '使用 Stripe 測試付款'}
+        {loading ? '付款處理中...' : '使用信用卡付款'}
       </button>
       <button
         type="button"
+        data-testid="demo-quick-pay"
         onClick={handleQuickPay}
         disabled={quickPayLoading || loading}
         className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {quickPayLoading ? '處理中...' : 'Demo 快速付款（不走 Stripe）'}
+        {quickPayLoading ? '付款處理中...' : '使用 Demo 快速付款'}
       </button>
       {message && <p className="text-sm text-[#ffd079]">{message}</p>}
     </form>

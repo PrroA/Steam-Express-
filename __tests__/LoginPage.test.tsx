@@ -1,4 +1,3 @@
-// __tests__/LoginPage.test.js
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '../pages/login';
 import { toast } from 'react-toastify';
@@ -12,7 +11,7 @@ jest.mock('../services/authService', () => ({
 const mockPush = jest.fn();
 let mockQuery = {};
 jest.mock('next/router', () => ({
-  useRouter: () => ({ push: mockPush, query: mockQuery }),
+  useRouter: () => ({ push: mockPush, query: mockQuery, isReady: true }),
 }));
 
 jest.mock('react-toastify', () => ({
@@ -22,44 +21,37 @@ jest.mock('react-toastify', () => ({
 beforeEach(() => {
   localStorage.clear();
   mockQuery = {};
-  mockPush.mockReset();   
+  mockPush.mockReset();
   toast.success.mockReset();
   toast.error.mockReset();
   jest.clearAllMocks();
 });
 
-test('成功登入：寫入 token、toast.success、導向 "/"', async () => {
+test('一般登入成功後寫入 token 並導向首頁', async () => {
   loginUser.mockResolvedValueOnce({ token: 'JWT123' });
 
-  const { container } = render(<LoginPage />);
-  const usernameInput = container.querySelector('input[type="text"]');
-  const passwordInput = container.querySelector('input[type="password"]');
-  expect(usernameInput).toBeTruthy();
-  expect(passwordInput).toBeTruthy();
-
-  fireEvent.change(usernameInput!, { target: { value: 'admin' } });
-  fireEvent.change(passwordInput!, { target: { value: 'admin' } });
-  fireEvent.click(screen.getByRole('button', { name: /^登入$/i }));
+  render(<LoginPage />);
+  fireEvent.change(screen.getByTestId('login-username'), { target: { value: 'admin' } });
+  fireEvent.change(screen.getByTestId('login-password'), { target: { value: 'admin' } });
+  fireEvent.click(screen.getByTestId('login-submit'));
 
   await waitFor(() => expect(localStorage.getItem('token')).toBe('JWT123'));
-  expect(toast.success).toHaveBeenCalled();
+  expect(toast.success).toHaveBeenCalledWith('歡迎回來');
   expect(mockPush).toHaveBeenCalledWith('/');
 });
 
-test('登入失敗：顯示 toast.error', async () => {
-  loginUser.mockRejectedValueOnce({ response: { data: { message: 'wrong' } } });
+test('登入失敗時顯示提示', async () => {
+  loginUser.mockRejectedValueOnce(new Error('wrong'));
 
-  const { container } = render(<LoginPage />);
-  const usernameInput = container.querySelector('input[type="text"]');
-  const passwordInput = container.querySelector('input[type="password"]');
-  fireEvent.change(usernameInput!, { target: { value: 'admin' } });
-  fireEvent.change(passwordInput!, { target: { value: 'bad-password' } });
-  fireEvent.click(screen.getByRole('button', { name: /^登入$/i }));
+  render(<LoginPage />);
+  fireEvent.change(screen.getByTestId('login-username'), { target: { value: 'admin' } });
+  fireEvent.change(screen.getByTestId('login-password'), { target: { value: 'bad-password' } });
+  fireEvent.click(screen.getByTestId('login-submit'));
 
-  await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith('登入失敗，請確認帳號或密碼。'));
 });
 
-test('Demo 登入：寫入一般會員 token、使用 demo_user、導向 redirect', async () => {
+test('Demo 登入會寫入會員 token 並導向 redirect', async () => {
   mockQuery = { redirect: '/cart' };
   loginDemoUser.mockResolvedValueOnce({
     token: 'DEMO_JWT',
@@ -67,16 +59,10 @@ test('Demo 登入：寫入一般會員 token、使用 demo_user、導向 redirec
   });
 
   render(<LoginPage />);
-  fireEvent.click(screen.getByRole('button', { name: /免註冊 Demo 登入/i }));
+  fireEvent.click(screen.getByTestId('demo-login'));
 
   await waitFor(() => expect(localStorage.getItem('token')).toBe('DEMO_JWT'));
   expect(localStorage.getItem('profile_username')).toBe('demo_user');
   expect(toast.success).toHaveBeenCalledWith('已使用 Demo 帳號登入');
   expect(mockPush).toHaveBeenCalledWith('/cart');
 });
-
-
-//TODO
-//  測試登入表單的驗證邏輯
-//  測試登入成功後的路由導向
-//  測試登入失敗後的錯誤提示

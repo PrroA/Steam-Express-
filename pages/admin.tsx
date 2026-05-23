@@ -32,8 +32,8 @@ export default function AdminPage() {
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
-          <h1 className="mt-4 text-2xl font-black text-[#d8e6f3]">檢查管理員權限</h1>
-          <p className="mt-2 text-sm text-[#9eb4c8]">正在確認登入狀態，確認後才會載入後台資料。</p>
+          <h1 className="mt-4 text-2xl font-black text-[#d8e6f3]">正在確認登入狀態</h1>
+          <p className="mt-2 text-sm text-[#9eb4c8]">請稍候，我們正在確認你是否可以進入管理後台。</p>
         </div>
       </main>
     );
@@ -43,10 +43,10 @@ export default function AdminPage() {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
-          <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">ADMIN ONLY</p>
-          <h1 className="mt-3 text-2xl font-black text-[#d8e6f3]">沒有管理員權限</h1>
+          <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">管理後台</p>
+          <h1 className="mt-3 text-2xl font-black text-[#d8e6f3]">這個帳號無法進入</h1>
           <p className="mt-2 text-sm text-[#9eb4c8]">
-            目前登入帳號不是 admin，因此不會呼叫後台管理 API。請使用 admin/admin 登入後再進入管理後台。
+            請使用管理員帳號登入。本機展示可使用 admin / admin，正式環境請改用自己的管理員密碼。
           </p>
           <button
             type="button"
@@ -92,20 +92,20 @@ function AdminPageContent() {
   return (
     <main className="steam-shell px-4 py-6 md:px-6">
       <section className="mx-auto w-full max-w-7xl">
-        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">ADMIN CONTROL CENTER</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">管理後台</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">管理商品、訂單、庫存與首頁展示資料。</p>
+        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">管理後台</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">商城管理</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">查看營收、訂單與商品狀態，並管理展示用的遊戲資料。</p>
 
         {loading ? (
-          <div className="steam-panel mt-5 rounded-2xl p-8 text-center text-[#9eb4c8]">後台資料載入中...</div>
+          <div className="steam-panel mt-5 rounded-2xl p-8 text-center text-[#9eb4c8]">正在整理後台資料...</div>
         ) : (
           <>
             {dashboard && (
               <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <MetricCard label="總訂單數" value={dashboard.totalOrders} />
-                <MetricCard label="已付款訂單" value={dashboard.paidOrders} highlight />
-                <MetricCard label="總營收" value={`$${dashboard.totalRevenue.toFixed(2)}`} highlight />
-                <MetricCard label="售出品項數" value={dashboard.totalItemsSold} />
+                <MetricCard label="全部訂單" value={dashboard.totalOrders} />
+                <MetricCard label="付款完成" value={dashboard.paidOrders} highlight />
+                <MetricCard label="營收" value={`$${dashboard.totalRevenue.toFixed(2)}`} highlight />
+                <MetricCard label="售出件數" value={dashboard.totalItemsSold} />
               </div>
             )}
 

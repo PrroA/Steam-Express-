@@ -23,7 +23,7 @@ export function AlertBell({
             ? 'border-[#66c0f455] p-2'
             : 'border-[#66c0f433] px-3 py-2 transition hover:border-[#66c0f488] hover:bg-[#24384d]'
         }`}
-        aria-label="降價通知"
+        aria-label="通知"
       >
         <FaBell className={mobile ? 'h-5 w-5' : 'h-4 w-4'} />
         {unreadCount > 0 && (

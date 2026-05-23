@@ -19,14 +19,14 @@ export type FulfillmentStatus =
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [ORDER_STATUS.PENDING]: '待付款',
-  [ORDER_STATUS.PAYMENT_FAILED]: '付款失敗',
-  [ORDER_STATUS.PAID]: '已付款',
+  [ORDER_STATUS.PAYMENT_FAILED]: '付款未成功',
+  [ORDER_STATUS.PAID]: '付款完成',
   [ORDER_STATUS.CANCELLED]: '已取消',
   [ORDER_STATUS.REFUNDED]: '已退款',
 };
 
 export const FULFILLMENT_STATUS_LABELS: Record<FulfillmentStatus, string> = {
-  [FULFILLMENT_STATUS.PENDING_SHIPMENT]: '待出貨',
+  [FULFILLMENT_STATUS.PENDING_SHIPMENT]: '準備出貨',
   [FULFILLMENT_STATUS.SHIPPED]: '已出貨',
   [FULFILLMENT_STATUS.DELIVERED]: '已送達',
 };
@@ -52,15 +52,13 @@ const LEGACY_ORDER_STATUS: Record<string, OrderStatus> = {
   cancelled: ORDER_STATUS.CANCELLED,
   refunded: ORDER_STATUS.REFUNDED,
   '未付款': ORDER_STATUS.PENDING,
+  '待付款': ORDER_STATUS.PENDING,
   '付款失敗': ORDER_STATUS.PAYMENT_FAILED,
+  '付款未成功': ORDER_STATUS.PAYMENT_FAILED,
   '已付款': ORDER_STATUS.PAID,
+  '付款完成': ORDER_STATUS.PAID,
   '已取消': ORDER_STATUS.CANCELLED,
   '已退款': ORDER_STATUS.REFUNDED,
-  '?芯?甈?': ORDER_STATUS.PENDING,
-  '隞狡憭望?': ORDER_STATUS.PAYMENT_FAILED,
-  '撌脖?甈?': ORDER_STATUS.PAID,
-  '撌脣?瘨?': ORDER_STATUS.CANCELLED,
-  '撌脤甈?': ORDER_STATUS.REFUNDED,
 };
 
 const LEGACY_FULFILLMENT_STATUS: Record<string, FulfillmentStatus> = {
@@ -68,11 +66,9 @@ const LEGACY_FULFILLMENT_STATUS: Record<string, FulfillmentStatus> = {
   shipped: FULFILLMENT_STATUS.SHIPPED,
   delivered: FULFILLMENT_STATUS.DELIVERED,
   '待出貨': FULFILLMENT_STATUS.PENDING_SHIPMENT,
+  '準備出貨': FULFILLMENT_STATUS.PENDING_SHIPMENT,
   '已出貨': FULFILLMENT_STATUS.SHIPPED,
   '已送達': FULFILLMENT_STATUS.DELIVERED,
-  '敺鞎?': FULFILLMENT_STATUS.PENDING_SHIPMENT,
-  '撌脣鞎?': FULFILLMENT_STATUS.SHIPPED,
-  '撌脤?': FULFILLMENT_STATUS.DELIVERED,
 };
 
 export function normalizeOrderStatus(status?: string | null): OrderStatus {

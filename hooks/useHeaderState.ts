@@ -30,14 +30,11 @@ export function useHeaderState(pathname) {
     () => [
       { href: '/cart', label: '購物車' },
       { href: '/wishlist', label: '願望清單' },
-      { href: '/orders', label: '訂單' },
+      { href: '/orders', label: '我的訂單' },
     ],
     []
   );
-  const visibleNavItems = useMemo(
-    () => (isLoggedIn ? navItems : []),
-    [isLoggedIn, navItems]
-  );
+  const visibleNavItems = useMemo(() => (isLoggedIn ? navItems : []), [isLoggedIn, navItems]);
 
   useEffect(() => {
     syncAlerts();
@@ -69,7 +66,7 @@ export function useHeaderState(pathname) {
 
       const profileUsername = localStorage.getItem(PROFILE_USERNAME_KEY);
       setAuthUser({
-        username: profileUsername || payload.username || '使用者',
+        username: profileUsername || payload.username || '會員',
         role: payload.role || 'user',
       });
     };
@@ -99,22 +96,19 @@ export function useHeaderState(pathname) {
     setIsAlertOpen((prev) => !prev);
   }, []);
 
-  const handleMarkAlertsRead = useCallback(
-    (type) => {
-      let next = [];
-      if (!type) {
-        next = markSiteAlertsAsRead();
-      } else if (type === 'order-group') {
-        markSiteAlertsAsReadByType('order-status');
-        next = markSiteAlertsAsReadByType('order-fulfillment');
-      } else {
-        next = markSiteAlertsAsReadByType(type);
-      }
-      setAlerts(next.slice(0, 20));
-      setUnreadCount(next.filter((item) => item.unread).length);
-    },
-    []
-  );
+  const handleMarkAlertsRead = useCallback((type) => {
+    let next = [];
+    if (!type) {
+      next = markSiteAlertsAsRead();
+    } else if (type === 'order-group') {
+      markSiteAlertsAsReadByType('order-status');
+      next = markSiteAlertsAsReadByType('order-fulfillment');
+    } else {
+      next = markSiteAlertsAsReadByType(type);
+    }
+    setAlerts(next.slice(0, 20));
+    setUnreadCount(next.filter((item) => item.unread).length);
+  }, []);
 
   const handleClearAlerts = useCallback((type) => {
     if (!type) {

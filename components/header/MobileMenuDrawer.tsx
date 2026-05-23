@@ -11,15 +11,13 @@ export function MobileMenuDrawer({
   onClose,
   onLogout,
 }) {
-  const isDemoUser = authUser?.username === 'demo_user' || authUser?.username?.startsWith('demo_');
-
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <motion.button
             type="button"
-            aria-label="關閉選單遮罩"
+            aria-label="關閉選單背景"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -40,36 +38,20 @@ export function MobileMenuDrawer({
                 onClick={onClose}
                 aria-label="關閉選單"
               >
-                ✖
+                x
               </button>
             </div>
 
             <div className="space-y-2 px-4 py-3">
               {isLoggedIn ? (
                 <div className="rounded-lg border border-[#66c0f433] bg-[#102131] p-2.5">
-                  <Link href="/profile" onClick={onClose} className="block rounded-md p-1 transition hover:bg-[#163145]">
-                    <p className="text-[11px] text-[#8faac0]">目前登入</p>
+                  <Link href="/profile" onClick={onClose} className="block rounded-md p-2 transition hover:bg-[#163145]">
+                    <p className="text-[11px] text-[#8faac0]">會員</p>
                     <p className="text-sm font-bold text-[#d8e6f3]">
-                      {authUser?.username}
-                      {isAdmin ? ' (Admin)' : ''}
+                      {authUser?.username || '會員'}
+                      {isAdmin ? <span className="ml-1 text-xs font-medium text-[#8fb8d5]">管理員</span> : null}
                     </p>
                   </Link>
-                  <Link
-                    href="/transactions"
-                    onClick={onClose}
-                    className="mt-1.5 block rounded-md border border-[#66c0f433] bg-[#13283a] px-3 py-2 text-center text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044]"
-                  >
-                    交易記錄
-                  </Link>
-                  {isDemoUser && (
-                    <Link
-                      href="/login?demo=1"
-                      onClick={onClose}
-                      className="mt-1.5 block rounded-md border border-[#8bc53f55] bg-[#193023] px-3 py-2 text-center text-xs font-semibold text-[#d9f1ba] transition hover:bg-[#233d2c]"
-                    >
-                      重置 Demo
-                    </Link>
-                  )}
                   <button
                     type="button"
                     onClick={onLogout}
@@ -79,11 +61,7 @@ export function MobileMenuDrawer({
                   </button>
                 </div>
               ) : (
-                <Link
-                  href="/login"
-                  onClick={onClose}
-                  className="steam-btn block rounded-md px-4 py-2 text-center"
-                >
+                <Link href="/login" onClick={onClose} className="steam-btn block rounded-md px-4 py-2 text-center">
                   登入 / 註冊
                 </Link>
               )}
@@ -91,7 +69,7 @@ export function MobileMenuDrawer({
               {visibleNavItems.map((item) => (
                 <NavItem key={item.href} href={item.href} label={item.label} onClick={onClose} />
               ))}
-              {isAdmin && <NavItem href="/admin" label="後台管理" onClick={onClose} />}
+              {isAdmin && <NavItem href="/admin" label="管理後台" onClick={onClose} />}
             </div>
           </motion.aside>
         </div>

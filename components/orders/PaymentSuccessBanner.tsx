@@ -6,9 +6,9 @@ export function PaymentSuccessBanner({ successOrderId }: { successOrderId: strin
       <div className="flex items-start gap-3">
         <FaCheckCircle className="mt-0.5 text-[#8bc53f]" />
         <div>
-          <p className="text-sm font-bold text-[#cde8a5]">付款成功</p>
+          <p className="text-sm font-bold text-[#cde8a5]">付款完成</p>
           <p className="mt-1 text-xs text-[#b5d7be]">
-            訂單 {successOrderId ? successOrderId.slice(0, 8) : ''} 已完成付款，你可以在下方查看完整狀態流程。
+            訂單 {successOrderId ? successOrderId.slice(0, 8) : ''} 已更新，你可以在訂單中心查看最新狀態。
           </p>
         </div>
       </div>

@@ -35,26 +35,22 @@ const LEGACY_ORDER_STATUS = {
     cancelled: exports.ORDER_STATUS.CANCELLED,
     refunded: exports.ORDER_STATUS.REFUNDED,
     '未付款': exports.ORDER_STATUS.PENDING,
+    '待付款': exports.ORDER_STATUS.PENDING,
     '付款失敗': exports.ORDER_STATUS.PAYMENT_FAILED,
+    '付款未成功': exports.ORDER_STATUS.PAYMENT_FAILED,
     '已付款': exports.ORDER_STATUS.PAID,
+    '付款完成': exports.ORDER_STATUS.PAID,
     '已取消': exports.ORDER_STATUS.CANCELLED,
     '已退款': exports.ORDER_STATUS.REFUNDED,
-    '?芯?甈?': exports.ORDER_STATUS.PENDING,
-    '隞狡憭望?': exports.ORDER_STATUS.PAYMENT_FAILED,
-    '撌脖?甈?': exports.ORDER_STATUS.PAID,
-    '撌脣?瘨?': exports.ORDER_STATUS.CANCELLED,
-    '撌脤甈?': exports.ORDER_STATUS.REFUNDED,
 };
 const LEGACY_FULFILLMENT_STATUS = {
     pending_shipment: exports.FULFILLMENT_STATUS.PENDING_SHIPMENT,
     shipped: exports.FULFILLMENT_STATUS.SHIPPED,
     delivered: exports.FULFILLMENT_STATUS.DELIVERED,
     '待出貨': exports.FULFILLMENT_STATUS.PENDING_SHIPMENT,
+    '準備出貨': exports.FULFILLMENT_STATUS.PENDING_SHIPMENT,
     '已出貨': exports.FULFILLMENT_STATUS.SHIPPED,
     '已送達': exports.FULFILLMENT_STATUS.DELIVERED,
-    '敺鞎?': exports.FULFILLMENT_STATUS.PENDING_SHIPMENT,
-    '撌脣鞎?': exports.FULFILLMENT_STATUS.SHIPPED,
-    '撌脤?': exports.FULFILLMENT_STATUS.DELIVERED,
 };
 function normalizeOrderStatus(status) {
     return LEGACY_ORDER_STATUS[String(status || '').trim()] || exports.ORDER_STATUS.PENDING;

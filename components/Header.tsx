@@ -53,7 +53,7 @@ export function Header() {
           {visibleNavItems.map((item) => (
             <NavItem key={item.href} href={item.href} label={item.label} />
           ))}
-          {isAdmin && <NavItem href="/admin" label="後台管理" />}
+          {isAdmin && <NavItem href="/admin" label="管理後台" />}
 
           <AlertBell
             unreadCount={unreadCount}
@@ -67,12 +67,7 @@ export function Header() {
             onMarkSingleRead={handleMarkSingleAlertRead}
           />
 
-          <AuthControls
-            isLoggedIn={isLoggedIn}
-            authUser={authUser}
-            isAdmin={isAdmin}
-            onLogout={handleLogout}
-          />
+          <AuthControls isLoggedIn={isLoggedIn} authUser={authUser} isAdmin={isAdmin} onLogout={handleLogout} />
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">

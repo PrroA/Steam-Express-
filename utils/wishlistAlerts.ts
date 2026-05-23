@@ -10,6 +10,7 @@ const STORAGE_KEY = 'siteAlerts';
 const LEGACY_WISHLIST_KEY = 'wishlistPriceDropAlerts';
 const ORDER_SNAPSHOT_KEY = 'orderStatusSnapshot';
 const MAX_ALERTS = 50;
+const ORDER_ALERT_TYPES = new Set(['order-status', 'order-fulfillment']);
 
 function isBrowser() {
   return typeof window !== 'undefined';
@@ -19,84 +20,34 @@ function normalizeAlert(alert) {
   if (!alert || typeof alert !== 'object') return null;
   return {
     id: String(alert.id || ''),
-    type: alert.type || 'wishlist-price-drop',
+    type: alert.type || '',
     title: alert.title || '',
     message: alert.message || '',
     createdAt: alert.createdAt || new Date().toISOString(),
     unread: alert.unread !== false,
     payload: alert.payload || {},
-    // Backward-compatible fields for old UI consumers
-    name: alert.name,
-    previousPrice: alert.previousPrice,
-    currentPrice: alert.currentPrice,
   };
 }
 
 function readAlerts() {
   if (!isBrowser()) return [];
   try {
+    localStorage.removeItem(LEGACY_WISHLIST_KEY);
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed)
-      ? parsed.map(normalizeAlert).filter(Boolean)
+      ? parsed.map(normalizeAlert).filter((alert) => alert && ORDER_ALERT_TYPES.has(alert.type))
       : [];
-  } catch (error) {
+  } catch {
     return [];
   }
 }
 
 function writeAlerts(alerts) {
   if (!isBrowser()) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
-  window.dispatchEvent(new CustomEvent('site-alerts-updated', { detail: { alerts } }));
-  // Legacy event name retained
-  window.dispatchEvent(new CustomEvent('wishlist-alerts-updated', { detail: { alerts } }));
-}
-
-function migrateLegacyWishlistAlerts() {
-  if (!isBrowser()) return;
-  const legacyRaw = localStorage.getItem(LEGACY_WISHLIST_KEY);
-  if (!legacyRaw) return;
-
-  try {
-    const legacyParsed = JSON.parse(legacyRaw);
-    if (!Array.isArray(legacyParsed) || legacyParsed.length === 0) {
-      localStorage.removeItem(LEGACY_WISHLIST_KEY);
-      return;
-    }
-
-    const current = readAlerts();
-    const existingKeySet = new Set(current.map((item) => `${item.type}:${item.id}:${item.createdAt}`));
-    const legacyMapped = legacyParsed
-      .map((item) =>
-        normalizeAlert({
-          ...item,
-          type: 'wishlist-price-drop',
-          title: item?.name ? `願望清單降價：${item.name}` : '願望清單降價',
-          message:
-            typeof item?.previousPrice !== 'undefined' && typeof item?.currentPrice !== 'undefined'
-              ? `$${Number(item.previousPrice).toFixed(2)} → $${Number(item.currentPrice).toFixed(2)}`
-              : '有商品降價了',
-          payload: {
-            previousPrice: Number(item?.previousPrice) || 0,
-            currentPrice: Number(item?.currentPrice) || 0,
-            name: item?.name || '',
-          },
-        })
-      )
-      .filter(Boolean)
-      .filter((item) => !existingKeySet.has(`${item.type}:${item.id}:${item.createdAt}`));
-
-    if (legacyMapped.length > 0) {
-      const next = [...legacyMapped, ...current]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, MAX_ALERTS);
-      writeAlerts(next);
-    }
-    localStorage.removeItem(LEGACY_WISHLIST_KEY);
-  } catch (error) {
-    localStorage.removeItem(LEGACY_WISHLIST_KEY);
-  }
+  const orderOnlyAlerts = alerts.filter((alert) => ORDER_ALERT_TYPES.has(alert.type));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(orderOnlyAlerts));
+  window.dispatchEvent(new CustomEvent('site-alerts-updated', { detail: { alerts: orderOnlyAlerts } }));
 }
 
 function upsertAlerts(nextAlerts) {
@@ -107,11 +58,10 @@ function upsertAlerts(nextAlerts) {
 
   nextAlerts.forEach((alert) => {
     const normalized = normalizeAlert(alert);
-    if (!normalized) return;
+    if (!normalized || !ORDER_ALERT_TYPES.has(normalized.type)) return;
 
     const key = `${normalized.type}:${normalized.id}`;
     const prev = existingMap.get(key);
-
     const hasChanged =
       !prev ||
       prev.title !== normalized.title ||
@@ -131,7 +81,6 @@ function upsertAlerts(nextAlerts) {
 }
 
 export function getSiteAlerts() {
-  migrateLegacyWishlistAlerts();
   return readAlerts();
 }
 
@@ -141,16 +90,14 @@ export function getSiteUnreadCount() {
 
 export function markSiteAlertsAsRead() {
   if (!isBrowser()) return [];
-  const existing = getSiteAlerts();
-  const next = existing.map((item) => ({ ...item, unread: false }));
+  const next = getSiteAlerts().map((item) => ({ ...item, unread: false }));
   writeAlerts(next);
   return next;
 }
 
 export function markSiteAlertsAsReadByType(type) {
   if (!isBrowser()) return [];
-  const existing = getSiteAlerts();
-  const next = existing.map((item) => (item.type === type ? { ...item, unread: false } : item));
+  const next = getSiteAlerts().map((item) => (item.type === type ? { ...item, unread: false } : item));
   writeAlerts(next);
   return next;
 }
@@ -176,34 +123,15 @@ export function removeSiteAlert(id, createdAt) {
 
 export function markSiteAlertAsRead(id, createdAt) {
   if (!isBrowser()) return [];
-  const next = getSiteAlerts().map((item) => {
-    if (String(item.id) === String(id) && item.createdAt === createdAt) {
-      return { ...item, unread: false };
-    }
-    return item;
-  });
+  const next = getSiteAlerts().map((item) =>
+    String(item.id) === String(id) && item.createdAt === createdAt ? { ...item, unread: false } : item
+  );
   writeAlerts(next);
   return next;
 }
 
-export function upsertWishlistPriceDropAlerts(drops) {
-  if (!Array.isArray(drops) || drops.length === 0) return [];
-  return upsertAlerts(
-    drops.map((drop) => ({
-      id: String(drop.id),
-      type: 'wishlist-price-drop',
-      title: `願望清單降價：${drop.name}`,
-      message: `$${Number(drop.previousPrice).toFixed(2)} → $${Number(drop.currentPrice).toFixed(2)}`,
-      payload: {
-        name: drop.name,
-        previousPrice: Number(drop.previousPrice) || 0,
-        currentPrice: Number(drop.currentPrice) || 0,
-      },
-      name: drop.name,
-      previousPrice: Number(drop.previousPrice) || 0,
-      currentPrice: Number(drop.currentPrice) || 0,
-    }))
-  );
+export function upsertWishlistPriceDropAlerts() {
+  return [];
 }
 
 export function upsertOrderStatusAlertsFromOrders(orders) {
@@ -217,9 +145,7 @@ export function upsertOrderStatusAlertsFromOrders(orders) {
     if (!order?.id) return;
     nextSnapshot[order.id] = {
       status: normalizeOrderStatus(order.status),
-      fulfillmentStatus: normalizeFulfillmentStatus(
-        order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT
-      ),
+      fulfillmentStatus: normalizeFulfillmentStatus(order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT),
     };
   });
 
@@ -235,27 +161,24 @@ export function upsertOrderStatusAlertsFromOrders(orders) {
     const prev = prevSnapshot[order.id];
     if (!prev) return;
 
-    if (prev.status !== order.status) {
+    const nextStatus = normalizeOrderStatus(order.status);
+    if (prev.status !== nextStatus) {
       generated.push({
         id: `${order.id}:status`,
         type: 'order-status',
         title: `訂單狀態更新：${order.id.slice(0, 8)}...`,
-        message: `${getOrderStatusLabel(prev.status)} → ${getOrderStatusLabel(order.status)}`,
-        payload: { orderId: order.id, status: normalizeOrderStatus(order.status) },
+        message: `${getOrderStatusLabel(prev.status)} 變成 ${getOrderStatusLabel(nextStatus)}`,
+        payload: { orderId: order.id, status: nextStatus },
       });
     }
 
-    const nextFulfillment = normalizeFulfillmentStatus(
-      order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT
-    );
+    const nextFulfillment = normalizeFulfillmentStatus(order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT);
     if (prev.fulfillmentStatus !== nextFulfillment) {
       generated.push({
         id: `${order.id}:fulfillment`,
         type: 'order-fulfillment',
-        title: `物流進度更新：${order.id.slice(0, 8)}...`,
-        message: `${getFulfillmentStatusLabel(prev.fulfillmentStatus)} → ${getFulfillmentStatusLabel(
-          nextFulfillment
-        )}`,
+        title: `出貨狀態更新：${order.id.slice(0, 8)}...`,
+        message: `${getFulfillmentStatusLabel(prev.fulfillmentStatus)} 變成 ${getFulfillmentStatusLabel(nextFulfillment)}`,
         payload: { orderId: order.id, fulfillmentStatus: nextFulfillment },
       });
     }
@@ -266,9 +189,8 @@ export function upsertOrderStatusAlertsFromOrders(orders) {
   return upsertAlerts(generated);
 }
 
-// Backward-compatible exports used by existing code
 export function getWishlistPriceDropAlerts() {
-  return getSiteAlerts().filter((item) => item.type === 'wishlist-price-drop');
+  return [];
 }
 
 export function markWishlistAlertsAsRead() {

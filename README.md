@@ -1,35 +1,14 @@
-# Steam Practice Store
+# Game Commerce Demo
 
-Steam Practice Store 是一個 Steam 風格的遊戲商城全端練習專案，重點展示商品瀏覽、會員登入、購物車、訂單付款、管理後台、Wishlist、Socket.IO 即時聊天，以及 AI/RAG 客服回覆流程。
-
-這個專案比較適合作為作品集或面試展示用。核心流程已可在本機跑起來，資料以 SQLite 保存，金流與 AI 服務可用測試或 fallback 模式。
+這是一個以 Next.js + Express 建立的遊戲商城 demo。專案包含商品瀏覽、購物車、結帳、訂單中心、Stripe 測試付款、管理後台、願望清單與 AI/chat 入口，目標是可本機展示完整購物流程，而不是正式上線商城。
 
 ## 技術棧
 
-- Frontend: Next.js Pages Router, React, TypeScript, Tailwind CSS
-- Backend: Express, JWT, Socket.IO
-- Data: SQLite via `better-sqlite3`
-- Payment: Stripe Payment Intent / webhook, plus demo quick pay
-- AI: OpenAI API with Ollama fallback
-- Testing: Jest, Playwright
-
-## 專案結構
-
-```text
-pages/              Next.js pages 與 serverless API
-components/         UI components
-hooks/              頁面邏輯 hooks
-services/           前端 API service layer
-backend/routes/     Express auth/store/order/chat routes
-backend/state.ts    demo 初始資料
-backend/persistence.ts SQLite app-state persistence
-types/              前後端共用型別
-utils/              狀態、提醒、journey 等共用工具
-__tests__/          Jest unit/integration tests
-e2e/                Playwright e2e tests
-server.ts           Express app
-server.js           compiled server bootstrap
-```
+- Frontend：Next.js、React、TypeScript、Tailwind CSS
+- Backend：Express、TypeScript、JWT、better-sqlite3
+- Payment：Stripe test mode + Demo 快速付款
+- Test：Jest、Playwright
+- Persistence：SQLite、本機 uploads 目錄
 
 ## 本機啟動
 
@@ -40,92 +19,85 @@ npm run dev
 
 預設服務：
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:4000`
+- Frontend：http://localhost:3000
+- Express API：http://localhost:4000
 
-`npm run dev` 會先編譯 backend/server TypeScript，再同時啟動 Express 與 Next dev server。
+`npm run dev` 會先編譯 backend/server，再同時啟動 Next.js 與 Express。
 
-## Demo 帳號與流程
+## 本機 demo 環境變數
 
-管理者帳號：
-
-```text
-username: admin
-password: admin
-```
-
-一般使用者可以在登入頁點 Demo 登入，或手動註冊新帳號。
-
-建議展示流程：
-
-1. 進首頁瀏覽商品、搜尋、排序。
-2. 登入 Demo 使用者。
-3. 加入購物車並送出 checkout，建立待付款訂單。
-4. 到訂單中心執行 quick pay 或模擬付款失敗。
-5. 進管理後台查看 dashboard、商品管理、訂單出貨狀態。
-6. 打開客服聊天或 RAG 問答，展示 AI fallback 行為。
-
-## 環境變數
-
-`.env`
+請建立 `.env.local`，不要提交到 Git。
 
 ```env
 PORT=4000
-SECRET_KEY=your_secret_key
 FRONTEND_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 
-# SQLite, optional
-SQLITE_DB_PATH=./data/gogo.sqlite
+SECRET_KEY=local_demo_secret
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin
 
-# Stripe, optional for real payment intent/webhook
-STRIPE_SECRET_KEY=pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
+STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 
-# OpenAI, optional
 OPENAI_API_KEY=sk-xxx
-
-# Ollama, optional local AI fallback
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen2.5:7b-instruct
-
-# SMTP, optional forgot-password email
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-SMTP_FROM="Steam Practice <your_email@gmail.com>"
 ```
 
-`.env.local`
+Stripe key 用途：
 
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
-```
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`：前端載入信用卡輸入元件，使用 `pk_test_...`
+- `STRIPE_SECRET_KEY`：後端建立付款資料，使用 `sk_test_...`
+- `STRIPE_WEBHOOK_SECRET`：正式接 webhook 時使用，本機 demo 可先不填
 
-沒有 Stripe、OpenAI、SMTP 時，核心商城流程仍可展示；付款可走 demo quick pay，AI 會走 fallback。
+如果沒有設定 Stripe，訂單中心會顯示自然提示，並可用 Demo 快速付款完成流程。
 
-## 常用指令
+## Demo 帳號
+
+- 一般展示：登入頁點「使用 Demo 帳號快速進入」
+- 管理後台：`admin / admin`
+
+`admin / admin` 只適合本機展示。正式環境請一定設定自己的 `ADMIN_PASSWORD`。
+
+## 建議 Demo Flow
+
+1. 首頁選一款遊戲。
+2. 加入購物車。
+3. 前往購物車完成結帳。
+4. 到訂單中心選擇待付款訂單。
+5. 使用 Stripe 測試卡付款，或使用 Demo 快速付款。
+6. 確認訂單狀態變成「付款完成」。
+7. 切到管理後台查看訂單。
+
+Stripe 測試卡：
+
+- 卡號：`4242 4242 4242 4242`
+- 有效期限：任一未來月份
+- CVC：任意三碼
+
+## 測試與建置
 
 ```bash
 npm run build:backend
 npm run build:server
+npm test -- --runInBand
 npm run build
-npm test
+```
+
+也可以依需求執行：
+
+```bash
 npm run test:e2e
 ```
 
-如果本機 shell 找不到 `npm`，先確認 Node.js / npm 是否在 PATH。
+## 目前限制
 
-## 部署注意事項
+- SQLite 是 demo persistence，正式環境建議改 PostgreSQL、MySQL 或 managed database。
+- 圖片上傳目前存在 local disk，正式環境建議改 Vercel Blob、S3 或 Cloudinary。
+- Demo 快速付款是展示流程用途，不代表真實金流。
+- AI/chat 入口依賴外部模型 key，沒有 key 時應以基本 fallback 展示。
+- 本專案保留部分 demo seed data，正式上線需要補 migration、監控、rate limit 與更完整的權限控管。
 
-- Frontend 可部署到 Vercel。
-- Express backend 可部署到 Render 或其他 Node server。
-- `NEXT_PUBLIC_API_BASE_URL` 必須指向實際 backend URL。
-- SQLite 適合 demo，不適合正式多實例部署；正式環境建議改成 Postgres 或其他託管資料庫。
-- `SECRET_KEY`、Stripe key、SMTP password 不要提交到 Git。
+## 面試說明
 
-## 後續整理建議
-
-- `README.INTERVIEW.md` 目前保留，後續可整理成面試口述版本。
-- 若要正式化部署，建議先拆清楚 Vercel serverless API 與 Express backend 的責任邊界。
-- 若要提升安全性，建議補 refresh token、全域 401 handler、rate-limit storage、CSRF/secure cookie 策略。
+可參考 [README.INTERVIEW.md](./README.INTERVIEW.md)，裡面整理了可直接口述的專案介紹、系統流程、付款流程與正式化改進方向。

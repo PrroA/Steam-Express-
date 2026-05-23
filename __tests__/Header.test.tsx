@@ -44,17 +44,17 @@ describe('Header auth visibility', () => {
     mockPush.mockReset();
   });
 
-  test('shows login/register and hides admin entry for guest', async () => {
+  test('guest sees login/register and no admin entry', async () => {
     render(<Header />);
 
     await waitFor(() => {
       expect(screen.getByText('登入 / 註冊')).toBeInTheDocument();
     });
-    expect(screen.queryByText('後台管理')).not.toBeInTheDocument();
-    expect(screen.queryByText('目前登入')).not.toBeInTheDocument();
+    expect(screen.queryByText('管理後台')).not.toBeInTheDocument();
+    expect(screen.queryByText('交易紀錄')).not.toBeInTheDocument();
   });
 
-  test('shows admin entry and current account when admin token exists', async () => {
+  test('admin token shows compact account, admin entry, and logout', async () => {
     const token = makeToken({
       username: 'admin',
       role: 'admin',
@@ -65,10 +65,12 @@ describe('Header auth visibility', () => {
     render(<Header />);
 
     await waitFor(() => {
-      expect(screen.getByText('目前登入')).toBeInTheDocument();
-      expect(screen.getByText('admin (Admin)')).toBeInTheDocument();
-      expect(screen.getByText('後台管理')).toBeInTheDocument();
+      expect(screen.getByText('admin')).toBeInTheDocument();
+      expect(screen.getByText('管理員')).toBeInTheDocument();
+      expect(screen.getByText('管理後台')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument();
     });
+    expect(screen.queryByText('交易紀錄')).not.toBeInTheDocument();
+    expect(screen.queryByText('重新開始 Demo')).not.toBeInTheDocument();
   });
 });

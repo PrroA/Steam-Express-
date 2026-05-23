@@ -29,79 +29,57 @@ export default function RegisterPage() {
     const minLength = password.length >= 8;
     const hasNumber = /\d/.test(password);
     const hasLetter = /[a-zA-Z]/.test(password);
-
-    return {
-      isStrong: minLength && hasNumber && hasLetter,
-      requirements: {
-        minLength,
-        hasNumber,
-        hasLetter,
-      },
-    };
+    return minLength && hasNumber && hasLetter;
   };
 
   const validateForm = () => {
     const newErrors: RegisterFormErrors = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = '請輸入用戶名';
+      newErrors.username = '請輸入帳號。';
     } else if (formData.username.length < 3) {
-      newErrors.username = '用戶名至少需要 3 個字符';
+      newErrors.username = '帳號至少需要 3 個字元。';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = '請輸入 Email';
+      newErrors.email = '請輸入 Email。';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email 格式不正確';
+      newErrors.email = 'Email 格式看起來不正確。';
     }
 
-    const passwordStrength = checkPasswordStrength(formData.password);
     if (!formData.password) {
-      newErrors.password = '請輸入密碼';
-    } else if (!passwordStrength.isStrong) {
-      newErrors.password = '密碼必須包含至少 8 個字符、數字、字母和特殊符號';
+      newErrors.password = '請輸入密碼。';
+    } else if (!checkPasswordStrength(formData.password)) {
+      newErrors.password = '密碼至少 8 個字元，並包含英文與數字。';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '兩次輸入的密碼不一致';
+      newErrors.confirmPassword = '兩次輸入的密碼不一致。';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((previous) => ({
+      ...previous,
       [name]: value,
     }));
   };
 
-  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
       await registerUser(formData.username, formData.password, formData.email);
-      toast.success('註冊成功！');
+      toast.success('帳號建立完成，請登入。');
       router.push('/login');
-    } catch (error) {
-      const message =
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof error.response === 'object' &&
-        error.response !== null &&
-        'data' in error.response &&
-        typeof error.response.data === 'object' &&
-        error.response.data !== null &&
-        'message' in error.response.data &&
-        typeof error.response.data.message === 'string'
-          ? error.response.data.message
-          : '註冊失敗';
-      toast.error(message);
+    } catch {
+      toast.error('註冊沒有完成，請確認資料後再試一次。');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,16 +88,19 @@ export default function RegisterPage() {
   return (
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
       <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
-        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">CREATE ACCOUNT</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">建立新帳戶</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">註冊後可使用購物車、願望清單與訂單功能，並綁定 Email 供忘記密碼使用。</p>
+        <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">建立帳號</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">開始收藏你的遊戲</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">
+          建立帳號後可以追蹤願望清單、完成結帳，並在訂單中心查看付款進度。
+        </p>
 
         <form onSubmit={handleRegister} noValidate className="mt-6 space-y-4">
           <div>
             <input
               type="text"
               name="username"
-              placeholder="用戶名"
+              data-testid="register-username"
+              placeholder="帳號"
               className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
                 errors.username
                   ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
@@ -135,6 +116,7 @@ export default function RegisterPage() {
             <input
               type="email"
               name="email"
+              data-testid="register-email"
               placeholder="Email"
               className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
                 errors.email
@@ -151,6 +133,7 @@ export default function RegisterPage() {
             <input
               type="password"
               name="password"
+              data-testid="register-password"
               placeholder="密碼"
               className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
                 errors.password
@@ -167,7 +150,8 @@ export default function RegisterPage() {
             <input
               type="password"
               name="confirmPassword"
-              placeholder="確認密碼"
+              data-testid="register-confirm-password"
+              placeholder="再次輸入密碼"
               className={`w-full rounded-md border bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:outline-none ${
                 errors.confirmPassword
                   ? 'border-[#ff8f8f] focus:border-[#ff8f8f]'
@@ -183,10 +167,11 @@ export default function RegisterPage() {
 
           <button
             type="submit"
+            data-testid="register-submit"
             disabled={isSubmitting}
             className="steam-btn w-full rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? '註冊中...' : '註冊'}
+            {isSubmitting ? '正在建立帳號...' : '建立帳號'}
           </button>
         </form>
 
