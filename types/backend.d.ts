@@ -3,6 +3,9 @@ import type { Server as IOServer } from 'socket.io';
 import type Stripe from 'stripe';
 import type OpenAI from 'openai';
 
+export type OrderStatus = 'pending' | 'payment_failed' | 'paid' | 'cancelled' | 'refunded';
+export type FulfillmentStatus = 'pending_shipment' | 'shipped' | 'delivered';
+
 export interface User {
   id: number;
   username: string;
@@ -44,8 +47,6 @@ export interface PaymentDetails {
   paidAt: string;
 }
 
-export type FulfillmentStatus = '待出貨' | '已出貨' | '已送達';
-
 export interface ShippingDetails {
   carrier?: string;
   trackingNumber?: string;
@@ -67,7 +68,7 @@ export interface Order {
   items: CartItem[];
   total: number;
   date: string;
-  status: '未付款' | '付款失敗' | '已付款' | '已取消' | '已退款';
+  status: OrderStatus;
   fulfillmentStatus?: FulfillmentStatus;
   shippingDetails?: ShippingDetails;
   paymentDetails?: PaymentDetails;

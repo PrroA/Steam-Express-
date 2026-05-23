@@ -6,6 +6,7 @@ import {
 } from '../services/orderService';
 import type { Order } from '../types/domain';
 import { upsertOrderStatusAlertsFromOrders } from '../utils/wishlistAlerts';
+import { ORDER_STATUS, getOrderStatusLabel } from '../utils/orderStatus';
 
 export function useOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -17,6 +18,7 @@ export function useOrdersPage() {
   const [operationType, setOperationType] = useState<
     'cancel' | 'refund' | 'retry' | 'simulate' | null
   >(null);
+  const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
 
   const loadOrders = useCallback(async (preferredOrderId?: string) => {
     setLoading(true);
@@ -30,7 +32,7 @@ export function useOrdersPage() {
 
       const preferredOrder =
         (preferredOrderId && data.find((order) => order.id === preferredOrderId)) || null;
-      const unpaidOrder = data.find((order) => order.status === '未付款');
+      const unpaidOrder = data.find((order) => order.status === ORDER_STATUS.PENDING);
       setSelectedOrder(preferredOrder || unpaidOrder || data[0] || null);
 
       return data;
@@ -44,19 +46,20 @@ export function useOrdersPage() {
 
   useEffect(() => {
     const fetchClientSecret = async () => {
-      if (!selectedOrder || selectedOrder.status !== '未付款') {
+      if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.PENDING) {
         setClientSecret(null);
+        setPaymentIntentError(null);
         return;
       }
 
       setLoading(true);
-      setError(null);
+      setPaymentIntentError(null);
       try {
         const token = localStorage.getItem('token');
         const data = await createPaymentIntent(selectedOrder.id, token);
         setClientSecret(data.clientSecret || null);
       } catch (fetchError: any) {
-        setError(fetchError?.message || '載入付款資訊失敗');
+        setPaymentIntentError(fetchError?.message || '建立 Stripe 付款流程失敗');
         setClientSecret(null);
       } finally {
         setLoading(false);
@@ -105,7 +108,7 @@ export function useOrdersPage() {
       for (let i = 0; i < 6; i += 1) {
         const latestOrders = await loadOrders(orderId);
         const target = latestOrders.find((order) => order.id === orderId);
-        if (target?.status === '已付款') {
+        if (target?.status === ORDER_STATUS.PAID) {
           confirmed = true;
           break;
         }
@@ -120,13 +123,22 @@ export function useOrdersPage() {
   );
 
   const chartData = useMemo(() => {
-    const paidOrders = orders.filter((order) => order.status === '已付款').length;
-    const unpaidOrders = orders.filter((order) => order.status === '未付款').length;
-    const failedOrders = orders.filter((order) => order.status === '付款失敗').length;
-    const closedOrders = orders.filter((order) => ['已取消', '已退款'].includes(order.status)).length;
+    const paidOrders = orders.filter((order) => order.status === ORDER_STATUS.PAID).length;
+    const unpaidOrders = orders.filter((order) => order.status === ORDER_STATUS.PENDING).length;
+    const failedOrders = orders.filter((order) => order.status === ORDER_STATUS.PAYMENT_FAILED).length;
+    const closedOrders = orders.filter((order) =>
+      ([ORDER_STATUS.CANCELLED, ORDER_STATUS.REFUNDED] as Array<Order['status']>).includes(
+        order.status
+      )
+    ).length;
 
     return {
-      labels: ['已付款', '未付款', '付款失敗', '已關閉(取消/退款)'],
+      labels: [
+        getOrderStatusLabel(ORDER_STATUS.PAID),
+        getOrderStatusLabel(ORDER_STATUS.PENDING),
+        getOrderStatusLabel(ORDER_STATUS.PAYMENT_FAILED),
+        '已關閉(取消/退款)',
+      ],
       datasets: [
         {
           data: [paidOrders, unpaidOrders, failedOrders, closedOrders],
@@ -139,9 +151,9 @@ export function useOrdersPage() {
   }, [orders]);
 
   const stats = useMemo(() => {
-    const paid = orders.filter((order) => order.status === '已付款');
-    const unpaid = orders.filter((order) => order.status === '未付款');
-    const failed = orders.filter((order) => order.status === '付款失敗');
+    const paid = orders.filter((order) => order.status === ORDER_STATUS.PAID);
+    const unpaid = orders.filter((order) => order.status === ORDER_STATUS.PENDING);
+    const failed = orders.filter((order) => order.status === ORDER_STATUS.PAYMENT_FAILED);
 
     return {
       totalOrders: orders.length,
@@ -160,6 +172,7 @@ export function useOrdersPage() {
     error,
     operationLoading,
     operationType,
+    paymentIntentError,
     chartData,
     stats,
     loadOrders,

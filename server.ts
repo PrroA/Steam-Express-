@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '.env.local' });
 require('dotenv').config();
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';

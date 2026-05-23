@@ -1,4 +1,5 @@
 import type { Order } from '../../types/domain';
+import { getOrderStatusLabel } from '../../utils/orderStatus';
 import { statusBadgeClass } from './statusStyles';
 
 export function OrderTimeline({ selectedOrder }: { selectedOrder: Order | null }) {
@@ -19,7 +20,7 @@ export function OrderTimeline({ selectedOrder }: { selectedOrder: Order | null }
                   node.status
                 )}`}
               >
-                {node.status}
+                {getOrderStatusLabel(node.status)}
               </span>
               <span className="text-xs text-[#8faac0]">{new Date(node.at).toLocaleString()}</span>
             </div>

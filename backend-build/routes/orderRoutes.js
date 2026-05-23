@@ -3,9 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerOrderRoutes = registerOrderRoutes;
 const uuid_1 = require("uuid");
 const persistence_1 = require("../persistence");
+const orderStatus_1 = require("../orderStatus");
 function pushOrderStatus(order, status, note) {
-    order.status = status;
-    order.statusHistory.push({ status, at: new Date().toISOString(), note });
+    const normalizedStatus = (0, orderStatus_1.normalizeOrderStatus)(status);
+    order.status = normalizedStatus;
+    order.statusHistory.push({ status: normalizedStatus, at: new Date().toISOString(), note });
 }
 function findVariant(game, variantId) {
     if (!game.variants || game.variants.length === 0)
@@ -32,7 +34,7 @@ function findOrderAcrossUsers(orders, orderId) {
     for (const [userId, userOrders] of Object.entries(orders)) {
         const order = (userOrders || []).find((item) => item.id === orderId);
         if (order) {
-            return { userId: Number(userId), order };
+            return { userId: Number(userId), order: (0, orderStatus_1.normalizeOrderRecord)(order) };
         }
     }
     return null;
@@ -43,7 +45,7 @@ function normalizeOrdersForAdmin(orders) {
             return [];
         return userOrders
             .filter((order) => order && typeof order === 'object' && typeof order.id === 'string')
-            .map((order) => ({ ...order, userId: Number(userId) }));
+            .map((order) => ({ ...(0, orderStatus_1.normalizeOrderRecord)(order), userId: Number(userId) }));
     });
 }
 function getOrderAmountInCents(order) {
@@ -52,6 +54,7 @@ function getOrderAmountInCents(order) {
 }
 function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }) {
     const { carts, orders, games } = state;
+    const hasStripeSecret = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_dummy');
     app.get('/cart', authenticate, (req, res) => {
         return res.json(carts[req.user.id] || []);
     });
@@ -131,7 +134,7 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!orders[userId]) {
             orders[userId] = [];
         }
-        return res.status(200).json(orders[userId]);
+        return res.status(200).json(orders[userId].map((order) => (0, orderStatus_1.normalizeOrderRecord)(order)));
     });
     app.get('/orders/:orderId', authenticate, (req, res) => {
         const userId = req.user.id;
@@ -139,7 +142,7 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!order) {
             return res.status(404).json({ message: '訂單未找到' });
         }
-        return res.status(200).json(order);
+        return res.status(200).json((0, orderStatus_1.normalizeOrderRecord)(order));
     });
     app.get('/admin/orders', authenticate, isAdmin, (req, res) => {
         const allOrders = normalizeOrdersForAdmin(orders);
@@ -148,15 +151,15 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
     app.get('/admin/dashboard', authenticate, isAdmin, (req, res) => {
         const allOrders = normalizeOrdersForAdmin(orders).map(({ userId, ...order }) => order);
         const totalOrders = allOrders.length;
-        const paidOrders = allOrders.filter((order) => order?.status === '已付款').length;
-        const refundedOrders = allOrders.filter((order) => order?.status === '已退款').length;
-        const cancelledOrders = allOrders.filter((order) => order?.status === '已取消').length;
-        const pendingOrders = allOrders.filter((order) => order?.status === '未付款').length;
+        const paidOrders = allOrders.filter((order) => order?.status === orderStatus_1.ORDER_STATUS.PAID).length;
+        const refundedOrders = allOrders.filter((order) => order?.status === orderStatus_1.ORDER_STATUS.REFUNDED).length;
+        const cancelledOrders = allOrders.filter((order) => order?.status === orderStatus_1.ORDER_STATUS.CANCELLED).length;
+        const pendingOrders = allOrders.filter((order) => order?.status === orderStatus_1.ORDER_STATUS.PENDING).length;
         const totalRevenue = allOrders
-            .filter((order) => order?.status === '已付款')
+            .filter((order) => order?.status === orderStatus_1.ORDER_STATUS.PAID)
             .reduce((sum, order) => sum + (Number(order?.total) || 0), 0);
         const totalItemsSold = allOrders
-            .filter((order) => order?.status === '已付款')
+            .filter((order) => order?.status === orderStatus_1.ORDER_STATUS.PAID)
             .reduce((sum, order) => sum +
             (Array.isArray(order?.items)
                 ? order.items.reduce((itemSum, item) => itemSum + (item?.quantity || 0), 0)
@@ -186,21 +189,22 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             return res.status(404).json({ message: '訂單未找到' });
         }
         const { order } = found;
-        const { status, note } = req.body;
-        const allowedStatus = ['未付款', '付款失敗', '已付款', '已取消', '已退款'];
+        const { note } = req.body;
+        const status = (0, orderStatus_1.normalizeOrderStatus)(req.body.status);
+        const allowedStatus = [...orderStatus_1.ORDER_STATUS_OPTIONS];
         if (!allowedStatus.includes(status)) {
             return res.status(400).json({ message: '無效的訂單狀態' });
         }
-        if ((status === '已取消' || status === '已退款') && !order.stockRestored) {
+        if ((status === orderStatus_1.ORDER_STATUS.CANCELLED || status === orderStatus_1.ORDER_STATUS.REFUNDED) && !order.stockRestored) {
             restockOrderItems(order, games);
         }
-        if (status === '已付款' && !order.paymentDetails) {
+        if (status === orderStatus_1.ORDER_STATUS.PAID && !order.paymentDetails) {
             order.paymentDetails = {
                 transactionId: `ADMIN-${Date.now()}`,
                 paidAt: new Date().toISOString(),
             };
             if (!order.fulfillmentStatus) {
-                order.fulfillmentStatus = '待出貨';
+                order.fulfillmentStatus = orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT;
             }
         }
         pushOrderStatus(order, status, note || '管理員手動更新');
@@ -213,22 +217,22 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             return res.status(404).json({ message: '訂單未找到' });
         }
         const { order } = found;
-        const { fulfillmentStatus } = req.body;
-        const allowedFulfillmentStatus = ['待出貨', '已出貨', '已送達'];
+        const fulfillmentStatus = (0, orderStatus_1.normalizeFulfillmentStatus)(req.body.fulfillmentStatus);
+        const allowedFulfillmentStatus = [...orderStatus_1.FULFILLMENT_STATUS_OPTIONS];
         if (!allowedFulfillmentStatus.includes(fulfillmentStatus)) {
             return res.status(400).json({ message: '無效的出貨狀態' });
         }
-        if (order.status !== '已付款' && fulfillmentStatus !== '待出貨') {
+        if (order.status !== orderStatus_1.ORDER_STATUS.PAID && fulfillmentStatus !== orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT) {
             return res.status(400).json({ message: '僅已付款訂單可更新為已出貨或已送達' });
         }
         order.fulfillmentStatus = fulfillmentStatus;
         if (!order.shippingDetails) {
             order.shippingDetails = {};
         }
-        if (fulfillmentStatus === '已出貨') {
+        if (fulfillmentStatus === orderStatus_1.FULFILLMENT_STATUS.SHIPPED) {
             order.shippingDetails.shippedAt = order.shippingDetails.shippedAt || new Date().toISOString();
         }
-        if (fulfillmentStatus === '已送達') {
+        if (fulfillmentStatus === orderStatus_1.FULFILLMENT_STATUS.DELIVERED) {
             order.shippingDetails.shippedAt = order.shippingDetails.shippedAt || new Date().toISOString();
             order.shippingDetails.deliveredAt = new Date().toISOString();
         }
@@ -257,11 +261,12 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!order) {
             return res.status(404).json({ message: '訂單未找到' });
         }
-        if (!['未付款', '付款失敗'].includes(order.status)) {
+        (0, orderStatus_1.normalizeOrderRecord)(order);
+        if (![orderStatus_1.ORDER_STATUS.PENDING, orderStatus_1.ORDER_STATUS.PAYMENT_FAILED].includes(order.status)) {
             return res.status(400).json({ message: '目前狀態不可取消訂單' });
         }
         restockOrderItems(order, games);
-        pushOrderStatus(order, '已取消', '使用者取消訂單');
+        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.CANCELLED, '使用者取消訂單');
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '訂單已取消', order });
     });
@@ -324,10 +329,11 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!order) {
             return res.status(404).json({ message: '訂單未找到' });
         }
-        if (order.status !== '付款失敗') {
+        (0, orderStatus_1.normalizeOrderRecord)(order);
+        if (order.status !== orderStatus_1.ORDER_STATUS.PAYMENT_FAILED) {
             return res.status(400).json({ message: '只有付款失敗訂單可重試付款' });
         }
-        pushOrderStatus(order, '未付款', '重新嘗試付款');
+        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PENDING, '重新嘗試付款');
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '訂單已切換為待付款，可重新付款', order });
     });
@@ -337,11 +343,12 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!order) {
             return res.status(404).json({ message: '訂單未找到' });
         }
-        if (order.status !== '已付款') {
+        (0, orderStatus_1.normalizeOrderRecord)(order);
+        if (order.status !== orderStatus_1.ORDER_STATUS.PAID) {
             return res.status(400).json({ message: '僅已付款訂單可退款' });
         }
         restockOrderItems(order, games);
-        pushOrderStatus(order, '已退款', '使用者申請退款');
+        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.REFUNDED, '使用者申請退款');
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '退款完成', order });
     });
@@ -388,17 +395,17 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
                     return sum + (isNaN(price) ? 0 : price * item.quantity);
                 }, 0),
                 date: new Date().toISOString(),
-                status: '未付款',
+                status: orderStatus_1.ORDER_STATUS.PENDING,
                 statusHistory: [
                     {
-                        status: '未付款',
+                        status: orderStatus_1.ORDER_STATUS.PENDING,
                         at: new Date().toISOString(),
                         note: '訂單建立',
                     },
                 ],
                 stockRestored: false,
                 customerInfo,
-                fulfillmentStatus: '待出貨',
+                fulfillmentStatus: orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT,
             };
             orders[userId].push(newOrder);
             carts[userId] = [];
@@ -417,14 +424,15 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
         if (!order) {
             return res.status(404).json({ message: '訂單未找到' });
         }
-        if (order.status === '已付款') {
+        (0, orderStatus_1.normalizeOrderRecord)(order);
+        if (order.status === orderStatus_1.ORDER_STATUS.PAID) {
             return res.status(400).json({ message: '訂單已付款，無法重複支付' });
         }
-        if (order.status === '已取消' || order.status === '已退款') {
+        if (order.status === orderStatus_1.ORDER_STATUS.CANCELLED || order.status === orderStatus_1.ORDER_STATUS.REFUNDED) {
             return res.status(400).json({ message: '目前訂單狀態不可付款' });
         }
         if (simulateFailure) {
-            pushOrderStatus(order, '付款失敗', '支付通道回傳失敗');
+            pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAYMENT_FAILED, '支付通道回傳失敗');
             (0, persistence_1.persistState)(state);
             return res.status(400).json({ message: '支付失敗，請重試', order });
         }
@@ -434,9 +442,9 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             paidAt: new Date().toISOString(),
         };
         if (!order.fulfillmentStatus) {
-            order.fulfillmentStatus = '待出貨';
+            order.fulfillmentStatus = orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT;
         }
-        pushOrderStatus(order, '已付款', '支付成功');
+        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAID, '支付成功');
         (0, persistence_1.persistState)(state);
         return res.status(200).json({ message: '支付成功', order });
     });
@@ -486,20 +494,22 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             if (found) {
                 const { order } = found;
                 if (event.type === 'payment_intent.succeeded') {
-                    if (!['已取消', '已退款'].includes(order.status) && order.status !== '已付款') {
+                    (0, orderStatus_1.normalizeOrderRecord)(order);
+                    if (![orderStatus_1.ORDER_STATUS.CANCELLED, orderStatus_1.ORDER_STATUS.REFUNDED].includes(order.status) &&
+                        order.status !== orderStatus_1.ORDER_STATUS.PAID) {
                         order.paymentDetails = {
                             transactionId: intent.id,
                             paidAt: new Date().toISOString(),
                         };
                         if (!order.fulfillmentStatus) {
-                            order.fulfillmentStatus = '待出貨';
+                            order.fulfillmentStatus = orderStatus_1.FULFILLMENT_STATUS.PENDING_SHIPMENT;
                         }
-                        pushOrderStatus(order, '已付款', 'Stripe webhook: payment_intent.succeeded');
+                        pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAID, 'Stripe webhook: payment_intent.succeeded');
                         (0, persistence_1.persistState)(state);
                     }
                 }
-                else if (order.status === '未付款') {
-                    pushOrderStatus(order, '付款失敗', 'Stripe webhook: payment_intent.payment_failed');
+                else if ((0, orderStatus_1.normalizeOrderStatus)(order.status) === orderStatus_1.ORDER_STATUS.PENDING) {
+                    pushOrderStatus(order, orderStatus_1.ORDER_STATUS.PAYMENT_FAILED, 'Stripe webhook: payment_intent.payment_failed');
                     (0, persistence_1.persistState)(state);
                 }
             }
@@ -508,6 +518,14 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
     });
     app.post('/create-payment-intent', authenticate, async (req, res) => {
         try {
+            if (!hasStripeSecret) {
+                return res.status(503).json({
+                    error: {
+                        code: 'STRIPE_NOT_CONFIGURED',
+                        message: 'Stripe 金鑰尚未設定，請使用 Demo 快速付款或設定 STRIPE_SECRET_KEY。',
+                    },
+                });
+            }
             const userId = req.user.id;
             const { orderId } = req.body;
             if (!orderId) {
@@ -517,7 +535,8 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             if (!order) {
                 return res.status(404).json({ error: '訂單未找到' });
             }
-            if (order.status !== '未付款') {
+            (0, orderStatus_1.normalizeOrderRecord)(order);
+            if (order.status !== orderStatus_1.ORDER_STATUS.PENDING) {
                 return res.status(400).json({ error: '只有未付款訂單可建立付款流程' });
             }
             const amount = getOrderAmountInCents(order);

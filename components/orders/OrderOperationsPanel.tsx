@@ -1,16 +1,23 @@
 import Link from 'next/link';
 import type { Order } from '../../types/domain';
+import {
+  FULFILLMENT_STATUS,
+  ORDER_STATUS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+  normalizeFulfillmentStatus,
+} from '../../utils/orderStatus';
 import { statusBadgeClass } from './statusStyles';
 
 const fulfillmentClasses = {
-  待出貨: 'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
-  已出貨: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
-  已送達: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+  [FULFILLMENT_STATUS.PENDING_SHIPMENT]:
+    'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
+  [FULFILLMENT_STATUS.SHIPPED]: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
+  [FULFILLMENT_STATUS.DELIVERED]: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
 };
 
 function fulfillmentBadgeClass(status?: Order['fulfillmentStatus']) {
-  if (!status) return fulfillmentClasses.待出貨;
-  return fulfillmentClasses[status] || fulfillmentClasses.待出貨;
+  return fulfillmentClasses[normalizeFulfillmentStatus(status)];
 }
 
 interface OrderOperationsPanelProps {
@@ -65,7 +72,8 @@ export function OrderOperationsPanel({
           >
             {orders.map((order) => (
               <option key={order.id} value={order.id}>
-                訂單 {order.id.slice(0, 8)}... | ${order.total.toFixed(2)} | {order.status}
+                訂單 {order.id.slice(0, 8)}... | ${order.total.toFixed(2)} |{' '}
+                {getOrderStatusLabel(order.status)}
               </option>
             ))}
           </select>
@@ -92,7 +100,7 @@ export function OrderOperationsPanel({
                   selectedOrder?.fulfillmentStatus
                 )}`}
               >
-                {selectedOrder?.fulfillmentStatus || '待出貨'}
+                {getFulfillmentStatusLabel(selectedOrder?.fulfillmentStatus)}
               </span>
             </p>
             <p className="mt-2 text-xs text-[#8faac0]">
@@ -133,28 +141,38 @@ export function OrderOperationsPanel({
             </button>
             <button
               onClick={onCancelOrder}
-              disabled={isOperating || !selectedOrder || !['未付款', '付款失敗'].includes(selectedOrder.status)}
+              disabled={
+                isOperating ||
+                !selectedOrder ||
+                !([ORDER_STATUS.PENDING, ORDER_STATUS.PAYMENT_FAILED] as Array<Order['status']>).includes(
+                  selectedOrder.status
+                )
+              }
               className="rounded-md border border-[#ff9f9f55] bg-[#4a202a] px-3 py-2 text-sm font-semibold text-[#ffd6d6] transition hover:bg-[#66303c] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {operatingType === 'cancel' ? '取消中...' : '取消訂單'}
             </button>
             <button
               onClick={onRefundOrder}
-              disabled={isOperating || !selectedOrder || selectedOrder.status !== '已付款'}
+              disabled={isOperating || !selectedOrder || selectedOrder.status !== ORDER_STATUS.PAID}
               className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {operatingType === 'refund' ? '退款中...' : '退款'}
             </button>
             <button
               onClick={onRetryOrder}
-              disabled={isOperating || !selectedOrder || selectedOrder.status !== '付款失敗'}
+              disabled={
+                isOperating ||
+                !selectedOrder ||
+                selectedOrder.status !== ORDER_STATUS.PAYMENT_FAILED
+              }
               className="rounded-md border border-[#66c0f455] bg-[#193142] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24445a] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {operatingType === 'retry' ? '處理中...' : '重新付款'}
             </button>
             <button
               onClick={onSimulateFailure}
-              disabled={isOperating || !selectedOrder || selectedOrder.status !== '未付款'}
+              disabled={isOperating || !selectedOrder || selectedOrder.status !== ORDER_STATUS.PENDING}
               className="rounded-md border border-[#ffcf5a55] bg-[#3f3318] px-3 py-2 text-sm font-semibold text-[#ffe0a6] transition hover:bg-[#524423] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {operatingType === 'simulate' ? '處理中...' : '模擬付款失敗'}

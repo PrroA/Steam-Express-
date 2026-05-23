@@ -20,6 +20,7 @@ import {
 } from '../services/adminService';
 import type { Game } from '../types/domain';
 import { getApiErrorMessage, normalizeImagePreviewUrl } from '../utils/adminUtils';
+import { FULFILLMENT_STATUS } from '../utils/orderStatus';
 
 interface AddGameForm {
   name: string;
@@ -286,7 +287,12 @@ export function useAdminPage() {
     async (orderId: string, fulfillmentStatus: AdminOrder['fulfillmentStatus']) => {
       try {
         const token = getToken();
-        await updateAdminFulfillmentStatus(orderId, fulfillmentStatus || '待出貨', token, 'Admin fulfillment update');
+        await updateAdminFulfillmentStatus(
+          orderId,
+          fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT,
+          token,
+          'Admin fulfillment update'
+        );
         toast.success('出貨狀態已更新');
         await loadAdminData();
       } catch (error) {

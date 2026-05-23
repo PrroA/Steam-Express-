@@ -1,5 +1,6 @@
 import type { AdminDashboard, AdminOrder } from '../../services/adminService';
 import type { Game } from '../../types/domain';
+import { FULFILLMENT_STATUS, ORDER_STATUS, getOrderStatusLabel } from '../../utils/orderStatus';
 
 interface AdminActionPanelProps {
   dashboard: AdminDashboard | null;
@@ -13,10 +14,13 @@ function formatOrderTime(value?: string) {
 }
 
 export function AdminActionPanel({ dashboard, orders, games }: AdminActionPanelProps) {
-  const pendingPaymentOrders = orders.filter((order) => order.status === '未付款');
-  const failedPaymentOrders = orders.filter((order) => order.status === '付款失敗');
+  const pendingPaymentOrders = orders.filter((order) => order.status === ORDER_STATUS.PENDING);
+  const failedPaymentOrders = orders.filter((order) => order.status === ORDER_STATUS.PAYMENT_FAILED);
   const paidWaitingShipmentOrders = orders.filter(
-    (order) => order.status === '已付款' && (order.fulfillmentStatus || '待出貨') === '待出貨'
+    (order) =>
+      order.status === ORDER_STATUS.PAID &&
+      (order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT) ===
+        FULFILLMENT_STATUS.PENDING_SHIPMENT
   );
   const inactiveGames = games.filter((game) => game.isActive === false);
   const lowStockItems = dashboard?.lowStockGames?.flatMap((game) =>
@@ -98,7 +102,7 @@ export function AdminActionPanel({ dashboard, orders, games }: AdminActionPanelP
               <div key={order.id} className="rounded-md border border-[#66c0f433] bg-[#102131] p-3">
                 <p className="text-sm font-bold text-[#d8e6f3]">{order.id.slice(0, 8)}...</p>
                 <p className="mt-1 text-xs text-[#9eb4c8]">
-                  {order.status} · ${order.total.toFixed(2)}
+                  {getOrderStatusLabel(order.status)} · ${order.total.toFixed(2)}
                 </p>
               </div>
             ))}

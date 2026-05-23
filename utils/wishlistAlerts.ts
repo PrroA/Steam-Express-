@@ -1,3 +1,11 @@
+import {
+  FULFILLMENT_STATUS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+  normalizeFulfillmentStatus,
+  normalizeOrderStatus,
+} from './orderStatus';
+
 const STORAGE_KEY = 'siteAlerts';
 const LEGACY_WISHLIST_KEY = 'wishlistPriceDropAlerts';
 const ORDER_SNAPSHOT_KEY = 'orderStatusSnapshot';
@@ -208,8 +216,10 @@ export function upsertOrderStatusAlertsFromOrders(orders) {
   orders.forEach((order) => {
     if (!order?.id) return;
     nextSnapshot[order.id] = {
-      status: order.status,
-      fulfillmentStatus: order.fulfillmentStatus || '待出貨',
+      status: normalizeOrderStatus(order.status),
+      fulfillmentStatus: normalizeFulfillmentStatus(
+        order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT
+      ),
     };
   });
 
@@ -230,18 +240,22 @@ export function upsertOrderStatusAlertsFromOrders(orders) {
         id: `${order.id}:status`,
         type: 'order-status',
         title: `訂單狀態更新：${order.id.slice(0, 8)}...`,
-        message: `${prev.status || '未知'} → ${order.status}`,
-        payload: { orderId: order.id, status: order.status },
+        message: `${getOrderStatusLabel(prev.status)} → ${getOrderStatusLabel(order.status)}`,
+        payload: { orderId: order.id, status: normalizeOrderStatus(order.status) },
       });
     }
 
-    const nextFulfillment = order.fulfillmentStatus || '待出貨';
+    const nextFulfillment = normalizeFulfillmentStatus(
+      order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT
+    );
     if (prev.fulfillmentStatus !== nextFulfillment) {
       generated.push({
         id: `${order.id}:fulfillment`,
         type: 'order-fulfillment',
         title: `物流進度更新：${order.id.slice(0, 8)}...`,
-        message: `${prev.fulfillmentStatus || '待出貨'} → ${nextFulfillment}`,
+        message: `${getFulfillmentStatusLabel(prev.fulfillmentStatus)} → ${getFulfillmentStatusLabel(
+          nextFulfillment
+        )}`,
         payload: { orderId: order.id, fulfillmentStatus: nextFulfillment },
       });
     }

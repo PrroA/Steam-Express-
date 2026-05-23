@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { FaHeartBroken } from 'react-icons/fa';
-import { addToCart } from './api/cartApi';
+import { addToCart } from '../services/cartService';
 import { upsertWishlistPriceDropAlerts } from '../utils/wishlistAlerts';
 import { ErrorState } from '../components/ui/PageStates';
 import { WishlistPageSkeleton } from '../components/ui/PageSkeletons';

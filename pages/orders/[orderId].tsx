@@ -5,34 +5,30 @@ import { FaCheckCircle, FaClock, FaTimesCircle, FaUndoAlt } from 'react-icons/fa
 import { fetchOrderById, reorderOrder } from '../../services/orderService';
 import type { Order } from '../../types/domain';
 import { toast } from 'react-toastify';
-
-const statusClasses = {
-  已付款: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
-  未付款: 'bg-[#3f3318] text-[#ffd079] border-[#ffd07955]',
-  付款失敗: 'bg-[#4a202a] text-[#ff9e9e] border-[#ff9e9e55]',
-  已取消: 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]',
-  已退款: 'bg-[#22384a] text-[#9ed8ff] border-[#9ed8ff55]',
-};
+import {
+  FULFILLMENT_STATUS,
+  ORDER_STATUS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+  normalizeFulfillmentStatus,
+} from '../../utils/orderStatus';
+import { statusBadgeClass } from '../../components/orders/statusStyles';
 
 const fulfillmentClasses = {
-  待出貨: 'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
-  已出貨: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
-  已送達: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+  [FULFILLMENT_STATUS.PENDING_SHIPMENT]:
+    'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
+  [FULFILLMENT_STATUS.SHIPPED]: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
+  [FULFILLMENT_STATUS.DELIVERED]: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
 };
 
-function statusBadgeClass(status: Order['status']) {
-  return statusClasses[status] || 'bg-[#2d3642] text-[#9fb4c6] border-[#9fb4c655]';
-}
-
 function fulfillmentBadgeClass(status?: Order['fulfillmentStatus']) {
-  if (!status) return fulfillmentClasses.待出貨;
-  return fulfillmentClasses[status] || fulfillmentClasses.待出貨;
+  return fulfillmentClasses[normalizeFulfillmentStatus(status)];
 }
 
 function statusNodeStyle(status: Order['status']) {
-  if (status === '已付款') return { dot: 'bg-[#8bc53f]', line: 'bg-[#8bc53f66]', icon: FaCheckCircle };
-  if (status === '未付款') return { dot: 'bg-[#ffd079]', line: 'bg-[#ffd07966]', icon: FaClock };
-  if (status === '付款失敗') return { dot: 'bg-[#ff8d8d]', line: 'bg-[#ff8d8d66]', icon: FaTimesCircle };
+  if (status === ORDER_STATUS.PAID) return { dot: 'bg-[#8bc53f]', line: 'bg-[#8bc53f66]', icon: FaCheckCircle };
+  if (status === ORDER_STATUS.PENDING) return { dot: 'bg-[#ffd079]', line: 'bg-[#ffd07966]', icon: FaClock };
+  if (status === ORDER_STATUS.PAYMENT_FAILED) return { dot: 'bg-[#ff8d8d]', line: 'bg-[#ff8d8d66]', icon: FaTimesCircle };
   return { dot: 'bg-[#8fb8d5]', line: 'bg-[#8fb8d566]', icon: FaUndoAlt };
 }
 
@@ -170,7 +166,7 @@ export default function OrderDetail() {
                     order.status
                   )}`}
                 >
-                {order.status}
+                  {getOrderStatusLabel(order.status)}
                 </span>
               </p>
             </div>
@@ -182,7 +178,7 @@ export default function OrderDetail() {
                     order.fulfillmentStatus
                   )}`}
                 >
-                  {order.fulfillmentStatus || '待出貨'}
+                  {getFulfillmentStatusLabel(order.fulfillmentStatus)}
                 </span>
               </p>
             </div>
@@ -294,7 +290,9 @@ export default function OrderDetail() {
                     </span>
                     <div className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-[#d8e6f3]">{event.status}</p>
+                        <p className="text-sm font-bold text-[#d8e6f3]">
+                          {getOrderStatusLabel(event.status)}
+                        </p>
                         <span
                           className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusBadgeClass(
                             event.status

@@ -41,14 +41,27 @@ export async function createPaymentIntent(
   orderId: string,
   token?: string | null
 ): Promise<PaymentIntentResponse> {
-  const response = await apiClient.post(
-    '/create-payment-intent',
-    { orderId },
-    {
-      headers: authHeader(token),
-    }
-  );
-  return response.data;
+  try {
+    const response = await apiClient.post(
+      '/create-payment-intent',
+      { orderId },
+      {
+        headers: authHeader(token),
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    const payload = error?.response?.data;
+    const message =
+      payload?.error?.message ||
+      payload?.message ||
+      error?.message ||
+      '建立 Stripe 付款流程失敗';
+    const nextError = new Error(message) as Error & { code?: string; status?: number };
+    nextError.code = payload?.error?.code || payload?.code;
+    nextError.status = error?.response?.status;
+    throw nextError;
+  }
 }
 
 export async function payOrder(

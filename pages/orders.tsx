@@ -21,19 +21,22 @@ import { OrdersPageSkeleton } from '../components/ui/PageSkeletons';
 import { OrderActionSummary } from '../components/orders/OrderActionSummary';
 import type { Order } from '../types/domain';
 import { trackJourneyEvent } from '../utils/journeyTracker';
+import { ORDER_STATUS, getOrderStatusLabel } from '../utils/orderStatus';
 
 type OrderStatusFilter = 'ALL' | Order['status'];
 
 const statusFilters: Array<{ id: OrderStatusFilter; label: string }> = [
   { id: 'ALL', label: '全部' },
-  { id: '未付款', label: '待付款' },
-  { id: '付款失敗', label: '付款失敗' },
-  { id: '已付款', label: '已付款' },
+  { id: ORDER_STATUS.PENDING, label: getOrderStatusLabel(ORDER_STATUS.PENDING) },
+  { id: ORDER_STATUS.PAYMENT_FAILED, label: getOrderStatusLabel(ORDER_STATUS.PAYMENT_FAILED) },
+  { id: ORDER_STATUS.PAID, label: getOrderStatusLabel(ORDER_STATUS.PAID) },
 ];
 
-const stripePromise = loadStripe(
-  'pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB'
-);
+const stripePublishableKey =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+  'pk_test_51Qr9qRRoY6RFAeUcNUZyfm5avjM4YPtAQdKcYnwIKrv02R615cdGXbFdnx45lyY2jjmdS68rHoRbn6hWQmSgCVn100B820Z6iB';
+
+const stripePromise = loadStripe(stripePublishableKey);
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -48,6 +51,7 @@ export default function CheckoutPage() {
     orders,
     selectedOrder,
     clientSecret,
+    paymentIntentError,
     loading,
     error,
     operationLoading,
@@ -235,6 +239,7 @@ export default function CheckoutPage() {
           <OrderPaymentPanel
             selectedOrder={selectedOrder}
             clientSecret={clientSecret}
+            paymentIntentError={paymentIntentError}
             stripePromise={stripePromise}
             onPaid={handlePaymentSuccess}
           />

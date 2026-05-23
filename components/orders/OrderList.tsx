@@ -1,15 +1,21 @@
 import type { Order } from '../../types/domain';
+import {
+  FULFILLMENT_STATUS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+  normalizeFulfillmentStatus,
+} from '../../utils/orderStatus';
 import { statusBadgeClass } from './statusStyles';
 
 const fulfillmentClasses = {
-  待出貨: 'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
-  已出貨: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
-  已送達: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
+  [FULFILLMENT_STATUS.PENDING_SHIPMENT]:
+    'bg-[#2f3b4a] text-[#9eb4c8] border-[#9eb4c855]',
+  [FULFILLMENT_STATUS.SHIPPED]: 'bg-[#1f3550] text-[#8fd1ff] border-[#8fd1ff55]',
+  [FULFILLMENT_STATUS.DELIVERED]: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
 };
 
 function fulfillmentBadgeClass(status?: Order['fulfillmentStatus']) {
-  if (!status) return fulfillmentClasses.待出貨;
-  return fulfillmentClasses[status] || fulfillmentClasses.待出貨;
+  return fulfillmentClasses[normalizeFulfillmentStatus(status)];
 }
 
 interface OrderListProps {
@@ -63,7 +69,7 @@ export function OrderList({
                     order.status
                   )}`}
                 >
-                  {order.status}
+                  {getOrderStatusLabel(order.status)}
                 </span>
               </div>
 
@@ -82,13 +88,13 @@ export function OrderList({
                     order.fulfillmentStatus
                   )}`}
                 >
-                  {order.fulfillmentStatus || '待出貨'}
+                  {getFulfillmentStatusLabel(order.fulfillmentStatus)}
                 </span>
               </div>
 
               <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-2 text-xs">
                 <p className="text-[#8fb8d5]">最新節點</p>
-                <p className="mt-1 text-[#d8e6f3]">{latestStatus?.status || '無'}</p>
+                <p className="mt-1 text-[#d8e6f3]">{getOrderStatusLabel(latestStatus?.status)}</p>
                 <p className="mt-0.5 text-[#8faac0]">
                   {latestStatus?.at ? new Date(latestStatus.at).toLocaleString() : 'N/A'}
                 </p>

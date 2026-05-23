@@ -1,5 +1,13 @@
-export const ORDER_STATUS_OPTIONS = ['未付款', '付款失敗', '已付款', '已取消', '已退款'];
-export const FULFILLMENT_STATUS_OPTIONS = ['待出貨', '已出貨', '已送達'];
+export {
+  FULFILLMENT_STATUS,
+  FULFILLMENT_STATUS_LABELS,
+  FULFILLMENT_STATUS_OPTIONS,
+  ORDER_STATUS,
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_OPTIONS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+} from './orderStatus';
 
 export function getApiErrorMessage(error: any, fallback = '操作失敗') {
   return (

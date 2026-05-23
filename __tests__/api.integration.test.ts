@@ -229,7 +229,7 @@ describe('API integration', () => {
     });
     expect(checkoutRes.status).toBe(200);
     const orderId = checkoutRes.body.order.id;
-    expect(checkoutRes.body.order.status).toBe('未付款');
+    expect(checkoutRes.body.order.status).toBe('pending');
     expect(Array.isArray(checkoutRes.body.order.statusHistory)).toBe(true);
     expect(checkoutRes.body.order.items[0].variantId).toBe(variant.id);
 
@@ -245,7 +245,7 @@ describe('API integration', () => {
       body: JSON.stringify({ orderId, simulateFailure: true }),
     });
     expect(failPayRes.status).toBe(400);
-    expect(failPayRes.body.order.status).toBe('付款失敗');
+    expect(failPayRes.body.order.status).toBe('payment_failed');
 
     const retryRes = await requestJson(`/orders/${orderId}/retry-payment`, {
       method: 'POST',
@@ -253,7 +253,7 @@ describe('API integration', () => {
       body: JSON.stringify({}),
     });
     expect(retryRes.status).toBe(200);
-    expect(retryRes.body.order.status).toBe('未付款');
+    expect(retryRes.body.order.status).toBe('pending');
 
     const payRes = await requestJson('/pay', {
       method: 'POST',
@@ -261,7 +261,7 @@ describe('API integration', () => {
       body: JSON.stringify({ orderId }),
     });
     expect(payRes.status).toBe(200);
-    expect(payRes.body.order.status).toBe('已付款');
+    expect(payRes.body.order.status).toBe('paid');
 
     const refundRes = await requestJson(`/orders/${orderId}/refund`, {
       method: 'POST',
@@ -269,7 +269,7 @@ describe('API integration', () => {
       body: JSON.stringify({}),
     });
     expect(refundRes.status).toBe(200);
-    expect(refundRes.body.order.status).toBe('已退款');
+    expect(refundRes.body.order.status).toBe('refunded');
 
     const detailRes = await requestJson(`/orders/${orderId}`, {
       method: 'GET',
@@ -277,7 +277,7 @@ describe('API integration', () => {
     });
     expect(detailRes.status).toBe(200);
     const statusSequence = detailRes.body.statusHistory.map((event) => event.status);
-    expect(statusSequence).toEqual(['未付款', '付款失敗', '未付款', '已付款', '已退款']);
+    expect(statusSequence).toEqual(['pending', 'payment_failed', 'pending', 'paid', 'refunded']);
 
     const gameAfterRefund = (await requestJson('/games', { method: 'GET' })).body.find(
       (item) => item.id === game.id

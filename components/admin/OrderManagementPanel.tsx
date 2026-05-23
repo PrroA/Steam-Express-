@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { AdminOrder } from '../../services/adminService';
-import { FULFILLMENT_STATUS_OPTIONS, ORDER_STATUS_OPTIONS } from '../../utils/adminUtils';
+import {
+  FULFILLMENT_STATUS,
+  FULFILLMENT_STATUS_OPTIONS,
+  ORDER_STATUS_OPTIONS,
+  getFulfillmentStatusLabel,
+  getOrderStatusLabel,
+} from '../../utils/adminUtils';
 
 export function OrderManagementPanel({
   orders,
@@ -77,9 +83,11 @@ function OrderRow({
         <div>
           <p className="font-bold text-[#d8e6f3]">訂單 {order.id.slice(0, 8)}...</p>
           <p className="text-xs text-[#8fb8d5]">
-            User #{order.userId} | ${order.total.toFixed(2)} | {order.status}
+            User #{order.userId} | ${order.total.toFixed(2)} | {getOrderStatusLabel(order.status)}
           </p>
-          <p className="text-xs text-[#9eb4c8]">出貨：{order.fulfillmentStatus || '待出貨'}</p>
+          <p className="text-xs text-[#9eb4c8]">
+            出貨：{getFulfillmentStatusLabel(order.fulfillmentStatus)}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -89,12 +97,12 @@ function OrderRow({
           >
             {ORDER_STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {getOrderStatusLabel(status)}
               </option>
             ))}
           </select>
           <select
-            value={order.fulfillmentStatus || '待出貨'}
+            value={order.fulfillmentStatus || FULFILLMENT_STATUS.PENDING_SHIPMENT}
             onChange={(e) =>
               onUpdateFulfillmentStatus(order.id, e.target.value as AdminOrder['fulfillmentStatus'])
             }
@@ -102,7 +110,7 @@ function OrderRow({
           >
             {FULFILLMENT_STATUS_OPTIONS.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {getFulfillmentStatusLabel(status)}
               </option>
             ))}
           </select>

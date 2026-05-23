@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
 exports.startServer = startServer;
+require('dotenv').config({ path: '.env.local' });
 require('dotenv').config();
 const crypto_1 = require("crypto");
 const fs_1 = __importDefault(require("fs"));

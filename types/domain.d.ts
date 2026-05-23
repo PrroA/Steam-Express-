@@ -32,8 +32,6 @@ export interface PaymentDetails {
   paidAt: string;
 }
 
-export type FulfillmentStatus = '待出貨' | '已出貨' | '已送達';
-
 export interface ShippingDetails {
   carrier?: string;
   trackingNumber?: string;
@@ -55,7 +53,7 @@ export interface Order {
   items: CartItem[];
   total: number;
   date: string;
-  status: '未付款' | '付款失敗' | '已付款' | '已取消' | '已退款';
+  status: OrderStatus;
   fulfillmentStatus?: FulfillmentStatus;
   shippingDetails?: ShippingDetails;
   paymentDetails?: PaymentDetails;
@@ -79,3 +77,4 @@ export interface UserProfile {
   defaultAddress?: string;
   defaultPaymentMethod?: 'credit-card' | 'line-pay' | 'wallet';
 }
+import type { FulfillmentStatus, OrderStatus } from '../utils/orderStatus';

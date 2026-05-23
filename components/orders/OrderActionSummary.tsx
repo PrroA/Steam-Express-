@@ -1,13 +1,14 @@
 import type { Order } from '../../types/domain';
+import { ORDER_STATUS } from '../../utils/orderStatus';
 
 interface OrderActionSummaryProps {
   orders: Order[];
 }
 
 export function OrderActionSummary({ orders }: OrderActionSummaryProps) {
-  const unpaidCount = orders.filter((order) => order.status === '未付款').length;
-  const failedCount = orders.filter((order) => order.status === '付款失敗').length;
-  const paidCount = orders.filter((order) => order.status === '已付款').length;
+  const unpaidCount = orders.filter((order) => order.status === ORDER_STATUS.PENDING).length;
+  const failedCount = orders.filter((order) => order.status === ORDER_STATUS.PAYMENT_FAILED).length;
+  const paidCount = orders.filter((order) => order.status === ORDER_STATUS.PAID).length;
   const latestOrder = [...orders].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   )[0];

@@ -9,26 +9,7 @@ import {
   markSiteAlertAsRead,
   removeSiteAlert,
 } from '../utils/wishlistAlerts';
-
-function parseTokenPayload(token) {
-  try {
-    if (!token || token === 'null' || token === 'undefined') return null;
-    const payload = token.split('.')[1];
-    if (!payload) return null;
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const json = decodeURIComponent(
-      atob(normalized)
-        .split('')
-        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
-        .join('')
-    );
-    return JSON.parse(json);
-  } catch (error) {
-    return null;
-  }
-}
-
-const PROFILE_USERNAME_KEY = 'profile_username';
+import { clearStoredAuth, isTokenExpired, parseTokenPayload, PROFILE_USERNAME_KEY } from '../utils/authToken';
 
 export function useHeaderState(pathname) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,10 +61,8 @@ export function useHeaderState(pathname) {
         return;
       }
 
-      const isExpired = typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
-      if (isExpired) {
-        localStorage.removeItem('token');
-        localStorage.removeItem(PROFILE_USERNAME_KEY);
+      if (isTokenExpired(payload)) {
+        clearStoredAuth();
         setAuthUser(null);
         return;
       }
