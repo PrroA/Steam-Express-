@@ -1,5 +1,6 @@
 import {
   buildFallbackBuyingAdvice,
+  buildFallbackCartReviewAdvice,
   buildFallbackComparisonAdvice,
   getBrowserAiCapability,
 } from '../utils/browserBuyingAdvice';
@@ -80,5 +81,43 @@ describe('buildFallbackBuyingAdvice', () => {
     expect(advice.winnerName).toBe('The Witcher 3');
     expect(advice.reasons.join(' ')).toContain('偏好線索');
     expect(advice.nextAction).toContain('The Witcher 3');
+  });
+
+  test('reviews cart before checkout and flags duplicate product versions', () => {
+    const advice = buildFallbackCartReviewAdvice(
+      [
+        {
+          id: 4,
+          name: 'The Witcher 3',
+          price: '$29.99',
+          description: 'A legendary RPG fantasy adventure.',
+          image: '/witcher.jpg',
+          quantity: 1,
+          variantId: 'standard',
+          variantName: 'Standard',
+        },
+        {
+          id: 4,
+          name: 'The Witcher 3',
+          price: '$39.99',
+          description: 'A legendary RPG fantasy adventure.',
+          image: '/witcher.jpg',
+          quantity: 1,
+          variantId: 'complete',
+          variantName: 'Complete Edition',
+        },
+      ],
+      {
+        recentlyViewedIds: [4],
+        recentlyViewedNames: ['The Witcher 3'],
+        topKeywords: ['rpg'],
+        averagePrice: 30,
+      }
+    );
+
+    expect(advice.source).toBe('fallback');
+    expect(advice.verdict).toBe('adjust');
+    expect(advice.summary).toContain('建議');
+    expect(advice.concerns.join(' ')).toContain('多個版本');
   });
 });

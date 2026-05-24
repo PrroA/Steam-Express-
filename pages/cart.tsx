@@ -3,11 +3,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
-import { FaCheckCircle, FaMinus, FaPlus, FaShoppingCart } from 'react-icons/fa';
+import { FaCheckCircle, FaMagic, FaMinus, FaPlus, FaShoppingCart } from 'react-icons/fa';
 import { checkout, fetchCart, removeFromCart, updateCartQuantity } from '../services/cartService';
 import { ErrorState } from '../components/ui/PageStates';
 import { CartPageSkeleton } from '../components/ui/PageSkeletons';
+import { AiSourceBadge } from '../components/ui/AiSourceBadge';
 import { trackJourneyEvent } from '../utils/journeyTracker';
+import { buildClientPreferenceProfile } from '../utils/aiPreferenceProfile';
+import {
+  buildFallbackCartReviewAdvice,
+  generateBrowserCartReviewAdvice,
+  type CartReviewAdvice,
+} from '../utils/browserBuyingAdvice';
 import type { CartItem } from '../types/domain';
 
 type CheckoutStep = 1 | 2 | 3;
@@ -44,6 +51,8 @@ export default function CartPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState('');
   const [validationTriggered, setValidationTriggered] = useState(false);
+  const [cartReviewAdvice, setCartReviewAdvice] = useState<CartReviewAdvice | null>(null);
+  const [isCartReviewLoading, setIsCartReviewLoading] = useState(false);
 
   const loadCart = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -97,6 +106,26 @@ export default function CartPage() {
   const itemCount = useMemo(() => cart.reduce((sum, item) => sum + (item.quantity || 0), 0), [cart]);
   const shippingFee = subtotal >= 60 ? 0 : 5;
   const payableTotal = subtotal + shippingFee;
+
+  const loadCartReviewAdvice = useCallback(async () => {
+    const profile = {
+      ...buildClientPreferenceProfile(cart[0] || null),
+      averagePrice: cart.length > 0 ? subtotal / cart.length : 0,
+    };
+
+    setIsCartReviewLoading(true);
+    setCartReviewAdvice(buildFallbackCartReviewAdvice(cart, profile));
+    try {
+      const advice = await generateBrowserCartReviewAdvice(cart, profile);
+      setCartReviewAdvice(advice);
+    } finally {
+      setIsCartReviewLoading(false);
+    }
+  }, [cart, subtotal]);
+
+  useEffect(() => {
+    setCartReviewAdvice(null);
+  }, [cart]);
 
   const formErrors = useMemo(
     () => ({
@@ -376,6 +405,12 @@ export default function CartPage() {
               <SummaryRow label="總計" value={`$${payableTotal.toFixed(2)}`} strong />
             </div>
 
+            <CartReviewPanel
+              advice={cartReviewAdvice}
+              isLoading={isCartReviewLoading}
+              onReview={loadCartReviewAdvice}
+            />
+
             {activeStep === 1 && (
               <button data-testid="checkout-next-payment" type="button" onClick={handleNextFromItems} className="steam-btn mt-4 w-full rounded-md py-2.5 text-sm">
                 前往填寫資料
@@ -424,6 +459,74 @@ function Field({ label, error = '', children }: { label: string; error?: string;
       <div className="mt-2">{children}</div>
       {error && <p className="mt-1 text-xs text-[#ff9e9e]">{error}</p>}
     </label>
+  );
+}
+
+function CartReviewPanel({
+  advice,
+  isLoading,
+  onReview,
+}: {
+  advice: CartReviewAdvice | null;
+  isLoading: boolean;
+  onReview: () => void;
+}) {
+  const verdictLabel = advice
+    ? advice.verdict === 'ready'
+      ? '可以結帳'
+      : advice.verdict === 'check'
+        ? '先確認預算'
+        : '建議調整'
+    : '結帳前檢查';
+
+  return (
+    <section className="mt-4 rounded-xl border border-[#8bc53f44] bg-[#102217] p-4 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-bold tracking-[0.12em] text-[#b7df9e]">
+            <FaMagic aria-hidden />
+            AI 購物車檢查
+          </p>
+          <h3 className="mt-1 text-base font-black text-[#e0f4d9]">{verdictLabel}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onReview}
+          disabled={isLoading}
+          className="shrink-0 rounded-md border border-[#8bc53f66] bg-[#18351e] px-3 py-2 text-xs font-bold text-[#dff5d5] transition hover:border-[#8bc53f] hover:bg-[#204a29] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoading ? '檢查中...' : advice ? '重新檢查' : '檢查'}
+        </button>
+      </div>
+
+      {advice ? (
+        <div className="mt-3 space-y-3 leading-6 text-[#cde8c7]">
+          <p>{advice.summary}</p>
+          <div className="rounded-lg border border-[#8bc53f33] bg-[#132816] p-3">
+            <p className="text-xs font-bold text-[#b7df9e]">重點</p>
+            <ul className="mt-2 space-y-1">
+              {advice.highlights.map((item) => (
+                <li key={item}>・{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3 text-[#d7e8f4]">
+            <p className="text-xs font-bold text-[#8fb8d5]">送出前看一下</p>
+            <ul className="mt-2 space-y-1">
+              {advice.concerns.map((item) => (
+                <li key={item}>・{item}</li>
+              ))}
+            </ul>
+            <p className="mt-2 font-semibold text-[#e8f6ff]">{advice.nextAction}</p>
+          </div>
+          <AiSourceBadge source={advice.source} prefix />
+        </div>
+      ) : (
+        <p className="mt-3 leading-6 text-[#9ec09e]">
+          送出訂單前，可以先讓助理幫你看總價、版本和數量是否合理。
+        </p>
+      )}
+    </section>
   );
 }
 

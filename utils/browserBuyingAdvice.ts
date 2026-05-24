@@ -1,4 +1,4 @@
-import type { Game } from '../types/domain';
+import type { CartItem, Game } from '../types/domain';
 import type { ClientPreferenceProfile } from './aiPreferenceProfile';
 
 export type BuyingAdviceVerdict = 'recommended' | 'consider' | 'skip';
@@ -19,6 +19,15 @@ export type ComparisonAdvice = {
   summary: string;
   reasons: string[];
   tradeoffs: string[];
+  nextAction: string;
+  source: 'browser-ai' | 'fallback';
+};
+
+export type CartReviewAdvice = {
+  verdict: 'ready' | 'check' | 'adjust';
+  summary: string;
+  highlights: string[];
+  concerns: string[];
   nextAction: string;
   source: 'browser-ai' | 'fallback';
 };
@@ -65,6 +74,14 @@ function getTotalStock(game: Game) {
 
 function getGamePrice(game: Game) {
   return parsePrice(getLowestVariant(game)?.price || game.price);
+}
+
+function getCartItemPrice(item: CartItem) {
+  return parsePrice(item.price);
+}
+
+function getCartTotal(cart: CartItem[]) {
+  return cart.reduce((sum, item) => sum + getCartItemPrice(item) * Math.max(1, item.quantity || 1), 0);
 }
 
 function normalizeList(value: unknown, fallback: string[], maxLength: number) {
@@ -255,6 +272,73 @@ export function buildFallbackComparisonAdvice(games: Game[], profile: ClientPref
   };
 }
 
+export function buildFallbackCartReviewAdvice(cart: CartItem[], profile: ClientPreferenceProfile): CartReviewAdvice {
+  if (cart.length === 0) {
+    return {
+      verdict: 'adjust',
+      summary: '購物車目前是空的，先挑一款想玩的遊戲再結帳。',
+      highlights: ['可以從最近看過或願望清單中的遊戲開始挑選'],
+      concerns: ['目前沒有商品可以建立訂單'],
+      nextAction: '回到商店選一款遊戲加入購物車。',
+      source: 'fallback',
+    };
+  }
+
+  const total = getCartTotal(cart);
+  const averagePrice = Number(profile.averagePrice || 0);
+  const duplicateNames = Array.from(
+    new Set(
+      cart
+        .filter((item, index) => cart.findIndex((candidate) => candidate.id === item.id) !== index)
+        .map((item) => item.name)
+    )
+  );
+  const highQuantityItems = cart.filter((item) => item.quantity > 1);
+  const hasKnownPreference = profile.topKeywords.length > 0 || profile.recentlyViewedNames.length > 0;
+  const isAboveUsualSpend = averagePrice > 0 && total > averagePrice * Math.max(2, cart.length);
+
+  const highlights = [
+    `目前共 ${cart.length} 款商品，預估小計 $${total.toFixed(2)}`,
+    hasKnownPreference
+      ? `會參考你近期看過的 ${profile.topKeywords.slice(0, 2).join('、') || profile.recentlyViewedNames[0]} 類型`
+      : '商品數量不多，適合先確認版本與價格後再送出',
+  ];
+
+  const concerns: string[] = [];
+  if (duplicateNames.length > 0) {
+    concerns.push(`${duplicateNames.slice(0, 2).join('、')} 有多個版本在購物車，送出前建議確認是不是都需要。`);
+  }
+  if (highQuantityItems.length > 0) {
+    concerns.push(`${highQuantityItems[0].name} 數量大於 1，請確認不是誤點。`);
+  }
+  if (isAboveUsualSpend) {
+    concerns.push('這次總金額比你近期常看的價格高，建議再確認預算。');
+  }
+  if (concerns.length === 0) {
+    concerns.push('目前沒有明顯需要調整的地方。');
+  }
+
+  const verdict: CartReviewAdvice['verdict'] =
+    duplicateNames.length > 0 || highQuantityItems.length > 0 ? 'adjust' : isAboveUsualSpend ? 'check' : 'ready';
+
+  return {
+    verdict,
+    summary:
+      verdict === 'ready'
+        ? '這份購物車看起來可以繼續結帳。'
+        : verdict === 'check'
+          ? '購物車可以送出，但建議先確認預算。'
+          : '送出前建議先檢查版本或數量。',
+    highlights: highlights.slice(0, 3),
+    concerns: concerns.slice(0, 3),
+    nextAction:
+      verdict === 'ready'
+        ? '下一步可以填寫聯絡資料並建立訂單。'
+        : '先調整購物車內容，確認後再前往填寫資料。',
+    source: 'fallback',
+  };
+}
+
 export async function generateBrowserBuyingAdvice(game: Game, profile: ClientPreferenceProfile): Promise<BuyingAdvice> {
   const fallback = buildFallbackBuyingAdvice(game, profile);
   const languageModel = getBrowserLanguageModelFactory();
@@ -306,6 +390,69 @@ export async function generateBrowserBuyingAdvice(game: Game, profile: ClientPre
       concerns: normalizeList((parsed as BuyingAdvice).concerns, fallback.concerns, 2),
       bestEdition: String((parsed as BuyingAdvice).bestEdition || fallback.bestEdition).trim(),
       nextAction: String((parsed as BuyingAdvice).nextAction || fallback.nextAction).trim(),
+      source: 'browser-ai',
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+export async function generateBrowserCartReviewAdvice(
+  cart: CartItem[],
+  profile: ClientPreferenceProfile
+): Promise<CartReviewAdvice> {
+  const fallback = buildFallbackCartReviewAdvice(cart, profile);
+  const languageModel = getBrowserLanguageModelFactory();
+  if (!languageModel || cart.length === 0) return fallback;
+
+  try {
+    const capability = await getBrowserAiCapability();
+    if (!capability.canUseModel) return fallback;
+
+    const session = await withTimeout(
+      languageModel.create({
+        systemPrompt:
+          '你是遊戲商城的結帳前購物車檢查助理。請用自然繁體中文幫一般玩家確認購物車是否適合送出，重點看總價、版本、數量與偏好。只輸出 JSON，不要提到模型、API、server、token 或技術細節。',
+      }),
+      20000
+    );
+
+    const raw = await withTimeout(
+      session.prompt(
+        JSON.stringify({
+          cart: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            variantName: item.variantName,
+            price: item.price,
+            quantity: item.quantity,
+            description: item.description,
+          })),
+          total: getCartTotal(cart),
+          preference: profile,
+          outputShape: {
+            verdict: 'ready | check | adjust',
+            summary: 'string',
+            highlights: ['string'],
+            concerns: ['string'],
+            nextAction: 'string',
+          },
+        })
+      ),
+      30000
+    );
+    session.destroy?.();
+
+    const parsed = safeJsonParse(raw);
+    if (!parsed || typeof parsed !== 'object') return fallback;
+    const verdict = (parsed as CartReviewAdvice).verdict;
+
+    return {
+      verdict: verdict === 'ready' || verdict === 'check' || verdict === 'adjust' ? verdict : fallback.verdict,
+      summary: String((parsed as CartReviewAdvice).summary || fallback.summary).trim(),
+      highlights: normalizeList((parsed as CartReviewAdvice).highlights, fallback.highlights, 3),
+      concerns: normalizeList((parsed as CartReviewAdvice).concerns, fallback.concerns, 3),
+      nextAction: String((parsed as CartReviewAdvice).nextAction || fallback.nextAction).trim(),
       source: 'browser-ai',
     };
   } catch {

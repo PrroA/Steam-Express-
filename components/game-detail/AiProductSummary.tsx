@@ -8,6 +8,7 @@ import {
   generateBrowserBuyingAdvice,
   getBrowserAiCapability,
 } from '../../utils/browserBuyingAdvice';
+import { AiSourceBadge } from '../ui/AiSourceBadge';
 
 type ProductAiSummary = {
   fitFor: string[];
@@ -119,9 +120,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
             購買前快速判斷
           </h2>
         </div>
-        <span className="rounded-full border border-[#8bc53f55] bg-[#18351e] px-3 py-1 text-xs font-bold text-[#c9f0b8]">
-          {summary?.source === 'openai' ? 'AI 整理' : '依商品資料整理'}
-        </span>
+        <AiSourceBadge source={summary?.source} />
       </div>
 
       {isLoading && <p className="mt-4 text-sm text-[#9ec09e]">正在整理這款遊戲適合哪些玩家...</p>}
@@ -157,11 +156,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                   <span className="rounded-full border border-[#66c0f455] bg-[#13283a] px-2.5 py-1 text-xs font-bold text-[#cceeff]">
                     {browserAiCapability?.label || '正在確認本機分析方式'}
                   </span>
-                  {buyingAdvice && (
-                    <span className="text-xs text-[#8fb8d5]">
-                      {buyingAdvice.source === 'browser-ai' ? '這次由本機 AI 整理' : '這次由商品資料整理'}
-                    </span>
-                  )}
+                  {buyingAdvice && <AiSourceBadge source={buyingAdvice.source} prefix />}
                 </div>
                 <p className="mt-2 text-[#c5dced]">
                   {browserAiCapability?.description ||

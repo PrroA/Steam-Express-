@@ -10,6 +10,7 @@ import {
   generateBrowserComparisonAdvice,
   getBrowserAiCapability,
 } from '../utils/browserBuyingAdvice';
+import { AiSourceBadge } from '../components/ui/AiSourceBadge';
 
 const compareStorageKey = 'compareGameIds';
 
@@ -312,7 +313,7 @@ export default function ComparePage() {
                   ))}
                 </ul>
               )}
-              <p className="text-[11px] text-[#9bc496]">來源：{aiSummary.source || 'fallback'}</p>
+              <AiSourceBadge source={aiSummary.source} />
             </div>
           ) : (
             <p className="mt-2 text-sm text-[#c4dfbf]">尚未生成比較摘要。</p>
@@ -328,11 +329,7 @@ export default function ComparePage() {
                 <span className="rounded-full border border-[#66c0f455] bg-[#173246] px-2.5 py-1 text-xs font-bold text-[#d8f1ff]">
                   {browserAiCapability?.label || '正在確認本機分析方式'}
                 </span>
-                {comparisonAdvice && (
-                  <span className="text-xs text-[#8fb8d5]">
-                    {comparisonAdvice.source === 'browser-ai' ? '這次由本機 AI 整理' : '這次由商品資料整理'}
-                  </span>
-                )}
+                {comparisonAdvice && <AiSourceBadge source={comparisonAdvice.source} prefix />}
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[#b9d1e3]">
                 {browserAiCapability?.description ||

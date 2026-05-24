@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import type { AiGameCopyDraft } from '../../services/adminService';
+import { AiSourceBadge } from '../ui/AiSourceBadge';
 
 interface AddGamePanelProps {
   form: {
@@ -128,7 +129,7 @@ export function AddGamePanel({
                   套用到名稱
                 </button>
               </div>
-              <p className="text-[11px] text-[#99bd99]">來源：{aiDraft.source || 'fallback'}</p>
+              <AiSourceBadge source={aiDraft.source} />
             </div>
           )}
         </div>
