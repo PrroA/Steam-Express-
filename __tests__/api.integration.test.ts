@@ -384,6 +384,26 @@ describe('API integration', () => {
     );
   });
 
+  test('rag endpoint supports natural language product search', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '我想找 1000 元以下、可以放鬆玩的遊戲，不要恐怖' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('product-search');
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+    expect(ragRes.body.sources[0]).toEqual(
+      expect.objectContaining({
+        gameId: expect.any(Number),
+        price: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        href: expect.stringMatching(/^\/game\/\d+$/),
+        reason: expect.any(String),
+      })
+    );
+  });
+
   test('rag endpoint returns structured product comparison for named games', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',

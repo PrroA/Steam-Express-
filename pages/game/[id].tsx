@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { AiProductSummary } from '../../components/game-detail/AiProductSummary';
 import { GameGallery } from '../../components/game-detail/GameGallery';
 import { PurchasePanel } from '../../components/game-detail/PurchasePanel';
 import { PriceTrendChart } from '../../components/game-detail/PriceTrendChart';
@@ -88,6 +89,7 @@ export default function GameDetail() {
               <PriceTrendChart gameId={game.id} currentPriceText={priceInfo.currentText} />
             </div>
           </div>
+          <AiProductSummary game={game} />
         </div>
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">

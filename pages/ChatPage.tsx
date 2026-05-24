@@ -170,7 +170,13 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const quickPrompts = useMemo(
-    () => ['這筆訂單接下來怎麼辦？', '幫我檢查購物車適不適合結帳', 'Elden Ring 跟 The Witcher 3 哪個適合？', '預算 30 美金，想玩 RPG，哪一款適合？'],
+    () => [
+      '我想找 1000 元以下、可以放鬆玩的遊戲',
+      '這筆訂單接下來怎麼辦？',
+      '幫我檢查購物車適不適合結帳',
+      'Elden Ring 跟 The Witcher 3 哪個適合？',
+      '預算 30 美金，想玩 RPG，哪一款適合？',
+    ],
     []
   );
 

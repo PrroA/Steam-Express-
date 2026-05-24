@@ -12,6 +12,7 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:7b-instruct';
 const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 const serviceScopePattern = /(商城|商品|推薦|便宜|低價|預算|遊戲|價格|庫存|版本|購物車|結帳|付款|訂單|退款|配送|出貨|帳號|登入|願望清單|客服|game|price|cart|checkout|payment|order|refund|shipping|wishlist|account|login)/i;
 const recommendationPattern = /(推薦|便宜|低價|預算|好玩|新手|熱門|遊戲|商品|庫存|版本|recommend|cheap|price|game|stock)/i;
+const productSearchPattern = /(找|搜尋|查詢|篩選|有沒有|想玩|適合|新手|放鬆|劇情|多人|合作|恐怖|不要|以下|預算|便宜|search|find|filter|looking for)/i;
 const productDecisionPattern = /(比較|比一比|哪一款|哪款|怎麼選|該買|適合|預算|不超過|以內|推薦.*還是|compare|versus|\bvs\b|which|choose|budget|under|below|for me)/i;
 const productComparisonPattern = /(比較|比一比|差異|哪個|哪一款|哪款|vs|versus|compare|comparison|better)/i;
 const cartReviewPattern = /(購物車.*健檢|檢查.*購物車|購物車.*適合|購物車.*建議|結帳前.*建議|cart.*review|review.*cart|check.*cart)/i;
@@ -79,6 +80,18 @@ function isServiceQuestion(message) {
 }
 function isProductRecommendationQuestion(message) {
     return recommendationPattern.test(message);
+}
+function isProductSearchQuestion(message) {
+    if (!productSearchPattern.test(message))
+        return false;
+    if (/推薦|recommend/i.test(message))
+        return false;
+    if (!/(找|搜尋|查詢|篩選|有沒有|想玩|想找|search|find|filter|looking for)/i.test(message))
+        return false;
+    if (/訂單|付款|退款|出貨|配送|帳號|登入|註冊|order|payment|refund|shipping|account|login/i.test(message)) {
+        return false;
+    }
+    return true;
 }
 function isProductDecisionQuestion(message) {
     const hasDecisionQualifier = /(比較|比一比|哪一款|哪款|怎麼選|該買|預算|不超過|低於|小於|以內|compare|versus|\bvs\b|which|choose|budget|under|below)/i.test(message);
@@ -268,6 +281,156 @@ function extractDecisionTerms(message) {
     return {
         labels: matchedLabels,
         terms: Array.from(matchedTerms),
+    };
+}
+function extractProductSearchIntent(message) {
+    const lowerMessage = message.toLowerCase();
+    const labels = [];
+    const terms = new Set();
+    const avoidTerms = new Set();
+    const addGroup = (label, groupTerms, patterns) => {
+        if (patterns.some((pattern) => pattern.test(message))) {
+            labels.push(label);
+            groupTerms.forEach((term) => terms.add(term));
+        }
+    };
+    addGroup('RPG / 奇幻', ['rpg', 'fantasy', 'role'], [/rpg/i, /角色|奇幻|魔法|巫師|冒險/]);
+    addGroup('開放世界 / 探索', ['open', 'world', 'adventure'], [/open[-\s]?world/i, /開放世界|探索|自由|冒險/]);
+    addGroup('劇情取向', ['story', 'legendary', 'experience'], [/story/i, /劇情|故事|沉浸|敘事/]);
+    addGroup('輕鬆入門', ['magical', 'experience', 'adventure'], [/新手|入門|放鬆|輕鬆|休閒/]);
+    addGroup('多人 / 合作', ['online', 'multiplayer', 'premium'], [/多人|合作|連線|朋友|online|multiplayer/i]);
+    addGroup('恐怖 / 生存', ['horror', 'survival'], [/恐怖|生存|horror|survival/i]);
+    if (/不要.*恐怖|不想.*恐怖|avoid.*horror|no horror/i.test(message)) {
+        avoidTerms.add('horror');
+        avoidTerms.add('survival');
+    }
+    for (const term of extractInterestTerms(lowerMessage)) {
+        if (!['find', 'search', 'game', 'games', 'looking', 'for', 'under', 'below'].includes(term)) {
+            terms.add(term);
+        }
+    }
+    const normalized = message.replace(/,/g, '');
+    let budgetMax = null;
+    let budgetLabel = null;
+    const budgetMatch = normalized.match(/(?:預算|低於|不超過|以下|under|below|max|budget)\s*\$?\s*(\d+(?:\.\d+)?)/i) ||
+        normalized.match(/\$?\s*(\d+(?:\.\d+)?)\s*(?:元|美金|美元|塊)?\s*(?:以下|以內|內|under|below)/i);
+    if (budgetMatch) {
+        const rawBudget = Number(budgetMatch[1]);
+        if (Number.isFinite(rawBudget)) {
+            budgetLabel = budgetMatch[0].trim();
+            budgetMax = /元|塊/.test(budgetMatch[0]) && rawBudget > 100 ? rawBudget / 30 : rawBudget;
+        }
+    }
+    return {
+        budgetMax,
+        budgetLabel,
+        labels,
+        terms: Array.from(terms),
+        avoidTerms: Array.from(avoidTerms),
+        onlyInStock: /有庫存|現貨|可買|in stock|available/i.test(message),
+    };
+}
+function scoreGameForSearch(game, intent, profile) {
+    const price = getGameLowestPrice(game);
+    const stock = getAvailableStock(game);
+    const gameText = `${game.name} ${game.description || ''}`.toLowerCase();
+    let score = getPersonalizedScore(game, profile);
+    if (stock > 0)
+        score += 8;
+    if (intent.onlyInStock && stock <= 0)
+        score -= 80;
+    if (intent.budgetMax !== null) {
+        if (price <= intent.budgetMax)
+            score += 30 + Math.max(0, intent.budgetMax - price) / 4;
+        else
+            score -= Math.min((price - intent.budgetMax) * 2, 60);
+    }
+    for (const term of intent.terms) {
+        if (gameText.includes(term))
+            score += 14;
+    }
+    for (const term of intent.avoidTerms) {
+        if (gameText.includes(term))
+            score -= 45;
+    }
+    if (intent.labels.length === 0 && /rpg|fantasy|adventure/i.test(gameText))
+        score += 3;
+    return score;
+}
+function buildSearchReason(game, intent, profile) {
+    const reasons = [];
+    const price = getGameLowestPrice(game);
+    const stock = getAvailableStock(game);
+    const gameText = `${game.name} ${game.description || ''}`.toLowerCase();
+    if (intent.budgetMax !== null && price <= intent.budgetMax) {
+        reasons.push(`符合預算，最低版本約 ${money(price)}`);
+    }
+    const matchedLabels = intent.labels.filter((label) => {
+        if (label.includes('RPG'))
+            return /rpg|fantasy|magical/i.test(gameText);
+        if (label.includes('開放'))
+            return /open|world|adventure/i.test(gameText);
+        if (label.includes('劇情'))
+            return /legendary|experience|survival/i.test(gameText);
+        if (label.includes('輕鬆'))
+            return /magical|experience|adventure/i.test(gameText);
+        if (label.includes('恐怖'))
+            return /horror|survival/i.test(gameText);
+        return false;
+    });
+    if (matchedLabels.length > 0)
+        reasons.push(`符合「${matchedLabels.slice(0, 2).join('、')}」`);
+    if (stock > 0)
+        reasons.push(`目前還有 ${stock} 件可選版本`);
+    const personalReason = getPersonalizedReasons(game, profile)[0];
+    if (personalReason)
+        reasons.push(personalReason);
+    return reasons.slice(0, 3).join('，') || '和你的搜尋條件最接近';
+}
+function buildProductSearch(state, message, user) {
+    const intent = extractProductSearchIntent(message);
+    const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+    const activeGames = state.games.filter((game) => game.isActive !== false);
+    const ranked = activeGames
+        .map((game) => ({
+        game,
+        score: scoreGameForSearch(game, intent, profile),
+    }))
+        .sort((a, b) => b.score - a.score || getGameLowestPrice(a.game) - getGameLowestPrice(b.game));
+    const picks = ranked.slice(0, 3).map((item) => item.game);
+    const sources = picks
+        .slice(0, 2)
+        .map((game, index) => createCatalogSource(game, index, buildSearchReason(game, intent, profile)));
+    if (picks.length === 0) {
+        return {
+            reply: '目前沒有找到很接近的商品。你可以換成類型、預算或遊玩風格來問，例如「想找 30 美金以下的 RPG」。',
+            sources: [],
+            contextText: '沒有符合搜尋條件的商品。',
+            personalized: Boolean(profile?.hasSignals),
+        };
+    }
+    const conditionText = [
+        intent.budgetLabel ? `預算條件：${intent.budgetLabel}` : '',
+        intent.labels.length > 0 ? `偏好：${intent.labels.join('、')}` : '',
+        intent.avoidTerms.length > 0 ? '已避開不想要的類型' : '',
+        profile?.hasSignals ? '也參考你的願望清單、購物車或訂單紀錄' : '',
+    ]
+        .filter(Boolean)
+        .join('；');
+    const lines = picks.map((game, index) => {
+        const reason = buildSearchReason(game, intent, profile);
+        return `${index + 1}. ${game.name} - ${money(getGameLowestPrice(game))}，${reason}`;
+    });
+    const reply = [
+        conditionText ? `我依照「${conditionText}」幫你篩出這幾款：` : '我先依照你的描述幫你篩出這幾款：',
+        ...lines,
+        '可以點商品卡片看詳情；如果你想再縮小範圍，可以補上預算、遊玩時長或想避開的類型。',
+    ].join('\n');
+    return {
+        reply,
+        sources,
+        contextText: reply,
+        personalized: Boolean(profile?.hasSignals),
     };
 }
 function buildDecisionReasons({ game, budget, decisionTerms, profile, }) {
@@ -916,6 +1079,19 @@ function registerChatRoutes({ app, io, state, openaiClient, secretKey }) {
                 mode: user ? 'personalized-product-comparison' : 'product-comparison',
                 sources: comparison.sources,
                 comparison: comparison.comparison,
+                ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
+            });
+        }
+        if (isProductSearchQuestion(message) && !/(哪一款|哪款|哪個|選|比較|choose|which|vs|versus|compare)/i.test(message)) {
+            const search = buildProductSearch(state, message, user);
+            const polished = await polishRecommendationReply({ openaiClient, message, recommendation: search });
+            const debugMatches = debugEnabled ? (0, rag_1.retrieveRagContext)(state, message, 4) : [];
+            return res.json({
+                reply: polished?.reply || search.reply,
+                grounded: search.sources.length > 0,
+                mode: user ? 'personalized-product-search' : 'product-search',
+                provider: polished?.provider,
+                sources: search.sources,
                 ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
             });
         }
