@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaMagic, FaRegLightbulb } from 'react-icons/fa';
 import type { Game } from '../../types/domain';
+import { buildClientPreferenceProfile } from '../../utils/aiPreferenceProfile';
 
 type ProductAiSummary = {
   fitFor: string[];
@@ -52,6 +53,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
               description: game.description,
               variants: game.variants || [],
             },
+            userProfile: buildClientPreferenceProfile(game),
           }),
           signal: controller.signal,
         });
@@ -72,7 +74,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
       cancelled = true;
       controller.abort();
     };
-  }, [game.description, game.id, game.name, game.price, game.variants]);
+  }, [game]);
 
   return (
     <section className="mt-5 rounded-xl border border-[#8bc53f44] bg-[#102217] p-4">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FaHeadset, FaPaperPlane } from 'react-icons/fa';
+import { buildClientPreferenceProfile } from '../utils/aiPreferenceProfile';
 
 function getApiBaseUrl() {
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
@@ -207,7 +208,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           ...getAuthHeader(),
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: content, clientProfile: buildClientPreferenceProfile() }),
         signal: controller.signal,
       });
       window.clearTimeout(timeoutId);

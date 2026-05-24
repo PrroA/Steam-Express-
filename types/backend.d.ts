@@ -239,4 +239,10 @@ export interface ConfirmPaymentIntentBody {
 
 export interface GptReplyBody {
   message: string;
+  clientProfile?: {
+    recentlyViewedIds?: number[];
+    recentlyViewedNames?: string[];
+    topKeywords?: string[];
+    averagePrice?: number;
+  };
 }

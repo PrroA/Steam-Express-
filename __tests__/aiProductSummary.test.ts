@@ -21,4 +21,37 @@ describe('buildFallbackProductSummary', () => {
     expect(summary.highlights.join(' ')).toContain('55');
     expect(summary.buyingTip).toContain('標準版');
   });
+
+  test('api fallback can include client preference hints', async () => {
+    const { default: handler } = await import('../pages/api/ai-product-summary');
+    const json = jest.fn();
+    const status = jest.fn(() => ({ json }));
+
+    await handler(
+      {
+        method: 'POST',
+        body: {
+          product: {
+            id: 4,
+            name: 'The Witcher 3',
+            price: '$29.99',
+            description: 'A legendary RPG.',
+          },
+          userProfile: {
+            recentlyViewedNames: ['Elden Ring'],
+            topKeywords: ['rpg', 'fantasy'],
+          },
+        },
+      } as any,
+      { status } as any
+    );
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        highlights: expect.arrayContaining([expect.stringContaining('最近')]),
+        buyingTip: expect.stringContaining('最近看的遊戲'),
+      })
+    );
+  });
 });

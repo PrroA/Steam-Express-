@@ -9,6 +9,13 @@ type ProductSummaryInput = {
   variants?: Array<{ name: string; price: string; stock: number }>;
 };
 
+type ClientPreferenceProfile = {
+  recentlyViewedIds?: number[];
+  recentlyViewedNames?: string[];
+  topKeywords?: string[];
+  averagePrice?: number;
+};
+
 export type ProductAiSummary = {
   fitFor: string[];
   notFor: string[];
@@ -116,6 +123,36 @@ function normalizeStringList(value: unknown, fallback: string[], maxLength: numb
   return items.length > 0 ? items : fallback;
 }
 
+function normalizeUserProfile(userProfile?: ClientPreferenceProfile) {
+  return {
+    recentlyViewedNames: Array.isArray(userProfile?.recentlyViewedNames)
+      ? userProfile.recentlyViewedNames.map((name) => String(name || '').trim()).filter(Boolean).slice(0, 5)
+      : [],
+    topKeywords: Array.isArray(userProfile?.topKeywords)
+      ? userProfile.topKeywords.map((keyword) => String(keyword || '').trim()).filter(Boolean).slice(0, 6)
+      : [],
+    averagePrice: Number(userProfile?.averagePrice || 0),
+  };
+}
+
+function applyPreferenceHints(summary: ProductAiSummary, userProfile: ReturnType<typeof normalizeUserProfile>) {
+  if (userProfile.recentlyViewedNames.length === 0 && userProfile.topKeywords.length === 0) return summary;
+
+  const preferenceHint =
+    userProfile.topKeywords.length > 0
+      ? `也參考你最近關注的「${userProfile.topKeywords.slice(0, 2).join('、')}」類型`
+      : '也參考你最近瀏覽過的遊戲風格';
+
+  return {
+    ...summary,
+    highlights: [...summary.highlights, preferenceHint].slice(0, 3),
+    buyingTip:
+      userProfile.recentlyViewedNames.length > 0
+        ? '如果這款和你最近看的遊戲風格接近，可以先從標準版入手，再依照喜好升級版本。'
+        : summary.buyingTip,
+  };
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -126,7 +163,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Missing product' });
   }
 
-  const fallback = buildFallbackProductSummary(product);
+  const userProfile = normalizeUserProfile(req.body?.userProfile);
+  const fallback = applyPreferenceHints(buildFallbackProductSummary(product), userProfile);
   if (!process.env.OPENAI_API_KEY) {
     return res.status(200).json(fallback);
   }
@@ -145,7 +183,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         {
           role: 'user',
-          content: JSON.stringify({ product }),
+          content: JSON.stringify({ product, userProfile }),
         },
       ],
     });

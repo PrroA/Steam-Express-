@@ -184,10 +184,36 @@ function describeVariants(game) {
         .map((variant) => `${variant.name} ${money(variant.price)}，庫存 ${variant.stock}`)
         .join('；');
 }
-function buildPersonalizationProfile(state, userId) {
-    const wishlistIds = new Set(state.wishlists[userId] || []);
-    const cartIds = new Set((state.carts[userId] || []).map((item) => item.id));
+function normalizeClientProfile(clientProfile) {
+    return {
+        recentlyViewedIds: Array.isArray(clientProfile?.recentlyViewedIds)
+            ? clientProfile.recentlyViewedIds
+                .map((id) => Number(id))
+                .filter((id) => Number.isInteger(id) && id > 0)
+                .slice(0, 8)
+            : [],
+        recentlyViewedNames: Array.isArray(clientProfile?.recentlyViewedNames)
+            ? clientProfile.recentlyViewedNames.map((name) => String(name || '').trim()).filter(Boolean).slice(0, 8)
+            : [],
+        topKeywords: Array.isArray(clientProfile?.topKeywords)
+            ? clientProfile.topKeywords.map((keyword) => String(keyword || '').trim()).filter(Boolean).slice(0, 8)
+            : [],
+        averagePrice: Number(clientProfile?.averagePrice || 0),
+    };
+}
+function hasClientPreferenceSignals(clientProfile) {
+    const normalized = normalizeClientProfile(clientProfile);
+    return (normalized.recentlyViewedIds.length > 0 ||
+        normalized.recentlyViewedNames.length > 0 ||
+        normalized.topKeywords.length > 0 ||
+        normalized.averagePrice > 0);
+}
+function buildPersonalizationProfile(state, userId, clientProfile) {
+    const normalizedClientProfile = normalizeClientProfile(clientProfile);
+    const wishlistIds = new Set(userId ? state.wishlists[userId] || [] : []);
+    const cartIds = new Set(userId ? (state.carts[userId] || []).map((item) => item.id) : []);
     const purchasedIds = new Set();
+    const recentlyViewedIds = new Set(normalizedClientProfile.recentlyViewedIds);
     const interestTerms = new Set();
     const addGameTerms = (gameId) => {
         const game = state.games.find((item) => item.id === gameId);
@@ -201,10 +227,24 @@ function buildPersonalizationProfile(state, userId) {
         addGameTerms(gameId);
     for (const gameId of cartIds)
         addGameTerms(gameId);
-    for (const order of state.orders[userId] || []) {
-        for (const item of order.items || []) {
-            purchasedIds.add(item.id);
-            addGameTerms(item.id);
+    for (const gameId of recentlyViewedIds)
+        addGameTerms(gameId);
+    for (const keyword of normalizedClientProfile.topKeywords) {
+        for (const term of extractInterestTerms(keyword)) {
+            interestTerms.add(term);
+        }
+    }
+    for (const name of normalizedClientProfile.recentlyViewedNames) {
+        for (const term of extractInterestTerms(name)) {
+            interestTerms.add(term);
+        }
+    }
+    if (userId) {
+        for (const order of state.orders[userId] || []) {
+            for (const item of order.items || []) {
+                purchasedIds.add(item.id);
+                addGameTerms(item.id);
+            }
         }
     }
     return {
@@ -212,8 +252,14 @@ function buildPersonalizationProfile(state, userId) {
         wishlistIds,
         cartIds,
         purchasedIds,
+        recentlyViewedIds,
         interestTerms,
-        hasSignals: wishlistIds.size > 0 || cartIds.size > 0 || purchasedIds.size > 0,
+        averagePrice: Number.isFinite(normalizedClientProfile.averagePrice) ? normalizedClientProfile.averagePrice : 0,
+        hasSignals: wishlistIds.size > 0 ||
+            cartIds.size > 0 ||
+            purchasedIds.size > 0 ||
+            recentlyViewedIds.size > 0 ||
+            interestTerms.size > 0,
     };
 }
 function getPersonalizedScore(game, profile) {
@@ -224,11 +270,18 @@ function getPersonalizedScore(game, profile) {
         score += 24;
     if (profile.cartIds.has(game.id))
         score += 18;
+    if (profile.recentlyViewedIds.has(game.id))
+        score += 10;
     if (profile.purchasedIds.has(game.id) && !profile.wishlistIds.has(game.id) && !profile.cartIds.has(game.id)) {
         score -= 5;
     }
     const overlap = getGameTerms(game).filter((term) => profile.interestTerms.has(term)).length;
     score += Math.min(overlap * 3, 12);
+    if (profile.averagePrice > 0) {
+        const price = getGameLowestPrice(game);
+        const closeness = Math.max(0, 1 - Math.abs(price - profile.averagePrice) / Math.max(1, profile.averagePrice));
+        score += Math.round(closeness * 8);
+    }
     return score;
 }
 function getPersonalizedReasons(game, profile) {
@@ -387,9 +440,9 @@ function buildSearchReason(game, intent, profile) {
         reasons.push(personalReason);
     return reasons.slice(0, 3).join('，') || '和你的搜尋條件最接近';
 }
-function buildProductSearch(state, message, user) {
+function buildProductSearch(state, message, user, clientProfile) {
     const intent = extractProductSearchIntent(message);
-    const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+    const profile = buildPersonalizationProfile(state, user?.id ?? null, clientProfile);
     const activeGames = state.games.filter((game) => game.isActive !== false);
     const ranked = activeGames
         .map((game) => ({
@@ -485,11 +538,11 @@ function scoreGameForDecision({ game, budget, decisionTerms, profile, }) {
         score += 4;
     return score;
 }
-function buildProductDecision(state, message, user) {
+function buildProductDecision(state, message, user, clientProfile) {
     const activeGames = state.games.filter((game) => game.isActive !== false);
     const budget = extractBudget(message);
     const { labels, terms } = extractDecisionTerms(message);
-    const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+    const profile = buildPersonalizationProfile(state, user?.id ?? null, clientProfile);
     const ranked = activeGames
         .map((game) => ({
         game,
@@ -573,11 +626,11 @@ function describeTradeoff(game, message) {
         return '價格較高，適合確定喜歡再入手';
     return '整體風險低，但特色可能沒有那麼明確';
 }
-function buildProductComparison(state, message, user) {
+function buildProductComparison(state, message, user, clientProfile) {
     const mentionedGames = findMentionedGames(state.games, message).slice(0, 3);
     const { terms } = extractDecisionTerms(message);
     const budget = extractBudget(message);
-    const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+    const profile = buildPersonalizationProfile(state, user?.id ?? null, clientProfile);
     const ranked = [...mentionedGames].sort((a, b) => scoreGameForDecision({ game: b, budget, decisionTerms: terms, profile }) -
         scoreGameForDecision({ game: a, budget, decisionTerms: terms, profile }) ||
         getGameLowestPrice(a) - getGameLowestPrice(b));
@@ -618,12 +671,12 @@ function buildProductComparison(state, message, user) {
         comparison,
     };
 }
-function buildRecommendation(state, message, user) {
+function buildRecommendation(state, message, user, clientProfile) {
     const activeGames = state.games.filter((game) => game.isActive !== false);
     const cheapIntent = /(便宜|低價|預算|cheap|price)/i.test(message);
     const stockIntent = /(庫存|現貨|stock)/i.test(message);
     const personalIntent = /(我的|我喜歡|適合我|個人|personal|for me)/i.test(message);
-    const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+    const profile = buildPersonalizationProfile(state, user?.id ?? null, clientProfile);
     const ranked = [...activeGames].sort((a, b) => {
         const personalDelta = getPersonalizedScore(b, profile) - getPersonalizedScore(a, profile);
         if ((personalIntent || profile?.hasSignals) && personalDelta !== 0)
@@ -1001,6 +1054,8 @@ function registerChatRoutes({ app, io, state, openaiClient, secretKey }) {
             return res.status(400).json({ error: '請輸入想詢問的內容。' });
         }
         const user = getOptionalUser(req, secretKey);
+        const clientProfile = req.body?.clientProfile;
+        const hasClientSignals = hasClientPreferenceSignals(clientProfile);
         const debugEnabled = shouldIncludeRagDebug(req);
         if (isOrderCareQuestion(message)) {
             if (!user) {
@@ -1071,51 +1126,51 @@ function registerChatRoutes({ app, io, state, openaiClient, secretKey }) {
             });
         }
         if (isProductComparisonQuestion(message, state)) {
-            const comparison = buildProductComparison(state, message, user);
+            const comparison = buildProductComparison(state, message, user, clientProfile);
             const debugMatches = debugEnabled ? (0, rag_1.retrieveRagContext)(state, message, 4) : [];
             return res.json({
                 reply: comparison.reply,
                 grounded: comparison.sources.length > 0,
-                mode: user ? 'personalized-product-comparison' : 'product-comparison',
+                mode: user || hasClientSignals ? 'personalized-product-comparison' : 'product-comparison',
                 sources: comparison.sources,
                 comparison: comparison.comparison,
                 ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
             });
         }
         if (isProductSearchQuestion(message) && !/(哪一款|哪款|哪個|選|比較|choose|which|vs|versus|compare)/i.test(message)) {
-            const search = buildProductSearch(state, message, user);
+            const search = buildProductSearch(state, message, user, clientProfile);
             const polished = await polishRecommendationReply({ openaiClient, message, recommendation: search });
             const debugMatches = debugEnabled ? (0, rag_1.retrieveRagContext)(state, message, 4) : [];
             return res.json({
                 reply: polished?.reply || search.reply,
                 grounded: search.sources.length > 0,
-                mode: user ? 'personalized-product-search' : 'product-search',
+                mode: user || hasClientSignals ? 'personalized-product-search' : 'product-search',
                 provider: polished?.provider,
                 sources: search.sources,
                 ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
             });
         }
         if (isProductDecisionQuestion(message)) {
-            const decision = buildProductDecision(state, message, user);
+            const decision = buildProductDecision(state, message, user, clientProfile);
             const polished = await polishRecommendationReply({ openaiClient, message, recommendation: decision });
             const debugMatches = debugEnabled ? (0, rag_1.retrieveRagContext)(state, message, 4) : [];
             return res.json({
                 reply: polished?.reply || decision.reply,
                 grounded: decision.sources.length > 0,
-                mode: user ? 'personalized-product-decision' : 'product-decision',
+                mode: user || hasClientSignals ? 'personalized-product-decision' : 'product-decision',
                 provider: polished?.provider,
                 sources: decision.sources,
                 ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
             });
         }
         if (isProductRecommendationQuestion(message)) {
-            const recommendation = buildRecommendation(state, message, user);
+            const recommendation = buildRecommendation(state, message, user, clientProfile);
             const polished = await polishRecommendationReply({ openaiClient, message, recommendation });
             const debugMatches = debugEnabled ? (0, rag_1.retrieveRagContext)(state, message, 4) : [];
             return res.json({
                 reply: polished?.reply || recommendation.reply,
                 grounded: recommendation.sources.length > 0,
-                mode: user ? 'personalized-recommendation' : 'product-recommendation',
+                mode: user || hasClientSignals ? 'personalized-recommendation' : 'product-recommendation',
                 provider: polished?.provider,
                 sources: recommendation.sources,
                 ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),

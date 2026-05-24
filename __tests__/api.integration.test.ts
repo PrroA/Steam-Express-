@@ -404,6 +404,26 @@ describe('API integration', () => {
     );
   });
 
+  test('rag endpoint uses client preference memory for anonymous recommendations', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: 'recommend a game',
+        clientProfile: {
+          recentlyViewedIds: [7],
+          recentlyViewedNames: ['The Last of Us Remastered'],
+          topKeywords: ['survival', 'horror'],
+          averagePrice: 19.99,
+        },
+      }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('personalized-recommendation');
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+  });
+
   test('rag endpoint returns structured product comparison for named games', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',
