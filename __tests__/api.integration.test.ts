@@ -362,6 +362,118 @@ describe('API integration', () => {
     expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
   });
 
+  test('rag endpoint compares products for decision questions', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: 'My budget is $30 and I want an RPG. Which game should I choose?' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('product-decision');
+    expect(ragRes.body.reply).toContain('首選');
+    expect(ragRes.body.reply).toContain('$30.00');
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+    expect(ragRes.body.sources[0]).toEqual(
+      expect.objectContaining({
+        gameId: expect.any(Number),
+        price: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        href: expect.stringMatching(/^\/game\/\d+$/),
+        reason: expect.any(String),
+      })
+    );
+  });
+
+  test('rag endpoint returns structured product comparison for named games', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: 'Elden Ring vs The Witcher 3 哪個適合我？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('product-comparison');
+    expect(ragRes.body.reply).toContain('我會先選');
+    expect(Array.isArray(ragRes.body.comparison)).toBe(true);
+    expect(ragRes.body.comparison).toHaveLength(2);
+    expect(ragRes.body.comparison.map((row) => row.name)).toEqual(
+      expect.arrayContaining(['Elden Ring', 'The Witcher 3'])
+    );
+    expect(ragRes.body.comparison[0]).toEqual(
+      expect.objectContaining({
+        gameId: expect.any(Number),
+        price: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        stock: expect.any(Number),
+        fit: expect.any(String),
+        tradeoff: expect.any(String),
+        href: expect.stringMatching(/^\/game\/\d+$/),
+      })
+    );
+  });
+
+  test('rag endpoint asks users to log in before reviewing cart', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '幫我檢查購物車適不適合結帳' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(false);
+    expect(ragRes.body.mode).toBe('cart-auth-required');
+    expect(ragRes.body.reply).toContain('登入');
+    expect(ragRes.body.sources).toEqual([]);
+  });
+
+  test('rag endpoint reviews signed-in user cart before checkout', async () => {
+    const loginRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(loginRes.status).toBe(200);
+    const token = loginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => item.isActive !== false && item.variants?.some((variant) => variant.stock > 0));
+    const variant = game.variants.find((item) => item.stock > 0);
+
+    const addRes = await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id, variantId: variant.id }),
+    });
+    expect(addRes.status).toBe(201);
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: '幫我檢查購物車適不適合結帳' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('cart-review');
+    expect(ragRes.body.reply).toContain('購物車');
+    expect(ragRes.body.cartReview).toEqual(
+      expect.objectContaining({
+        total: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        itemCount: expect.any(Number),
+        verdict: expect.any(String),
+        nextStep: expect.any(String),
+      })
+    );
+    expect(ragRes.body.cartReview.items[0]).toEqual(
+      expect.objectContaining({
+        gameId: game.id,
+        name: game.name,
+        quantity: expect.any(Number),
+        lineTotal: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        advice: expect.any(String),
+        href: `/game/${game.id}`,
+      })
+    );
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+  });
+
   test('rag endpoint personalizes recommendations for signed-in users', async () => {
     const loginRes = await requestJson('/demo-login', {
       method: 'POST',
@@ -494,6 +606,72 @@ describe('API integration', () => {
     expect(ragRes.body.mode).toBe('order-status');
     expect(ragRes.body.reply).toContain('待付款');
     expect(ragRes.body.reply).toContain(checkoutRes.body.order.id.slice(-6));
+    expect(ragRes.body.sources.some((source) => source.type === 'order')).toBe(true);
+  });
+
+  test('rag endpoint asks users to log in before order aftercare', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '這筆訂單接下來怎麼辦？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(false);
+    expect(ragRes.body.mode).toBe('order-auth-required');
+    expect(ragRes.body.reply).toContain('登入');
+    expect(ragRes.body.sources).toEqual([]);
+  });
+
+  test('rag endpoint gives aftercare next step for signed-in order', async () => {
+    const loginRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(loginRes.status).toBe(200);
+    const token = loginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => item.isActive !== false && item.variants?.some((variant) => variant.stock > 0));
+    const variant = game.variants.find((item) => item.stock > 0);
+
+    const addRes = await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: game.id, variantId: variant.id }),
+    });
+    expect(addRes.status).toBe(201);
+
+    const checkoutRes = await requestJson('/checkout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    expect(checkoutRes.status).toBe(200);
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: '這筆訂單接下來怎麼辦？' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('order-care');
+    expect(ragRes.body.reply).toContain(checkoutRes.body.order.id.slice(-6));
+    expect(ragRes.body.orderCare).toEqual(
+      expect.objectContaining({
+        orderId: checkoutRes.body.order.id,
+        shortId: checkoutRes.body.order.id.slice(-6),
+        status: '待付款',
+        fulfillmentStatus: '待出貨',
+        total: expect.stringMatching(/^\$\d+\.\d{2}$/),
+        items: expect.any(String),
+        primaryAction: '前往付款',
+        nextStep: expect.any(String),
+        canRequestRefund: false,
+        href: `/orders/${checkoutRes.body.order.id}`,
+      })
+    );
     expect(ragRes.body.sources.some((source) => source.type === 'order')).toBe(true);
   });
 

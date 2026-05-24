@@ -9,7 +9,17 @@ import type { RagSearchResult } from '../rag';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
-type ChatSource = { id: string; title: string; type: 'faq' | 'policy' | 'catalog' | 'order'; score: number };
+type ChatSource = {
+  id: string;
+  title: string;
+  type: 'faq' | 'policy' | 'catalog' | 'order';
+  score: number;
+  gameId?: number;
+  price?: string;
+  image?: string;
+  reason?: string;
+  href?: string;
+};
 type RagDebugPayload = {
   retriever: 'local-hybrid';
   query: string;
@@ -28,6 +38,58 @@ type RecommendationResult = {
   contextText: string;
   personalized: boolean;
 };
+type ProductDecisionResult = RecommendationResult & {
+  topPick?: Game;
+};
+type ProductComparisonRow = {
+  gameId: number;
+  name: string;
+  price: string;
+  stock: number;
+  fit: string;
+  tradeoff: string;
+  href: string;
+};
+type ProductComparisonResult = RecommendationResult & {
+  comparison: ProductComparisonRow[];
+};
+type CartReviewItem = {
+  gameId: number;
+  name: string;
+  quantity: number;
+  variantName?: string;
+  lineTotal: string;
+  advice: string;
+  href: string;
+};
+type CartReviewResult = {
+  reply: string;
+  grounded: boolean;
+  sources: ChatSource[];
+  cartReview: {
+    total: string;
+    itemCount: number;
+    verdict: string;
+    nextStep: string;
+    items: CartReviewItem[];
+  };
+};
+type OrderCareResult = {
+  reply: string;
+  sources: ChatSource[];
+  orderCare: {
+    orderId: string;
+    shortId: string;
+    status: string;
+    fulfillmentStatus: string;
+    total: string;
+    items: string;
+    primaryAction: string;
+    nextStep: string;
+    canRequestRefund: boolean;
+    href: string;
+  };
+};
 type PersonalizationProfile = {
   userId: number;
   wishlistIds: Set<number>;
@@ -44,6 +106,12 @@ const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 const serviceScopePattern =
   /(商城|商品|推薦|便宜|低價|預算|遊戲|價格|庫存|版本|購物車|結帳|付款|訂單|退款|配送|出貨|帳號|登入|願望清單|客服|game|price|cart|checkout|payment|order|refund|shipping|wishlist|account|login)/i;
 const recommendationPattern = /(推薦|便宜|低價|預算|好玩|新手|熱門|遊戲|商品|庫存|版本|recommend|cheap|price|game|stock)/i;
+const productDecisionPattern =
+  /(比較|比一比|哪一款|哪款|怎麼選|該買|適合|預算|不超過|以內|推薦.*還是|compare|versus|\bvs\b|which|choose|budget|under|below|for me)/i;
+const productComparisonPattern = /(比較|比一比|差異|哪個|哪一款|哪款|vs|versus|compare|comparison|better)/i;
+const cartReviewPattern = /(購物車.*健檢|檢查.*購物車|購物車.*適合|購物車.*建議|結帳前.*建議|cart.*review|review.*cart|check.*cart)/i;
+const orderCarePattern =
+  /(訂單.*接下來|訂單.*怎麼辦|訂單.*退款|這筆.*退款|這筆.*怎麼辦|付款後.*怎麼辦|付款後.*處理|售後|after.*order|order.*next|refund.*order)/i;
 const orderLookupPattern = /(我的訂單|訂單狀態|查訂單|最近訂單|訂單進度|付款狀態|出貨狀態|my order|order status)/i;
 
 async function queryOllama(messages: ChatMessage[], temperature = 0.4): Promise<string | null> {
@@ -118,6 +186,26 @@ function isProductRecommendationQuestion(message: string) {
   return recommendationPattern.test(message);
 }
 
+function isProductDecisionQuestion(message: string) {
+  const hasDecisionQualifier =
+    /(比較|比一比|哪一款|哪款|怎麼選|該買|預算|不超過|低於|小於|以內|compare|versus|\bvs\b|which|choose|budget|under|below)/i.test(
+      message
+    );
+  return hasDecisionQualifier && productDecisionPattern.test(message) && recommendationPattern.test(message);
+}
+
+function isProductComparisonQuestion(message: string, state: RouteDeps['state']) {
+  return productComparisonPattern.test(message) && findMentionedGames(state.games, message).length >= 2;
+}
+
+function isCartReviewQuestion(message: string) {
+  return cartReviewPattern.test(message);
+}
+
+function isOrderCareQuestion(message: string) {
+  return orderCarePattern.test(message);
+}
+
 function isOrderLookupQuestion(message: string) {
   return orderLookupPattern.test(message);
 }
@@ -131,6 +219,14 @@ function money(value: string | number | undefined) {
   return `$${toPrice(value).toFixed(2)}`;
 }
 
+function getCartItemUnitPrice(item: CartItem) {
+  if (item.variantId && item.variants) {
+    const selectedVariant = item.variants.find((variant) => variant.id === item.variantId);
+    if (selectedVariant) return toPrice(selectedVariant.price);
+  }
+  return getGameLowestPrice(item);
+}
+
 function getGameLowestPrice(game: Game) {
   const variantPrices = (game.variants || []).map((variant) => toPrice(variant.price)).filter((price) => price > 0);
   return variantPrices.length > 0 ? Math.min(...variantPrices) : toPrice(game.price);
@@ -138,6 +234,45 @@ function getGameLowestPrice(game: Game) {
 
 function getAvailableStock(game: Game) {
   return (game.variants || []).reduce((sum, variant) => sum + Math.max(0, Number(variant.stock) || 0), 0);
+}
+
+function createCatalogSource(game: Game, index: number, reason?: string): ChatSource {
+  return {
+    id: `catalog-game-${game.id}`,
+    title: game.name,
+    type: 'catalog',
+    score: Math.max(1, 10 - index),
+    gameId: game.id,
+    price: money(getGameLowestPrice(game)),
+    image: game.image,
+    reason,
+    href: `/game/${game.id}`,
+  };
+}
+
+function normalizeForMatch(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, ' ').trim();
+}
+
+function getNameTokens(name: string) {
+  return normalizeForMatch(name)
+    .split(/\s+/)
+    .filter((token) => token.length >= 2 && token !== 'the');
+}
+
+function isGameMentioned(game: Game, message: string) {
+  const normalizedMessage = normalizeForMatch(message);
+  const normalizedName = normalizeForMatch(game.name);
+  if (normalizedMessage.includes(normalizedName)) return true;
+
+  const tokens = getNameTokens(game.name);
+  if (tokens.length === 0) return false;
+  const requiredMatches = Math.min(tokens.length, 2);
+  return tokens.filter((token) => normalizedMessage.includes(token)).length >= requiredMatches;
+}
+
+function findMentionedGames(games: Game[], message: string) {
+  return games.filter((game) => game.isActive !== false && isGameMentioned(game, message));
 }
 
 function extractInterestTerms(text: string) {
@@ -226,6 +361,277 @@ function getPersonalizedReasons(game: Game, profile: PersonalizationProfile | nu
   return reasons;
 }
 
+function extractBudget(message: string) {
+  const normalized = message.replace(/,/g, '');
+  const explicitBudget = normalized.match(/(?:預算|不超過|低於|小於|以內|budget|under|below)\s*(?:是|大概|約|around|about)?\s*\$?\s*(\d+(?:\.\d+)?)/i);
+  if (explicitBudget) return Number(explicitBudget[1]);
+
+  const dollarAmount = normalized.match(/\$\s*(\d+(?:\.\d+)?)/);
+  return dollarAmount ? Number(dollarAmount[1]) : null;
+}
+
+function extractDecisionTerms(message: string) {
+  const lowerMessage = message.toLowerCase();
+  const termGroups: Array<{ label: string; terms: string[]; patterns: RegExp[] }> = [
+    { label: 'RPG', terms: ['rpg', 'role', 'fantasy'], patterns: [/rpg/i, /角色|奇幻|魔幻|開放世界/] },
+    { label: '開放世界', terms: ['open-world', 'open', 'world', 'adventure'], patterns: [/open[-\s]?world/i, /開放世界|冒險|探索/] },
+    { label: '劇情', terms: ['story', 'legendary', 'experience'], patterns: [/story/i, /劇情|故事|沉浸/] },
+    { label: '動作', terms: ['action', 'dark', 'souls'], patterns: [/action/i, /動作|戰鬥|高難度|硬派/] },
+    { label: '恐怖生存', terms: ['survival', 'horror'], patterns: [/survival|horror/i, /恐怖|生存/] },
+    { label: '便宜', terms: ['cheap', 'price', 'low'], patterns: [/cheap|budget/i, /便宜|低價|省錢/] },
+  ];
+
+  const matchedLabels: string[] = [];
+  const matchedTerms = new Set<string>();
+
+  for (const group of termGroups) {
+    if (group.patterns.some((pattern) => pattern.test(message))) {
+      matchedLabels.push(group.label);
+      for (const term of group.terms) matchedTerms.add(term);
+    }
+  }
+
+  for (const term of extractInterestTerms(lowerMessage)) {
+    matchedTerms.add(term);
+  }
+
+  return {
+    labels: matchedLabels,
+    terms: Array.from(matchedTerms),
+  };
+}
+
+function buildDecisionReasons({
+  game,
+  budget,
+  decisionTerms,
+  profile,
+}: {
+  game: Game;
+  budget: number | null;
+  decisionTerms: string[];
+  profile: PersonalizationProfile | null;
+}) {
+  const price = getGameLowestPrice(game);
+  const stock = getAvailableStock(game);
+  const gameText = `${game.name} ${game.description || ''}`.toLowerCase();
+  const reasons: string[] = [];
+
+  if (budget !== null) {
+    if (price <= budget) {
+      reasons.push(`符合 $${budget.toFixed(2)} 內的預算`);
+    } else {
+      reasons.push(`超出預算，但可當作加價選項`);
+    }
+  }
+
+  const matchedTerms = decisionTerms.filter((term) => gameText.includes(term));
+  if (matchedTerms.length > 0) {
+    reasons.push(`符合你提到的 ${matchedTerms.slice(0, 2).join('、')} 偏好`);
+  }
+
+  if (stock > 0) {
+    reasons.push(`目前還有 ${stock} 件可選版本`);
+  } else {
+    reasons.push('目前沒有可購買庫存');
+  }
+
+  const personalReasons = getPersonalizedReasons(game, profile);
+  if (personalReasons.length > 0) reasons.push(personalReasons[0]);
+
+  return reasons;
+}
+
+function scoreGameForDecision({
+  game,
+  budget,
+  decisionTerms,
+  profile,
+}: {
+  game: Game;
+  budget: number | null;
+  decisionTerms: string[];
+  profile: PersonalizationProfile | null;
+}) {
+  const price = getGameLowestPrice(game);
+  const stock = getAvailableStock(game);
+  const gameText = `${game.name} ${game.description || ''}`.toLowerCase();
+  let score = getPersonalizedScore(game, profile);
+
+  if (stock > 0) score += Math.min(stock / 4, 10);
+  if (budget !== null) {
+    if (price <= budget) {
+      score += 35;
+      score += Math.max(0, budget - price) / 3;
+    } else {
+      score -= Math.min((price - budget) * 1.5, 45);
+    }
+  }
+
+  for (const term of decisionTerms) {
+    if (gameText.includes(term)) score += 12;
+  }
+
+  if (/rpg|fantasy|adventure/i.test(gameText)) score += 4;
+  return score;
+}
+
+function buildProductDecision(state: RouteDeps['state'], message: string, user: JwtUser | null): ProductDecisionResult {
+  const activeGames = state.games.filter((game) => game.isActive !== false);
+  const budget = extractBudget(message);
+  const { labels, terms } = extractDecisionTerms(message);
+  const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+
+  const ranked = activeGames
+    .map((game) => ({
+      game,
+      score: scoreGameForDecision({ game, budget, decisionTerms: terms, profile }),
+    }))
+    .sort((a, b) => b.score - a.score || getGameLowestPrice(a.game) - getGameLowestPrice(b.game));
+
+  const picks = ranked.slice(0, 3).map((item) => item.game);
+  const sources: ChatSource[] = picks
+    .slice(0, 2)
+    .map((game, index) =>
+      createCatalogSource(game, index, index === 0 ? '最符合這次的預算與偏好' : '可當作替代選項比較')
+    );
+
+  if (picks.length === 0) {
+    return {
+      reply: '目前沒有可比較的商品。你可以先回到商店看看是否有上架中的遊戲，或告訴我想玩的類型，我再幫你縮小選擇。',
+      sources,
+      contextText: '目前沒有可比較的商品。',
+      personalized: Boolean(profile?.hasSignals),
+    };
+  }
+
+  const topPick = picks[0];
+  const preferenceText = [
+    budget !== null ? `預算 $${budget.toFixed(2)}` : '',
+    labels.length > 0 ? `偏好 ${labels.join('、')}` : '',
+    profile?.hasSignals ? '參考你的願望清單、購物車或購買紀錄' : '',
+  ]
+    .filter(Boolean)
+    .join('，');
+
+  const lines = picks.map((game, index) => {
+    const reasons = buildDecisionReasons({ game, budget, decisionTerms: terms, profile });
+    return `${index + 1}. ${game.name} - 最低 ${money(getGameLowestPrice(game))}。${reasons.slice(0, 3).join('、')}。`;
+  });
+
+  const reply = [
+    preferenceText
+      ? `我會用「${preferenceText}」來幫你比較。`
+      : '我先用價格、庫存和商品內容幫你做比較。',
+    `首選是 ${topPick.name}，因為它在你的條件下整體最穩。`,
+    ...lines,
+    `如果你現在要直接買，我會先選 ${topPick.name}；如果你想要更精準，可以再告訴我你偏好劇情、戰鬥、開放世界或恐怖生存。`,
+  ].join('\n');
+
+  return {
+    reply,
+    sources,
+    contextText: reply,
+    personalized: Boolean(profile?.hasSignals),
+    topPick,
+  };
+}
+
+function describeFit(game: Game, message: string, profile: PersonalizationProfile | null) {
+  const gameText = `${game.name} ${game.description || ''}`.toLowerCase();
+  const hints: string[] = [];
+
+  if (/rpg|fantasy|角色|奇幻|魔幻/i.test(message) && /rpg|fantasy/i.test(gameText)) {
+    hints.push('符合 RPG / 奇幻偏好');
+  }
+  if (/開放世界|探索|open[-\s]?world/i.test(message) && /open|world|adventure/i.test(gameText)) {
+    hints.push('適合想探索大地圖');
+  }
+  if (/劇情|故事|story/i.test(message) && /legendary|experience|survival/i.test(gameText)) {
+    hints.push('比較偏沉浸與劇情體驗');
+  }
+  if (/恐怖|生存|horror|survival/i.test(message) && /horror|survival/i.test(gameText)) {
+    hints.push('符合恐怖或生存取向');
+  }
+
+  const personalReasons = getPersonalizedReasons(game, profile);
+  hints.push(...personalReasons.slice(0, 1));
+
+  if (hints.length > 0) return hints.slice(0, 2).join('，');
+  if (/rpg|fantasy|adventure/i.test(gameText)) return '適合想玩角色扮演或冒險的人';
+  return '適合想先從價格與庫存穩定的商品開始';
+}
+
+function describeTradeoff(game: Game, message: string) {
+  const price = getGameLowestPrice(game);
+  const stock = getAvailableStock(game);
+  const budget = extractBudget(message);
+
+  if (budget !== null && price > budget) return `最低價格超出 $${budget.toFixed(2)} 預算`;
+  if (stock <= 0) return '目前沒有可購買庫存';
+  if (stock < 10) return '庫存較少，想買要盡快決定';
+  if (price >= 50) return '價格較高，適合確定喜歡再入手';
+  return '整體風險低，但特色可能沒有那麼明確';
+}
+
+function buildProductComparison(
+  state: RouteDeps['state'],
+  message: string,
+  user: JwtUser | null
+): ProductComparisonResult {
+  const mentionedGames = findMentionedGames(state.games, message).slice(0, 3);
+  const { terms } = extractDecisionTerms(message);
+  const budget = extractBudget(message);
+  const profile = user ? buildPersonalizationProfile(state, user.id) : null;
+  const ranked = [...mentionedGames].sort(
+    (a, b) =>
+      scoreGameForDecision({ game: b, budget, decisionTerms: terms, profile }) -
+        scoreGameForDecision({ game: a, budget, decisionTerms: terms, profile }) ||
+      getGameLowestPrice(a) - getGameLowestPrice(b)
+  );
+  const topPick = ranked[0];
+  const comparison: ProductComparisonRow[] = ranked.map((game) => ({
+    gameId: game.id,
+    name: game.name,
+    price: money(getGameLowestPrice(game)),
+    stock: getAvailableStock(game),
+    fit: describeFit(game, message, profile),
+    tradeoff: describeTradeoff(game, message),
+    href: `/game/${game.id}`,
+  }));
+  const sources = ranked
+    .slice(0, 2)
+    .map((game, index) => createCatalogSource(game, index, index === 0 ? '比較後的優先選擇' : '比較用候選商品'));
+
+  if (!topPick) {
+    return {
+      reply: '我目前沒有找到足夠的商品可以比較。你可以直接輸入兩款商品名稱，例如「Elden Ring 跟 The Witcher 3 比較」。',
+      sources: [],
+      contextText: '沒有找到足夠商品可以比較。',
+      personalized: Boolean(profile?.hasSignals),
+      comparison: [],
+    };
+  }
+
+  const lines = comparison.map(
+    (row) => `${row.name}：${row.price}，庫存 ${row.stock}，適合點：${row.fit}，取捨：${row.tradeoff}`
+  );
+  const reply = [
+    `我會先選 ${topPick.name}。`,
+    '比較下來它在你這次提到的條件裡比較平衡；下面是重點差異：',
+    ...lines,
+    `如果你想快速下決定，先看 ${topPick.name}；如果你更在意價格、劇情或挑戰性，可以再告訴我，我會重新排序。`,
+  ].join('\n');
+
+  return {
+    reply,
+    sources,
+    contextText: reply,
+    personalized: Boolean(profile?.hasSignals),
+    comparison,
+  };
+}
+
 function buildRecommendation(state: RouteDeps['state'], message: string, user: JwtUser | null): RecommendationResult {
   const activeGames = state.games.filter((game) => game.isActive !== false);
   const cheapIntent = /(便宜|低價|預算|cheap|price)/i.test(message);
@@ -242,12 +648,9 @@ function buildRecommendation(state: RouteDeps['state'], message: string, user: J
   });
 
   const picks = ranked.slice(0, 3);
-  const sources: ChatSource[] = picks.slice(0, 2).map((game, index) => ({
-    id: `catalog-game-${game.id}`,
-    title: game.name,
-    type: 'catalog',
-    score: 10 - index,
-  }));
+  const sources: ChatSource[] = picks
+    .slice(0, 2)
+    .map((game, index) => createCatalogSource(game, index, index === 0 ? '優先推薦' : '也值得看看'));
 
   if (picks.length === 0) {
     return {
@@ -381,6 +784,187 @@ function buildOrderStatusReply(orders: Order[]) {
   };
 }
 
+function getCartItemAdvice(item: CartItem, lineTotal: number, total: number) {
+  const gameText = `${item.name} ${item.description || ''}`.toLowerCase();
+  if (total > 80 && lineTotal >= total * 0.45) {
+    return '這款佔總金額比較高，結帳前可以先確認是不是最想玩的。';
+  }
+  if (/rpg|fantasy|adventure/i.test(gameText)) {
+    return '適合保留，這類型通常遊玩時間較長。';
+  }
+  if (/horror|survival/i.test(gameText)) {
+    return '比較吃個人口味，如果還不確定可以先放願望清單。';
+  }
+  return '可以保留作為候選，結帳前再和其他商品比較一次。';
+}
+
+function buildCartReview(cart: CartItem[]): CartReviewResult {
+  if (cart.length === 0) {
+    return {
+      reply: '你的購物車目前是空的。可以先挑 1 到 2 款想玩的遊戲加入購物車，我再幫你看總價和取捨。',
+      grounded: true,
+      sources: [],
+      cartReview: {
+        total: '$0.00',
+        itemCount: 0,
+        verdict: '購物車目前沒有商品',
+        nextStep: '先回到商店挑選商品',
+        items: [],
+      },
+    };
+  }
+
+  const itemRows = cart.map((item) => {
+    const quantity = Math.max(1, Number(item.quantity) || 1);
+    const lineTotal = getCartItemUnitPrice(item) * quantity;
+    return { item, quantity, lineTotal };
+  });
+  const total = itemRows.reduce((sum, row) => sum + row.lineTotal, 0);
+  const itemCount = itemRows.reduce((sum, row) => sum + row.quantity, 0);
+  const sortedRows = [...itemRows].sort((a, b) => b.lineTotal - a.lineTotal);
+  const largest = sortedRows[0];
+  const verdict =
+    total >= 90
+      ? '總價偏高，建議先保留最想玩的 1 到 2 款。'
+      : total >= 50
+        ? '內容夠完整，結帳前可以再確認是否都會近期玩。'
+        : '總價輕量，適合直接完成這次 demo 結帳流程。';
+  const nextStep =
+    total >= 90 && largest
+      ? `如果想壓低預算，可以先確認 ${largest.item.name} 是否現在就要買。`
+      : '如果內容都確認了，可以前往結帳建立訂單。';
+  const items: CartReviewItem[] = sortedRows.slice(0, 3).map(({ item, quantity, lineTotal }) => ({
+    gameId: item.id,
+    name: item.name,
+    quantity,
+    variantName: item.variantName,
+    lineTotal: money(lineTotal),
+    advice: getCartItemAdvice(item, lineTotal, total),
+    href: `/game/${item.id}`,
+  }));
+  const sources = sortedRows
+    .slice(0, 2)
+    .map(({ item }, index) => createCatalogSource(item, index, index === 0 ? '購物車中金額最高的商品' : '購物車中的候選商品'));
+  const itemLines = items.map(
+    (item) => `${item.name}${item.variantName ? `（${item.variantName}）` : ''} x${item.quantity}：${item.lineTotal}，${item.advice}`
+  );
+
+  return {
+    reply: [`我幫你看了一下購物車，目前共 ${itemCount} 件，總計 ${money(total)}。`, verdict, ...itemLines, nextStep].join(
+      '\n'
+    ),
+    grounded: true,
+    sources,
+    cartReview: {
+      total: money(total),
+      itemCount,
+      verdict,
+      nextStep,
+      items,
+    },
+  };
+}
+
+function getLatestOrder(orders: Order[]) {
+  return [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+}
+
+function getOrderCareAction(order: Order) {
+  if (order.status === 'pending') {
+    return {
+      primaryAction: '前往付款',
+      nextStep: '這筆訂單還沒付款完成，可以回到訂單詳情繼續付款。',
+      canRequestRefund: false,
+    };
+  }
+  if (order.status === 'payment_failed') {
+    return {
+      primaryAction: '重新付款',
+      nextStep: '付款上次沒有成功，建議回到訂單詳情重新付款，或改用 Demo 快速付款完成流程。',
+      canRequestRefund: false,
+    };
+  }
+  if (order.status === 'paid') {
+    if (order.fulfillmentStatus === 'delivered') {
+      return {
+        primaryAction: '查看訂單',
+        nextStep: '這筆訂單已送達。如果商品不符合預期，可以在訂單詳情查看是否需要申請退款。',
+        canRequestRefund: true,
+      };
+    }
+    if (order.fulfillmentStatus === 'shipped') {
+      return {
+        primaryAction: '查看出貨',
+        nextStep: '這筆訂單已出貨，可以到訂單詳情查看配送資訊。',
+        canRequestRefund: true,
+      };
+    }
+    return {
+      primaryAction: '等待出貨',
+      nextStep: '付款已完成，接下來等候商店出貨即可。',
+      canRequestRefund: true,
+    };
+  }
+  if (order.status === 'refunded') {
+    return {
+      primaryAction: '查看退款',
+      nextStep: '這筆訂單已完成退款，商品庫存在 demo 流程中也會補回。',
+      canRequestRefund: false,
+    };
+  }
+  if (order.status === 'cancelled') {
+    return {
+      primaryAction: '查看訂單',
+      nextStep: '這筆訂單已取消。如果還想購買，可以回商店重新加入購物車。',
+      canRequestRefund: false,
+    };
+  }
+  return {
+    primaryAction: '查看訂單',
+    nextStep: '可以到訂單詳情查看目前狀態。',
+    canRequestRefund: false,
+  };
+}
+
+function buildOrderCare(orders: Order[]): OrderCareResult | null {
+  const latest = getLatestOrder(orders);
+  if (!latest) return null;
+
+  const action = getOrderCareAction(latest);
+  const shortId = latest.id.slice(-6);
+  const items = summarizeItems(latest.items) || `${latest.items.length} 件商品`;
+  const href = `/orders/${latest.id}`;
+
+  return {
+    reply: [
+      `我先看最近一筆訂單 ${shortId}。`,
+      `目前是「${statusLabel(latest.status)}」，出貨狀態是「${fulfillmentLabel(latest.fulfillmentStatus)}」，金額 ${money(latest.total)}。`,
+      action.nextStep,
+      action.canRequestRefund ? '如果你想退款，可以從訂單詳情進去申請；我不會直接替你操作退款。' : '目前這個狀態不需要走退款流程。',
+    ].join('\n'),
+    sources: [
+      {
+        id: latest.id,
+        title: `訂單 ${shortId}`,
+        type: 'order' as const,
+        score: 10,
+      },
+    ],
+    orderCare: {
+      orderId: latest.id,
+      shortId,
+      status: statusLabel(latest.status),
+      fulfillmentStatus: fulfillmentLabel(latest.fulfillmentStatus),
+      total: money(latest.total),
+      items,
+      primaryAction: action.primaryAction,
+      nextStep: action.nextStep,
+      canRequestRefund: action.canRequestRefund,
+      href,
+    },
+  };
+}
+
 function buildFallbackReply(message: string, grounded: boolean) {
   if (!isServiceQuestion(message)) {
     return '我主要能協助商城裡的商品、購物車、付款、訂單、退款、配送和帳號問題。你可以問我「推薦便宜的遊戲」或「我的訂單狀態」。';
@@ -485,6 +1069,38 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     const user = getOptionalUser(req, secretKey);
     const debugEnabled = shouldIncludeRagDebug(req);
 
+    if (isOrderCareQuestion(message)) {
+      if (!user) {
+        return res.json({
+          reply: '登入後我才能幫你查看自己的訂單售後狀態。你可以使用 Demo 快速登入，再到訂單中心建立或查看訂單。',
+          grounded: false,
+          mode: 'order-auth-required',
+          sources: [],
+          ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+        });
+      }
+
+      const care = buildOrderCare(state.orders[user.id] || []);
+      if (!care) {
+        return res.json({
+          reply: '目前還沒有看到你的訂單。你可以先到商店選商品加入購物車，結帳後我就能幫你整理付款、出貨和退款下一步。',
+          grounded: true,
+          mode: 'order-care-empty',
+          sources: [],
+          ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+        });
+      }
+
+      return res.json({
+        reply: care.reply,
+        grounded: true,
+        mode: 'order-care',
+        sources: care.sources,
+        orderCare: care.orderCare,
+        ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+      });
+    }
+
     if (isOrderLookupQuestion(message)) {
       if (!user) {
         return res.json({
@@ -503,6 +1119,55 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
         mode: 'order-status',
         sources: summary.sources,
         ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+      });
+    }
+
+    if (isCartReviewQuestion(message)) {
+      if (!user) {
+        return res.json({
+          reply: '登入後我才能幫你查看自己的購物車。你可以使用 Demo 快速登入，再把商品加入購物車，我就能幫你做結帳前建議。',
+          grounded: false,
+          mode: 'cart-auth-required',
+          sources: [],
+          ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+        });
+      }
+
+      const review = buildCartReview(state.carts[user.id] || []);
+      return res.json({
+        reply: review.reply,
+        grounded: review.grounded,
+        mode: 'cart-review',
+        sources: review.sources,
+        cartReview: review.cartReview,
+        ...(debugEnabled ? { debug: buildRagDebug(message) } : {}),
+      });
+    }
+
+    if (isProductComparisonQuestion(message, state)) {
+      const comparison = buildProductComparison(state, message, user);
+      const debugMatches = debugEnabled ? retrieveRagContext(state, message, 4) : [];
+      return res.json({
+        reply: comparison.reply,
+        grounded: comparison.sources.length > 0,
+        mode: user ? 'personalized-product-comparison' : 'product-comparison',
+        sources: comparison.sources,
+        comparison: comparison.comparison,
+        ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
+      });
+    }
+
+    if (isProductDecisionQuestion(message)) {
+      const decision = buildProductDecision(state, message, user);
+      const polished = await polishRecommendationReply({ openaiClient, message, recommendation: decision });
+      const debugMatches = debugEnabled ? retrieveRagContext(state, message, 4) : [];
+      return res.json({
+        reply: polished?.reply || decision.reply,
+        grounded: decision.sources.length > 0,
+        mode: user ? 'personalized-product-decision' : 'product-decision',
+        provider: polished?.provider,
+        sources: decision.sources,
+        ...(debugEnabled ? { debug: buildRagDebug(message, debugMatches) } : {}),
       });
     }
 

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { FaHeadset, FaPaperPlane } from 'react-icons/fa';
 
 function getApiBaseUrl() {
@@ -21,6 +23,11 @@ type ChatSource = {
   title: string;
   type: 'faq' | 'policy' | 'catalog' | 'order';
   score?: number;
+  gameId?: number;
+  price?: string;
+  image?: string;
+  reason?: string;
+  href?: string;
 };
 
 type RagScoreBreakdown = {
@@ -43,12 +50,56 @@ type RagDebug = {
   }>;
 };
 
+type ProductComparisonRow = {
+  gameId: number;
+  name: string;
+  price: string;
+  stock: number;
+  fit: string;
+  tradeoff: string;
+  href: string;
+};
+
+type CartReviewItem = {
+  gameId: number;
+  name: string;
+  quantity: number;
+  variantName?: string;
+  lineTotal: string;
+  advice: string;
+  href: string;
+};
+
+type CartReview = {
+  total: string;
+  itemCount: number;
+  verdict: string;
+  nextStep: string;
+  items: CartReviewItem[];
+};
+
+type OrderCare = {
+  orderId: string;
+  shortId: string;
+  status: string;
+  fulfillmentStatus: string;
+  total: string;
+  items: string;
+  primaryAction: string;
+  nextStep: string;
+  canRequestRefund: boolean;
+  href: string;
+};
+
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   status?: 'grounded' | 'general' | 'unavailable' | 'account';
   sources?: ChatSource[];
+  comparison?: ProductComparisonRow[];
+  cartReview?: CartReview;
+  orderCare?: OrderCare;
   debug?: RagDebug;
 };
 
@@ -93,6 +144,14 @@ function formatScoreBreakdown(scoreBreakdown?: RagScoreBreakdown) {
   ].filter(([, value]) => Number(value || 0) > 0);
 }
 
+function getCatalogSources(sources?: ChatSource[]) {
+  return (sources || []).filter((source) => source.type === 'catalog' && source.gameId);
+}
+
+function getSupportSources(sources?: ChatSource[]) {
+  return (sources || []).filter((source) => source.type !== 'catalog' || !source.gameId);
+}
+
 export default function ChatPage() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -111,7 +170,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const quickPrompts = useMemo(
-    () => ['適合我的推薦', '推薦便宜的遊戲', '我的訂單狀態', '付款失敗怎麼辦？'],
+    () => ['這筆訂單接下來怎麼辦？', '幫我檢查購物車適不適合結帳', 'Elden Ring 跟 The Witcher 3 哪個適合？', '預算 30 美金，想玩 RPG，哪一款適合？'],
     []
   );
 
@@ -153,8 +212,11 @@ export default function ChatPage() {
 
       const data = await response.json();
       const sources = Array.isArray(data?.sources) ? data.sources.slice(0, 2) : [];
+      const comparison = Array.isArray(data?.comparison) ? data.comparison.slice(0, 3) : undefined;
+      const cartReview = data?.cartReview && Array.isArray(data.cartReview.items) ? data.cartReview : undefined;
+      const orderCare = data?.orderCare?.orderId ? data.orderCare : undefined;
       const status =
-        data?.mode === 'order-status'
+        data?.mode === 'order-status' || data?.mode === 'order-care'
           ? 'account'
           : data?.grounded
             ? 'grounded'
@@ -170,6 +232,9 @@ export default function ChatPage() {
           text: data?.reply || '我暫時沒有整理出答案，你可以換個方式問我商品、付款或訂單問題。',
           status,
           sources,
+          comparison,
+          cartReview,
+          orderCare,
           debug: data?.debug,
         },
       ]);
@@ -208,6 +273,8 @@ export default function ChatPage() {
             <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
               {messages.map((message) => {
                 const isUser = message.role === 'user';
+                const catalogSources = getCatalogSources(message.sources);
+                const supportSources = getSupportSources(message.sources);
                 return (
                   <article key={message.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                     <div
@@ -223,11 +290,156 @@ export default function ChatPage() {
                         </p>
                       )}
                       <p className="whitespace-pre-wrap">{message.text}</p>
-                      {!isUser && message.sources && message.sources.length > 0 && (
+                      {!isUser && message.orderCare && (
+                        <div className="mt-3 overflow-hidden rounded-lg border border-[#66c0f455] bg-[#101d2a]">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#66c0f422] px-3 py-2">
+                            <p className="text-[11px] font-bold tracking-[0.12em] text-[#8fb8d5]">
+                              訂單 {message.orderCare.shortId}
+                            </p>
+                            <span className="rounded border border-[#66c0f455] bg-[#173149] px-2 py-0.5 text-xs font-bold text-[#c7ebff]">
+                              {message.orderCare.total}
+                            </span>
+                          </div>
+                          <div className="grid gap-2 p-3 text-xs leading-5 text-[#c5dced]">
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="rounded border border-[#66c0f422] bg-[#132434] p-2">
+                                <p className="text-[#8faac0]">付款狀態</p>
+                                <p className="font-bold text-[#e3f0fb]">{message.orderCare.status}</p>
+                              </div>
+                              <div className="rounded border border-[#66c0f422] bg-[#132434] p-2">
+                                <p className="text-[#8faac0]">出貨狀態</p>
+                                <p className="font-bold text-[#e3f0fb]">{message.orderCare.fulfillmentStatus}</p>
+                              </div>
+                            </div>
+                            <p className="rounded border border-[#66c0f422] bg-[#132434] p-2 text-[#9eb4c8]">
+                              {message.orderCare.items}
+                            </p>
+                            <p className="rounded border border-[#8bc53f33] bg-[#122816] p-2 text-[#d6edce]">
+                              {message.orderCare.nextStep}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Link
+                                href={message.orderCare.href}
+                                className="inline-flex rounded border border-[#66c0f455] px-2.5 py-1 text-xs font-bold text-[#bfe4fb] transition hover:bg-[#1a3044]"
+                              >
+                                {message.orderCare.primaryAction}
+                              </Link>
+                              {message.orderCare.canRequestRefund && (
+                                <span className="rounded border border-[#8bc53f55] px-2.5 py-1 text-[11px] font-bold text-[#c9f0b8]">
+                                  可從訂單詳情申請退款
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {!isUser && message.cartReview && (
+                        <div className="mt-3 overflow-hidden rounded-lg border border-[#8bc53f55] bg-[#101d2a]">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8bc53f33] px-3 py-2">
+                            <p className="text-[11px] font-bold tracking-[0.12em] text-[#b7df9e]">購物車健檢</p>
+                            <span className="rounded border border-[#8bc53f55] bg-[#18351e] px-2 py-0.5 text-xs font-bold text-[#c9f0b8]">
+                              {message.cartReview.total}
+                            </span>
+                          </div>
+                          <div className="p-3 text-xs leading-5 text-[#c5dced]">
+                            <p className="font-bold text-[#e3f0fb]">{message.cartReview.verdict}</p>
+                            {message.cartReview.items.length > 0 && (
+                              <div className="mt-2 grid gap-2">
+                                {message.cartReview.items.map((item) => (
+                                  <div key={`${item.gameId}-${item.variantName || 'base'}`} className="rounded border border-[#66c0f422] bg-[#132434] p-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <p className="font-bold text-[#e3f0fb]">
+                                        {item.name}
+                                        {item.variantName ? `（${item.variantName}）` : ''} x{item.quantity}
+                                      </p>
+                                      <span className="text-[#c9f0b8]">{item.lineTotal}</span>
+                                    </div>
+                                    <p className="mt-1 text-[#9eb4c8]">{item.advice}</p>
+                                    <Link href={item.href} className="mt-1 inline-flex text-[11px] font-bold text-[#9bd5f8] hover:text-[#c7ebff]">
+                                      查看商品
+                                    </Link>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <p className="mt-2 rounded border border-[#8bc53f33] bg-[#122816] px-2 py-1 text-[#d6edce]">
+                              {message.cartReview.nextStep}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!isUser && message.comparison && message.comparison.length > 0 && (
+                        <div className="mt-3 overflow-hidden rounded-lg border border-[#66c0f433] bg-[#101d2a]">
+                          <div className="border-b border-[#66c0f422] px-3 py-2 text-[11px] font-bold tracking-[0.12em] text-[#8fb8d5]">
+                            商品差異
+                          </div>
+                          <div className="divide-y divide-[#66c0f422]">
+                            {message.comparison.map((row) => (
+                              <div key={row.gameId} className="grid gap-2 p-3 text-xs md:grid-cols-[1fr_88px_1.2fr_1.2fr]">
+                                <div>
+                                  <p className="font-bold text-[#e3f0fb]">{row.name}</p>
+                                  <Link
+                                    href={row.href}
+                                    className="mt-1 inline-flex text-[11px] font-bold text-[#9bd5f8] hover:text-[#c7ebff]"
+                                  >
+                                    查看商品
+                                  </Link>
+                                </div>
+                                <div className="text-[#c9f0b8]">
+                                  <p className="font-bold">{row.price}</p>
+                                  <p className="text-[#8faac0]">庫存 {row.stock}</p>
+                                </div>
+                                <p className="leading-5 text-[#c5dced]">{row.fit}</p>
+                                <p className="leading-5 text-[#9eb4c8]">{row.tradeoff}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!isUser && catalogSources.length > 0 && (
+                        <div className="mt-3 grid gap-2">
+                          {catalogSources.map((source) => (
+                            <div key={source.id} className="overflow-hidden rounded-lg border border-[#66c0f433] bg-[#101d2a]">
+                              <div className="flex gap-3 p-2.5">
+                                {source.image && (
+                                  <Image
+                                    src={source.image}
+                                    alt=""
+                                    width={48}
+                                    height={64}
+                                    className="h-16 w-12 shrink-0 rounded object-cover"
+                                    loading="lazy"
+                                  />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="truncate text-sm font-bold text-[#e3f0fb]">{source.title}</p>
+                                    {source.price && (
+                                      <span className="shrink-0 rounded border border-[#8bc53f55] bg-[#18351e] px-2 py-0.5 text-xs font-bold text-[#c9f0b8]">
+                                        {source.price}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {source.reason && (
+                                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#9eb4c8]">{source.reason}</p>
+                                  )}
+                                  <Link
+                                    href={source.href || `/game/${source.gameId}`}
+                                    className="mt-2 inline-flex rounded border border-[#66c0f455] px-2.5 py-1 text-xs font-bold text-[#bfe4fb] transition hover:bg-[#1a3044]"
+                                  >
+                                    查看商品
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!isUser && supportSources.length > 0 && (
                         <div className="mt-3 rounded-lg border border-[#66c0f433] bg-[#101d2a] p-2">
                           <p className="text-[11px] font-bold text-[#8faac0]">參考資料</p>
                           <div className="mt-1 flex flex-wrap gap-1.5">
-                            {message.sources.map((source) => (
+                            {supportSources.map((source) => (
                               <span
                                 key={source.id}
                                 className="rounded-full border border-[#66c0f433] bg-[#1a3044] px-2 py-1 text-[11px] text-[#c5dced]"
