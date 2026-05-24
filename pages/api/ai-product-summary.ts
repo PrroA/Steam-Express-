@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { buildRecommendationReasons } from '../../services/aiRecommendationService';
 
 type ProductSummaryInput = {
   id?: number;
@@ -125,6 +126,9 @@ function normalizeStringList(value: unknown, fallback: string[], maxLength: numb
 
 function normalizeUserProfile(userProfile?: ClientPreferenceProfile) {
   return {
+    recentlyViewedIds: Array.isArray(userProfile?.recentlyViewedIds)
+      ? userProfile.recentlyViewedIds.map((id) => Number(id)).filter((id) => Number.isFinite(id)).slice(0, 10)
+      : [],
     recentlyViewedNames: Array.isArray(userProfile?.recentlyViewedNames)
       ? userProfile.recentlyViewedNames.map((name) => String(name || '').trim()).filter(Boolean).slice(0, 5)
       : [],
@@ -135,17 +139,31 @@ function normalizeUserProfile(userProfile?: ClientPreferenceProfile) {
   };
 }
 
-function applyPreferenceHints(summary: ProductAiSummary, userProfile: ReturnType<typeof normalizeUserProfile>) {
+function applyPreferenceHints(
+  summary: ProductAiSummary,
+  product: ProductSummaryInput,
+  userProfile: ReturnType<typeof normalizeUserProfile>
+) {
   if (userProfile.recentlyViewedNames.length === 0 && userProfile.topKeywords.length === 0) return summary;
 
-  const preferenceHint =
-    userProfile.topKeywords.length > 0
-      ? `也參考你最近關注的「${userProfile.topKeywords.slice(0, 2).join('、')}」類型`
-      : '也參考你最近瀏覽過的遊戲風格';
+  const preferenceHints = buildRecommendationReasons({
+    product: {
+      id: product.id || 0,
+      name: product.name,
+      price: product.price,
+      description: product.description,
+      variants: product.variants,
+    },
+    preference: {
+      averagePrice: userProfile.averagePrice,
+      topKeywords: userProfile.topKeywords,
+    },
+    recentlyViewedIds: userProfile.recentlyViewedIds,
+  });
 
   return {
     ...summary,
-    highlights: [...summary.highlights, preferenceHint].slice(0, 3),
+    highlights: [...preferenceHints, ...summary.highlights].slice(0, 3),
     buyingTip:
       userProfile.recentlyViewedNames.length > 0
         ? '如果這款和你最近看的遊戲風格接近，可以先從標準版入手，再依照喜好升級版本。'
@@ -164,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const userProfile = normalizeUserProfile(req.body?.userProfile);
-  const fallback = applyPreferenceHints(buildFallbackProductSummary(product), userProfile);
+  const fallback = applyPreferenceHints(buildFallbackProductSummary(product), product, userProfile);
   if (!process.env.OPENAI_API_KEY) {
     return res.status(200).json(fallback);
   }

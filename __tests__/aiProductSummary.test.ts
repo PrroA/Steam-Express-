@@ -49,7 +49,7 @@ describe('buildFallbackProductSummary', () => {
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(
       expect.objectContaining({
-        highlights: expect.arrayContaining([expect.stringContaining('最近')]),
+        highlights: expect.arrayContaining([expect.stringContaining('近期關注')]),
         buyingTip: expect.stringContaining('最近看的遊戲'),
       })
     );

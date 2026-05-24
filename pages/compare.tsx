@@ -3,6 +3,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { fetchGames } from '../services/storeService';
 import type { Game } from '../types/domain';
+import { buildClientPreferenceProfile } from '../utils/aiPreferenceProfile';
+import type { BrowserAiCapability, ComparisonAdvice } from '../utils/browserBuyingAdvice';
+import {
+  buildFallbackComparisonAdvice,
+  generateBrowserComparisonAdvice,
+  getBrowserAiCapability,
+} from '../utils/browserBuyingAdvice';
 
 const compareStorageKey = 'compareGameIds';
 
@@ -40,6 +47,9 @@ export default function ComparePage() {
     source?: string;
   } | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [browserAiCapability, setBrowserAiCapability] = useState<BrowserAiCapability | null>(null);
+  const [comparisonAdvice, setComparisonAdvice] = useState<ComparisonAdvice | null>(null);
+  const [comparisonAdviceLoading, setComparisonAdviceLoading] = useState(false);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -74,6 +84,16 @@ export default function ComparePage() {
     load();
   }, []);
 
+  useEffect(() => {
+    let canceled = false;
+    getBrowserAiCapability().then((capability) => {
+      if (!canceled) setBrowserAiCapability(capability);
+    });
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
   const comparedGames = useMemo(() => {
     if (!comparedIds.length || !allGames.length) return [];
     const gameMap = new Map(allGames.map((game) => [game.id, game]));
@@ -99,6 +119,19 @@ export default function ComparePage() {
       return next;
     });
   }, []);
+
+  const loadComparisonAdvice = async () => {
+    if (comparedGames.length < 2) return;
+    const profile = buildClientPreferenceProfile();
+    setComparisonAdviceLoading(true);
+    setComparisonAdvice(buildFallbackComparisonAdvice(comparedGames, profile));
+    try {
+      const advice = await generateBrowserComparisonAdvice(comparedGames, profile);
+      setComparisonAdvice(advice);
+    } finally {
+      setComparisonAdviceLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (comparedGames.length < 2) {
@@ -286,6 +319,64 @@ export default function ComparePage() {
           )}
         </div>
 
+        <div className="mb-4 rounded-xl border border-[#66c0f466] bg-[#12283a] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#9fd2f1]">本機比較決策</p>
+              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">如果只能先選一款</h2>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[#66c0f455] bg-[#173246] px-2.5 py-1 text-xs font-bold text-[#d8f1ff]">
+                  {browserAiCapability?.label || '正在確認本機分析方式'}
+                </span>
+                {comparisonAdvice && (
+                  <span className="text-xs text-[#8fb8d5]">
+                    {comparisonAdvice.source === 'browser-ai' ? '這次由本機 AI 整理' : '這次由商品資料整理'}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#b9d1e3]">
+                {browserAiCapability?.description ||
+                  '根據比較中的商品、價格、庫存與近期偏好，整理一份購買判斷。'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loadComparisonAdvice}
+              disabled={comparisonAdviceLoading || comparedGames.length < 2}
+              className="rounded-md border border-[#66c0f466] bg-[#1b3b52] px-3 py-2 text-xs font-bold text-[#d8f1ff] transition hover:border-[#66c0f4] hover:bg-[#24506f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {comparisonAdviceLoading ? '分析中...' : '幫我選一款'}
+            </button>
+          </div>
+
+          {comparisonAdvice ? (
+            <div className="mt-3 grid gap-3 text-sm text-[#d7e8f4]">
+              <div className="rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
+                <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">建議先看</p>
+                <p className="mt-1 text-lg font-black text-[#e8f6ff]">{comparisonAdvice.winnerName}</p>
+                <p className="mt-2 leading-6">{comparisonAdvice.summary}</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <DecisionList title="為什麼" items={comparisonAdvice.reasons} />
+                <DecisionList title="取捨點" items={comparisonAdvice.tradeoffs} />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
+                <p className="text-sm leading-6 text-[#d7e8f4]">{comparisonAdvice.nextAction}</p>
+                {comparisonAdvice.winnerId > 0 && (
+                  <Link
+                    href={`/game/${comparisonAdvice.winnerId}`}
+                    className="steam-btn inline-flex rounded-md px-4 py-2 text-xs"
+                  >
+                    查看建議商品
+                  </Link>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-[#b9d1e3]">選好 2 到 3 款商品後，可以讓決策助理幫你收斂選擇。</p>
+          )}
+        </div>
+
         <div className="overflow-x-auto rounded-2xl border border-[#66c0f433]">
           <table className="min-w-[900px] w-full border-collapse">
             <thead>
@@ -382,6 +473,22 @@ function CompareRow({
         );
       })}
     </tr>
+  );
+}
+
+function DecisionList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
+      <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">{title}</p>
+      <ul className="mt-2 space-y-1.5 text-sm leading-6 text-[#c5dced]">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#66c0f4]" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

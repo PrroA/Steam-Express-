@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import debounce from 'lodash.debounce';
+import Link from 'next/link';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
 import { fetchGames as fetchGamesList } from '../services/storeService';
@@ -58,6 +59,7 @@ export default function Home() {
   }, [games, priceRange, sortOrder]);
 
   const hasActiveFilters = searchQuery.trim() !== '' || sortOrder !== 'default' || priceRange !== 'all';
+  const firstGameId = filteredGames[0]?.id;
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -87,7 +89,36 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mb-5 flex flex-col gap-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4 md:flex-row md:items-end md:justify-between">
+        <section className="mb-5 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 助理</p>
+              <p className="mt-1 text-sm text-[#b9d1e3]">選商品、做比較、問客服，三個入口就夠展示。</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={firstGameId ? `/game/${firstGameId}` : '#games'}
+                className="rounded-md border border-[#8bc53f66] bg-[#203825] px-3 py-2 text-sm font-bold text-[#def4c7] transition hover:bg-[#29482f]"
+              >
+                商品決策
+              </Link>
+              <Link
+                href="/compare"
+                className="rounded-md border border-[#66c0f466] bg-[#1b3348] px-3 py-2 text-sm font-bold text-[#d8f1ff] transition hover:bg-[#24445f]"
+              >
+                商品比較
+              </Link>
+              <Link
+                href="/ChatPage"
+                className="rounded-md border border-[#66c0f466] bg-[#1b2f44] px-3 py-2 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d]"
+              >
+                AI 客服
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div id="games" className="mb-5 flex flex-col gap-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">遊戲商店</p>
             <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">所有遊戲</h2>
