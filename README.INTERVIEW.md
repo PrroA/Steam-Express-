@@ -6,6 +6,8 @@
 
 ## Demo Flow
 
+完整操作可以看 [docs/demo-script.md](./docs/demo-script.md) 的「5 分鐘 AI Demo Checklist」。
+
 1. 使用 Demo 快速登入。
 2. 用首頁的「AI 助理」入口帶出商品決策、商品比較與 AI 客服三條展示路線。
 3. 從首頁選商品，進商品詳情。
