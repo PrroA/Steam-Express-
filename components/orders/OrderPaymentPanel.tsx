@@ -11,7 +11,7 @@ interface OrderPaymentPanelProps {
   selectedOrder: Order | null;
   clientSecret: string | null;
   paymentIntentError?: string | null;
-  stripePromise: Promise<Stripe | null>;
+  stripePromise: Promise<Stripe | null> | null;
   onPaid: (orderId: string) => Promise<void>;
 }
 
@@ -70,7 +70,7 @@ export function OrderPaymentPanel({
         <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
           這筆訂單目前不需要付款。若要重新付款，請先在訂單操作中選擇重新付款。
         </p>
-      ) : clientSecret ? (
+      ) : clientSecret && stripePromise ? (
         <Elements stripe={stripePromise} options={elementOptions}>
           <CheckoutForm clientSecret={clientSecret} orderId={selectedOrder?.id} onPaid={onPaid} />
         </Elements>

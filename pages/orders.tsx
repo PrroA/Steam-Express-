@@ -32,8 +32,8 @@ const statusFilters: Array<{ id: OrderStatusFilter; label: string }> = [
   { id: ORDER_STATUS.PAID, label: getOrderStatusLabel(ORDER_STATUS.PAID) },
 ];
 
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
-const stripePromise = loadStripe(stripePublishableKey);
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || '';
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function OrdersPage() {
   const router = useRouter();
