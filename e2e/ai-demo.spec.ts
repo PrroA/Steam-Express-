@@ -7,7 +7,10 @@ type CatalogGame = {
 };
 
 async function expectNoMojibake(pageText: string) {
-  expect(pageText).not.toMatch(/[�\u0080-\u009f\uF000-\uF8FF]/u);
+  const replacementCharacter = String.fromCharCode(0xfffd);
+  const controlCharacters = /[\u0080-\u009f\uF000-\uF8FF]/u;
+  expect(pageText.includes(replacementCharacter)).toBe(false);
+  expect(pageText).not.toMatch(controlCharacters);
 }
 
 async function getDemoGameIds(request: APIRequestContext) {
