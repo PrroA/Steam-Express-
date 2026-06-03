@@ -13,8 +13,7 @@ test('non-admin user cannot see admin entry in desktop and mobile menu', async (
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
-  await expect(page.getByText('目前登入')).toBeVisible();
-  await expect(page.getByText(account.username)).toBeVisible();
+  await expect(page.getByRole('link', { name: account.username })).toBeVisible();
   await expect(page.getByText('後台管理')).toHaveCount(0);
 
   await page.setViewportSize({ width: 390, height: 844 });

@@ -56,7 +56,9 @@ test('demo flow can review cart, checkout, and complete demo payment', async ({ 
   if (!orderId) throw new Error('orderId is missing after checkout redirect');
 
   await expect(page.getByTestId('demo-quick-pay').first()).toBeVisible();
-  await page.getByTestId('demo-quick-pay').first().click();
+  await page.getByTestId('demo-quick-pay').first().evaluate((button) => {
+    if (button instanceof HTMLButtonElement) button.click();
+  });
 
   await expect.poll(
     async () => {

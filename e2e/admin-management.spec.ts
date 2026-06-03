@@ -9,7 +9,7 @@ test('admin can edit game basic data from admin panel', async ({ page }) => {
   await page.getByRole('button', { name: '登入' }).click();
 
   await page.goto('/admin');
-  await expect(page.getByRole('heading', { name: '後台管理' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '商城管理' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '商品管理' })).toBeVisible();
 
   const firstBasicEditor = page
@@ -18,10 +18,18 @@ test('admin can edit game basic data from admin panel', async ({ page }) => {
     .first();
 
   await expect(firstBasicEditor).toBeVisible();
-  await firstBasicEditor.locator('input[placeholder="商品名稱"]').fill(newName);
-  await firstBasicEditor.locator('button', { hasText: '更新商品基本資料' }).click();
+  const nameInput = page.getByRole('textbox', { name: '商品名稱' }).first();
+  const saveBasicButton = page.getByRole('button', { name: '更新商品基本資料' }).first();
+  const originalName = await nameInput.inputValue();
+
+  await nameInput.fill(newName);
+  await saveBasicButton.click();
 
   await expect(page.getByText('商品基本資料已更新')).toBeVisible();
   await page.reload();
   await expect(page.getByText(newName).first()).toBeVisible();
+
+  await page.getByRole('textbox', { name: '商品名稱' }).first().fill(originalName);
+  await page.getByRole('button', { name: '更新商品基本資料' }).first().click();
+  await expect(page.getByText('商品基本資料已更新')).toBeVisible();
 });

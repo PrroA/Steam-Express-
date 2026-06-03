@@ -12,7 +12,6 @@ test('user can login and see current account in header', async ({ page, request 
   await page.getByRole('button', { name: '登入' }).click();
 
   await expect(page).toHaveURL(/\/(cart|wishlist|orders|transactions|admin|$)/);
-  await expect(page.getByText('目前登入')).toBeVisible();
-  await expect(page.getByText(account.username)).toBeVisible();
+  await expect(page.getByRole('link', { name: account.username })).toBeVisible();
   await expect(page.getByRole('button', { name: '登出' })).toBeVisible();
 });
