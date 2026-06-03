@@ -533,6 +533,33 @@ export default function ChatPage() {
           </section>
 
           <aside className="steam-panel h-fit rounded-2xl border border-[#66c0f433] p-4">
+            <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3">
+              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 展示順序</p>
+              <div className="mt-3 grid gap-2 text-sm text-[#d8e6f3]">
+                <Link
+                  href="/#games"
+                  className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 font-semibold transition hover:bg-[#1a3044]"
+                >
+                  1. 先挑一款商品
+                </Link>
+                <Link
+                  href="/compare"
+                  className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 font-semibold transition hover:bg-[#1a3044]"
+                >
+                  2. 比較 2 到 3 款商品
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => sendMessage('推薦一款適合新手、價格不要太高的遊戲')}
+                  disabled={isReplying}
+                  className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 text-left font-semibold transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  3. 直接問 AI 客服
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4">
             <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速詢問</p>
             <div className="mt-3 grid gap-2">
               {quickPrompts.map((prompt) => (
@@ -546,6 +573,7 @@ export default function ChatPage() {
                   {prompt}
                 </button>
               ))}
+            </div>
             </div>
             {debugAvailable && (
               <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#8bc53f55] bg-[#102217] p-3 text-xs text-[#d6edce]">

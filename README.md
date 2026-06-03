@@ -192,6 +192,15 @@ npm run build
 npm run test:e2e
 ```
 
+展示前快速檢查：
+
+```bash
+npm run dev
+npm run test:showcase
+```
+
+`test:showcase` 會跑 backend/server 編譯、亂碼檢查、核心購物流程、AI 展示流程，以及一般使用者文案檢查。更完整的展示前清單請看 [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)。
+
 目前重點測試包含 auth、cart、checkout、order、admin、AI/RAG retrieval、ChatPage 建置。
 
 ## 專案限制
@@ -209,3 +218,4 @@ npm run test:e2e
 
 - [README.INTERVIEW.md](./README.INTERVIEW.md)
 - [docs/demo-script.md](./docs/demo-script.md)
+- [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)

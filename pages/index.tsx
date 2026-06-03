@@ -6,6 +6,27 @@ import { GameCard } from '../components/GameCard';
 import { fetchGames as fetchGamesList } from '../services/storeService';
 import type { Game } from '../types/domain';
 
+const aiShowcaseSteps = [
+  {
+    title: '商品決策',
+    description: '先看單一商品適不適合你，適合展示「幫我判斷」。',
+    action: '挑一款商品',
+    getHref: (firstGameId?: number) => (firstGameId ? `/game/${firstGameId}` : '#games'),
+  },
+  {
+    title: '商品比較',
+    description: '把 2 到 3 款加入比較，再讓助理幫你收斂選擇。',
+    action: '前往比較',
+    getHref: () => '/compare',
+  },
+  {
+    title: '客服問答',
+    description: '詢問付款、退款、推薦或個人訂單狀態，回答會顯示參考資料。',
+    action: '詢問客服',
+    getHref: () => '/ChatPage',
+  },
+];
+
 function parsePrice(priceText?: string) {
   return parseFloat((priceText || '$0').replace('$', '')) || 0;
 }
@@ -90,31 +111,38 @@ export default function Home() {
         </div>
 
         <section className="mb-5 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 助理</p>
-              <p className="mt-1 text-sm text-[#b9d1e3]">選商品、做比較、問客服，三個入口就夠展示。</p>
+              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">從選商品到售後，一條線展示</h2>
+              <p className="mt-1 text-sm text-[#b9d1e3]">不用先解釋技術，直接照順序點就能看到 AI 怎麼幫使用者做決策。</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={firstGameId ? `/game/${firstGameId}` : '#games'}
-                className="rounded-md border border-[#8bc53f66] bg-[#203825] px-3 py-2 text-sm font-bold text-[#def4c7] transition hover:bg-[#29482f]"
-              >
-                商品決策
-              </Link>
-              <Link
-                href="/compare"
-                className="rounded-md border border-[#66c0f466] bg-[#1b3348] px-3 py-2 text-sm font-bold text-[#d8f1ff] transition hover:bg-[#24445f]"
-              >
-                商品比較
-              </Link>
-              <Link
-                href="/ChatPage"
-                className="rounded-md border border-[#66c0f466] bg-[#1b2f44] px-3 py-2 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d]"
-              >
-                AI 客服
-              </Link>
-            </div>
+            <Link
+              href="/ChatPage"
+              className="rounded-md border border-[#66c0f466] bg-[#1b2f44] px-3 py-2 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d]"
+            >
+              打開 AI 客服
+            </Link>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {aiShowcaseSteps.map((step, index) => (
+              <div key={step.title} className="rounded-lg border border-[#66c0f433] bg-[#101f2d] p-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#66c0f4] text-xs font-black text-[#0f1d2a]">
+                    {index + 1}
+                  </span>
+                  <h3 className="font-bold text-[#e1f2ff]">{step.title}</h3>
+                </div>
+                <p className="mt-2 min-h-[44px] text-sm leading-6 text-[#9eb4c8]">{step.description}</p>
+                <Link
+                  href={step.getHref(firstGameId)}
+                  className="mt-3 inline-flex rounded-md border border-[#66c0f455] px-3 py-1.5 text-xs font-bold text-[#bfe4fb] transition hover:bg-[#1a3044]"
+                >
+                  {step.action}
+                </Link>
+              </div>
+            ))}
           </div>
         </section>
 

@@ -16,6 +16,12 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+Run the interview showcase checks after `npm run dev` is already running:
+
+```bash
+npm run test:showcase
+```
+
 Run only the core demo smoke flow:
 
 ```bash
@@ -31,6 +37,14 @@ npm run test:e2e:ai
 ```
 
 `test:e2e:ai` covers the visible AI showcase path: AI customer support, product buying advice, and product comparison advice.
+
+Run the user-facing copy guard:
+
+```bash
+npm run test:e2e:copy
+```
+
+`test:e2e:copy` checks core customer pages for engineering terms such as `API`, `server`, `token`, and `PaymentIntent`.
 
 ## Optional env
 - `E2E_BASE_URL` (default: `http://localhost:3000`)
