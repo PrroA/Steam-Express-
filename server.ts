@@ -57,6 +57,9 @@ const { authenticate, isAdmin } = createAuthMiddleware(secretKey);
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ? Number(process.env.RATE_LIMIT_MAX) : 120;
 const ipRateMap = new Map<string, { count: number; resetAt: number }>();
+const shouldLogRequests =
+  process.env.LOG_REQUESTS === '1' ||
+  (process.env.LOG_REQUESTS !== '0' && process.env.NODE_ENV !== 'test');
 
 function normalizeError(status: number, payload: any, requestId: string) {
   if (payload?.success === false && payload?.error) {
@@ -173,6 +176,11 @@ if (!fs.existsSync(uploadDir)) {
 app.use('/uploads', express.static(uploadDir));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!shouldLogRequests) {
+    next();
+    return;
+  }
+
   const startedAt = Date.now();
   res.on('finish', () => {
     const durationMs = Date.now() - startedAt;

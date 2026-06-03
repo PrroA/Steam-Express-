@@ -55,9 +55,9 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   images: {
-    domains: ['upload.wikimedia.org', 'steam-express.onrender.com'],
     remotePatterns: [
       { protocol: 'https', hostname: 'steam-express.onrender.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
       { protocol: 'http', hostname: 'localhost', port: '4000' },
     ],
   },
