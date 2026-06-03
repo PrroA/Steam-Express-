@@ -249,10 +249,20 @@ export default function ComparePage() {
         <div className="steam-panel w-full max-w-xl rounded-2xl p-8 text-center">
           <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">COMPARE</p>
           <h1 className="mt-2 text-2xl font-black text-[#d8e6f3]">目前沒有可比較商品</h1>
-          <p className="mt-2 text-sm text-[#9eb4c8]">回首頁按「加入比較」，最多可選 3 款。</p>
-          <Link href="/" className="steam-btn mt-5 inline-flex rounded-md px-5 py-2 text-sm">
-            返回首頁
-          </Link>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#9eb4c8]">
+            先回商店挑 2 到 3 款商品，按「加入比較」後再回來，AI 助理就能幫你整理差異與選擇建議。
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Link href="/#games" className="steam-btn inline-flex rounded-md px-5 py-2 text-sm">
+              回商店挑商品
+            </Link>
+            <Link
+              href="/ChatPage"
+              className="inline-flex rounded-md border border-[#66c0f455] bg-[#1b2f44] px-5 py-2 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d]"
+            >
+              先問 AI 推薦
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -298,7 +308,7 @@ export default function ComparePage() {
         <div className="mb-4 rounded-xl border border-[#8bc53f66] bg-[#1a3324] p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">AI COMPARE SUMMARY</p>
-            {aiSummaryLoading && <span className="text-xs text-[#cce9c7]">分析中...</span>}
+            {aiSummaryLoading && <span className="text-xs text-[#cce9c7]">正在整理摘要</span>}
           </div>
           {aiSummary ? (
             <div className="mt-2 space-y-2 text-sm text-[#def4c7]">
@@ -332,8 +342,10 @@ export default function ComparePage() {
                 {comparisonAdvice && <AiSourceBadge source={comparisonAdvice.source} prefix />}
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[#b9d1e3]">
-                {browserAiCapability?.description ||
-                  '根據比較中的商品、價格、庫存與近期偏好，整理一份購買判斷。'}
+                {comparisonAdviceLoading
+                  ? '正在根據比較中的商品、價格、庫存與近期偏好整理建議。'
+                  : browserAiCapability?.description ||
+                    '根據比較中的商品、價格、庫存與近期偏好，整理一份購買判斷。'}
               </p>
             </div>
             <button
@@ -343,7 +355,7 @@ export default function ComparePage() {
               disabled={comparisonAdviceLoading || comparedGames.length < 2}
               className="rounded-md border border-[#66c0f466] bg-[#1b3b52] px-3 py-2 text-xs font-bold text-[#d8f1ff] transition hover:border-[#66c0f4] hover:bg-[#24506f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {comparisonAdviceLoading ? '分析中...' : '幫我選一款'}
+              {comparisonAdviceLoading ? '正在整理建議' : '幫我選一款'}
             </button>
           </div>
 

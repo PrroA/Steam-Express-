@@ -38,6 +38,14 @@ npm run test:e2e:ai
 
 `test:e2e:ai` covers the visible AI showcase path: AI customer support, product buying advice, and product comparison advice.
 
+Run only the AI showcase navigation guard:
+
+```bash
+npm run test:e2e:showcase-nav
+```
+
+`test:e2e:showcase-nav` checks that the homepage AI guide links to product decision, comparison, and customer support in the intended demo order.
+
 Run the user-facing copy guard:
 
 ```bash

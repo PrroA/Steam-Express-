@@ -52,13 +52,13 @@ export async function createPaymentIntent(
     return response.data;
   } catch (error: any) {
     const payload = error?.response?.data;
+    const code = payload?.error?.code || payload?.code;
     const message =
-      payload?.error?.message ||
-      payload?.message ||
-      error?.message ||
-      '建立 Stripe 付款流程失敗';
+      code === 'STRIPE_NOT_CONFIGURED' || code === 'STRIPE_TEMPORARILY_UNAVAILABLE'
+        ? payload?.error?.message || '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。'
+        : '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。';
     const nextError = new Error(message) as Error & { code?: string; status?: number };
-    nextError.code = payload?.error?.code || payload?.code;
+    nextError.code = code;
     nextError.status = error?.response?.status;
     throw nextError;
   }
@@ -69,14 +69,27 @@ export async function confirmPaymentIntent(
   paymentIntentId: string,
   token?: string | null
 ): Promise<{ message: string; order: Order }> {
-  const response = await apiClient.post(
-    '/confirm-payment-intent',
-    { orderId, paymentIntentId },
-    {
-      headers: authHeader(token),
-    }
-  );
-  return response.data;
+  try {
+    const response = await apiClient.post(
+      '/confirm-payment-intent',
+      { orderId, paymentIntentId },
+      {
+        headers: authHeader(token),
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    const payload = error?.response?.data;
+    const code = payload?.error?.code || payload?.code;
+    const message =
+      code === 'STRIPE_NOT_CONFIGURED' || code === 'STRIPE_TEMPORARILY_UNAVAILABLE'
+        ? payload?.error?.message || '付款還沒完成，請再試一次或使用 Demo 快速付款。'
+        : payload?.error?.message || payload?.message || '付款還沒完成，請再試一次或使用 Demo 快速付款。';
+    const nextError = new Error(message) as Error & { code?: string; status?: number };
+    nextError.code = code;
+    nextError.status = error?.response?.status;
+    throw nextError;
+  }
 }
 
 export async function payOrder(

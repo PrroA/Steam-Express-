@@ -496,11 +496,17 @@ function CartReviewPanel({
           disabled={isLoading}
           className="shrink-0 rounded-md border border-[#8bc53f66] bg-[#18351e] px-3 py-2 text-xs font-bold text-[#dff5d5] transition hover:border-[#8bc53f] hover:bg-[#204a29] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? '檢查中...' : advice ? '重新檢查' : '檢查'}
+          {isLoading ? '正在整理檢查' : advice ? '重新檢查' : '檢查'}
         </button>
       </div>
 
-      {advice ? (
+      {isLoading && (
+        <p className="mt-3 leading-6 text-[#9ec09e]">
+          正在根據購物車內容、數量與總價整理結帳前提醒。
+        </p>
+      )}
+
+      {!isLoading && advice ? (
         <div className="mt-3 space-y-3 leading-6 text-[#cde8c7]">
           <p>{advice.summary}</p>
           <div className="rounded-lg border border-[#8bc53f33] bg-[#132816] p-3">
@@ -522,11 +528,11 @@ function CartReviewPanel({
           </div>
           <AiSourceBadge source={advice.source} prefix />
         </div>
-      ) : (
+      ) : !isLoading ? (
         <p className="mt-3 leading-6 text-[#9ec09e]">
           送出訂單前，可以先讓助理幫你看總價、版本和數量是否合理。
         </p>
-      )}
+      ) : null}
     </section>
   );
 }

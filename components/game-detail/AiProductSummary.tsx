@@ -159,8 +159,10 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                   {buyingAdvice && <AiSourceBadge source={buyingAdvice.source} prefix />}
                 </div>
                 <p className="mt-2 text-[#c5dced]">
-                  {browserAiCapability?.description ||
-                    '讓你的瀏覽器根據商品、版本與近期偏好，整理一份購買判斷。'}
+                  {isAdviceLoading
+                    ? '正在根據商品、版本與近期偏好整理建議。'
+                    : browserAiCapability?.description ||
+                      '讓你的瀏覽器根據商品、版本與近期偏好，整理一份購買判斷。'}
                 </p>
               </div>
               <button
@@ -170,7 +172,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                 disabled={isAdviceLoading}
                 className="rounded-md border border-[#66c0f466] bg-[#1b3b52] px-3 py-2 text-xs font-bold text-[#d8f1ff] transition hover:border-[#66c0f4] hover:bg-[#24506f] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isAdviceLoading ? '分析中...' : '幫我判斷'}
+                {isAdviceLoading ? '正在整理建議' : '幫我判斷'}
               </button>
             </div>
 

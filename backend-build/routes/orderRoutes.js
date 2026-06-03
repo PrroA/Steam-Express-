@@ -9,6 +9,28 @@ function pushOrderStatus(order, status, note) {
     order.status = normalizedStatus;
     order.statusHistory.push({ status: normalizedStatus, at: new Date().toISOString(), note });
 }
+function getStripeErrorMessage(error) {
+    return String(error?.message || error?.raw?.message || error?.type || '');
+}
+function isExpectedStripeDemoFallback(error) {
+    const message = getStripeErrorMessage(error);
+    const rawCode = String(error?.code || error?.raw?.code || error?.detail?.code || error?.raw?.detail?.code || '');
+    return (error?.type === 'StripeConnectionError' ||
+        rawCode === 'EACCES' ||
+        /connection to Stripe|network|timeout|ECONNRESET|ECONNREFUSED|EACCES/i.test(message));
+}
+function sendStripeDemoFallback(res, error) {
+    console.warn('[payments] Stripe test payment unavailable; Demo quick pay fallback remains available.', {
+        type: error?.type,
+        code: error?.code || error?.raw?.code || error?.detail?.code || error?.raw?.detail?.code,
+    });
+    return res.status(503).json({
+        error: {
+            code: 'STRIPE_TEMPORARILY_UNAVAILABLE',
+            message: '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。',
+        },
+    });
+}
 function findVariant(game, variantId) {
     if (!game.variants || game.variants.length === 0)
         return null;
@@ -577,8 +599,16 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             return res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
         }
         catch (error) {
-            console.error('付款失敗:', error);
-            return res.status(500).json({ error: error.message });
+            if (isExpectedStripeDemoFallback(error)) {
+                return sendStripeDemoFallback(res, error);
+            }
+            console.error('建立信用卡付款流程失敗:', getStripeErrorMessage(error));
+            return res.status(500).json({
+                error: {
+                    code: 'PAYMENT_INTENT_FAILED',
+                    message: '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。',
+                },
+            });
         }
     });
     app.post('/confirm-payment-intent', authenticate, async (req, res) => {
@@ -612,8 +642,16 @@ function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }
             return res.status(200).json({ message: 'Stripe 付款已確認', order });
         }
         catch (error) {
-            console.error('Stripe 付款確認失敗:', error);
-            return res.status(500).json({ error: error.message || 'Stripe 付款確認失敗' });
+            if (isExpectedStripeDemoFallback(error)) {
+                return sendStripeDemoFallback(res, error);
+            }
+            console.error('信用卡付款確認失敗:', getStripeErrorMessage(error));
+            return res.status(500).json({
+                error: {
+                    code: 'PAYMENT_CONFIRM_FAILED',
+                    message: '付款還沒完成，請再試一次或使用 Demo 快速付款。',
+                },
+            });
         }
     });
 }
