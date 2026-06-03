@@ -111,7 +111,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
   }, []);
 
   return (
-    <section className="mt-5 rounded-xl border border-[#8bc53f44] bg-[#102217] p-4">
+    <section data-testid="ai-product-summary" className="mt-5 rounded-xl border border-[#8bc53f44] bg-[#102217] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-[0.14em] text-[#b7df9e]">AI 商品摘要</p>
@@ -164,6 +164,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                 </p>
               </div>
               <button
+                data-testid="ai-buying-advice-button"
                 type="button"
                 onClick={loadBuyingAdvice}
                 disabled={isAdviceLoading}
@@ -174,7 +175,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
             </div>
 
             {buyingAdvice && (
-              <div className="mt-3 grid gap-3">
+              <div data-testid="ai-buying-advice-result" className="mt-3 grid gap-3">
                 <div className="rounded-md border border-[#66c0f422] bg-[#0e1924] p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-[#8bc53f55] bg-[#17351f] px-2.5 py-1 text-xs font-bold text-[#c9f0b8]">

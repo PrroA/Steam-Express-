@@ -262,7 +262,7 @@ export default function ChatPage() {
   };
 
   return (
-    <main className="steam-shell min-h-screen px-4 py-6 md:px-6">
+    <main data-testid="ai-chat-page" className="steam-shell min-h-screen px-4 py-6 md:px-6">
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">AI 商城客服</p>
@@ -283,7 +283,11 @@ export default function ChatPage() {
                 const catalogSources = getCatalogSources(message.sources);
                 const supportSources = getSupportSources(message.sources);
                 return (
-                  <article key={message.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <article
+                    key={message.id}
+                    data-testid={isUser ? 'chat-message-user' : 'chat-message-assistant'}
+                    className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                  >
                     <div
                       className={`max-w-[82%] rounded-2xl border px-4 py-3 text-sm leading-6 ${
                         isUser
@@ -505,6 +509,7 @@ export default function ChatPage() {
             <div className="border-t border-[#66c0f433] p-3 md:p-4">
               <div className="flex gap-2">
                 <input
+                  data-testid="chat-input"
                   ref={inputRef}
                   type="text"
                   value={input}
@@ -514,6 +519,7 @@ export default function ChatPage() {
                   onKeyDown={(event) => event.key === 'Enter' && sendMessage()}
                 />
                 <button
+                  data-testid="chat-send"
                   type="button"
                   onClick={() => sendMessage()}
                   disabled={isReplying || !input.trim()}

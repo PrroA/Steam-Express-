@@ -337,6 +337,7 @@ export default function ComparePage() {
               </p>
             </div>
             <button
+              data-testid="compare-ai-advice-button"
               type="button"
               onClick={loadComparisonAdvice}
               disabled={comparisonAdviceLoading || comparedGames.length < 2}
@@ -347,7 +348,7 @@ export default function ComparePage() {
           </div>
 
           {comparisonAdvice ? (
-            <div className="mt-3 grid gap-3 text-sm text-[#d7e8f4]">
+            <div data-testid="compare-ai-advice-result" className="mt-3 grid gap-3 text-sm text-[#d7e8f4]">
               <div className="rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
                 <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">建議先看</p>
                 <p className="mt-1 text-lg font-black text-[#e8f6ff]">{comparisonAdvice.winnerName}</p>
