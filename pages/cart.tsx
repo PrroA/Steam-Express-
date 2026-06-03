@@ -366,7 +366,7 @@ export default function CartPage() {
                     <input data-testid="checkout-email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} placeholder="you@example.com" className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <Field label="地址" error={validationTriggered ? formErrors.shippingAddress : ''}>
-                    <textarea value={shippingAddress} onChange={(event) => setShippingAddress(event.target.value)} rows={2} placeholder="請輸入配送地址" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
+                    <textarea data-testid="checkout-shipping-address" value={shippingAddress} onChange={(event) => setShippingAddress(event.target.value)} rows={2} placeholder="請輸入配送地址" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <Field label="訂單備註">
                     <textarea value={orderNote} onChange={(event) => setOrderNote(event.target.value)} rows={3} placeholder="有需要補充的資訊可以寫在這裡" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
@@ -491,6 +491,7 @@ function CartReviewPanel({
         </div>
         <button
           type="button"
+          data-testid="cart-ai-review"
           onClick={onReview}
           disabled={isLoading}
           className="shrink-0 rounded-md border border-[#8bc53f66] bg-[#18351e] px-3 py-2 text-xs font-bold text-[#dff5d5] transition hover:border-[#8bc53f] hover:bg-[#204a29] disabled:cursor-not-allowed disabled:opacity-60"
