@@ -1,35 +1,46 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+import { getApiBaseUrl } from './helpers/api';
 
-test('admin can edit game basic data from admin panel', async ({ page }) => {
-  const newName = `E2E 商品 ${Date.now()}`;
+async function loginAdmin(request: APIRequestContext) {
+  const response = await request.post(`${getApiBaseUrl()}/login`, {
+    data: { username: 'admin', password: 'admin' },
+  });
+  expect(response.ok()).toBeTruthy();
 
-  await page.goto('/login');
-  await page.locator('input[placeholder*="帳號"]').fill('admin');
-  await page.locator('input[placeholder*="密碼"]').fill('admin');
-  await page.getByRole('button', { name: '登入' }).click();
+  const payload = (await response.json()) as { token: string };
+  expect(payload.token).toBeTruthy();
+  return payload.token;
+}
 
+test('admin can edit game basic data from admin panel', async ({ page, request }) => {
+  const adminToken = await loginAdmin(request);
+  const newName = `E2E Game ${Date.now()}`;
+
+  await page.goto('/');
+  await page.evaluate((token) => localStorage.setItem('token', token), adminToken);
   await page.goto('/admin');
-  await expect(page.getByRole('heading', { name: '商城管理' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '商品管理' })).toBeVisible();
 
-  const firstBasicEditor = page
-    .locator('div')
-    .filter({ hasText: '基本資料編輯' })
-    .first();
+  await expect(page.getByTestId('admin-game-management-panel')).toBeVisible();
 
-  await expect(firstBasicEditor).toBeVisible();
-  const nameInput = page.getByRole('textbox', { name: '商品名稱' }).first();
-  const saveBasicButton = page.getByRole('button', { name: '更新商品基本資料' }).first();
+  const gameManagementPanel = page.getByTestId('admin-game-management-panel');
+  const firstEditor = page.getByTestId('admin-game-basic-editor').first();
+  await expect(firstEditor).toBeVisible();
+
+  const nameInput = firstEditor.getByTestId('admin-game-name-input');
+  const saveBasicButton = firstEditor.getByTestId('admin-game-basic-save');
   const originalName = await nameInput.inputValue();
 
-  await nameInput.fill(newName);
-  await saveBasicButton.click();
+  try {
+    await nameInput.fill(newName);
+    await saveBasicButton.click();
+    await expect(gameManagementPanel.getByText(newName)).toBeVisible();
 
-  await expect(page.getByText('商品基本資料已更新')).toBeVisible();
-  await page.reload();
-  await expect(page.getByText(newName).first()).toBeVisible();
-
-  await page.getByRole('textbox', { name: '商品名稱' }).first().fill(originalName);
-  await page.getByRole('button', { name: '更新商品基本資料' }).first().click();
-  await expect(page.getByText('商品基本資料已更新')).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId('admin-game-management-panel').getByText(newName)).toBeVisible();
+  } finally {
+    const restoreEditor = page.getByTestId('admin-game-basic-editor').first();
+    await restoreEditor.getByTestId('admin-game-name-input').fill(originalName);
+    await restoreEditor.getByTestId('admin-game-basic-save').click();
+    await expect(page.getByTestId('admin-game-management-panel').getByText(originalName)).toBeVisible();
+  }
 });

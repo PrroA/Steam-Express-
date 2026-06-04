@@ -46,6 +46,14 @@ npm run test:e2e:showcase-nav
 
 `test:e2e:showcase-nav` checks that the homepage AI guide links to product decision, comparison, and customer support in the intended demo order.
 
+Run only the admin AI usage guard:
+
+```bash
+npm run test:e2e:admin-ai
+```
+
+`test:e2e:admin-ai` checks that a customer support answer is recorded and visible in the admin AI usage panel.
+
 Run the user-facing copy guard:
 
 ```bash

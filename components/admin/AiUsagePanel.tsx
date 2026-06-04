@@ -41,7 +41,7 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
   const events = usage?.events || [];
 
   return (
-    <section className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
+    <section data-testid="admin-ai-usage-panel" className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 觀測</p>
@@ -51,9 +51,9 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <StatTile label="AI 回覆次數" value={summary?.total || 0} />
-        <StatTile label="根據資料回答" value={summary?.grounded || 0} tone="success" />
-        <StatTile label="備用或引導回覆" value={summary?.fallback || 0} tone="warn" />
+        <StatTile testId="admin-ai-usage-total" label="AI 回覆次數" value={summary?.total || 0} />
+        <StatTile testId="admin-ai-usage-grounded" label="根據資料回答" value={summary?.grounded || 0} tone="success" />
+        <StatTile testId="admin-ai-usage-fallback" label="備用或引導回覆" value={summary?.fallback || 0} tone="warn" />
       </div>
 
       <div className="mt-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
@@ -87,10 +87,12 @@ function StatTile({
   label,
   value,
   tone = 'default',
+  testId,
 }: {
   label: string;
   value: number;
   tone?: 'default' | 'success' | 'warn';
+  testId?: string;
 }) {
   const toneClass = {
     default: 'border-[#66c0f455] bg-[#123047] text-[#8fd1ff]',
@@ -99,7 +101,7 @@ function StatTile({
   }[tone];
 
   return (
-    <article className={`rounded-xl border p-4 ${toneClass}`}>
+    <article data-testid={testId} className={`rounded-xl border p-4 ${toneClass}`}>
       <p className="text-xs opacity-80">{label}</p>
       <p className="mt-1 text-3xl font-black">{value}</p>
     </article>

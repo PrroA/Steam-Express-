@@ -26,7 +26,7 @@ export function GameManagementPanel({
   );
 
   return (
-    <div className="steam-panel mt-5 rounded-2xl p-6">
+    <div data-testid="admin-game-management-panel" className="steam-panel mt-5 rounded-2xl p-6">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-xl font-black text-[#d8e6f3]">商品管理</h2>
@@ -37,7 +37,11 @@ export function GameManagementPanel({
       </div>
       <div className="mt-4 space-y-3">
         {games.map((game) => (
-          <div key={game.id} className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
+          <div
+            key={game.id}
+            data-testid="admin-game-row"
+            className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-bold text-[#d8e6f3]">{game.name}</p>
@@ -118,10 +122,11 @@ function GameBasicEditor({
   };
 
   return (
-    <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
+    <div data-testid="admin-game-basic-editor" className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
       <p className="text-xs font-bold text-[#8fb8d5]">基本資料編輯</p>
       <div className="mt-2 grid gap-2">
         <input
+          data-testid="admin-game-name-input"
           type="text"
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
@@ -152,6 +157,7 @@ function GameBasicEditor({
           />
         </div>
         <button
+          data-testid="admin-game-basic-save"
           onClick={handleSave}
           className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
         >
