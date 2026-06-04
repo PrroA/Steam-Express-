@@ -20,6 +20,31 @@ export interface AdminDashboard {
   }>;
 }
 
+export interface AdminAiUsageEvent {
+  id: string;
+  createdAt: string;
+  requestId: string;
+  userId: number | null;
+  mode: string;
+  grounded: boolean;
+  provider: string | null;
+  sourceCount: number;
+  statusCode: number;
+  durationMs: number;
+  messagePreview: string;
+}
+
+export interface AdminAiUsage {
+  summary: {
+    total: number;
+    grounded: number;
+    fallback: number;
+    byMode: Record<string, number>;
+    byProvider: Record<string, number>;
+  };
+  events: AdminAiUsageEvent[];
+}
+
 export interface AiGameCopyDraft {
   shortDescription: string;
   sellingPoints: string[];
@@ -163,6 +188,13 @@ export async function updateAdminShippingDetails(
 
 export async function fetchAdminDashboard(token?: string | null): Promise<AdminDashboard> {
   const response = await apiClient.get('/admin/dashboard', {
+    headers: authHeader(token),
+  });
+  return response.data;
+}
+
+export async function fetchAdminAiUsage(token?: string | null): Promise<AdminAiUsage> {
+  const response = await apiClient.get('/admin/ai-usage?limit=5', {
     headers: authHeader(token),
   });
   return response.data;

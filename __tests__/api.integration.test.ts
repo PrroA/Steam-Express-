@@ -595,6 +595,61 @@ describe('API integration', () => {
     );
   });
 
+  test('admin can inspect AI usage without changing chat response shape', async () => {
+    const userRes = await requestJson('/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    expect(userRes.status).toBe(200);
+    const userToken = userRes.body.token;
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({ message: 'recommend a game' }),
+    });
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body).not.toHaveProperty('usageLog');
+    expect(ragRes.body.mode).toBeTruthy();
+
+    const forbiddenRes = await requestJson('/admin/ai-usage', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${userToken}` },
+    });
+    expect(forbiddenRes.status).toBe(403);
+
+    const adminLoginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: 'admin', password: 'admin' }),
+    });
+    expect(adminLoginRes.status).toBe(200);
+
+    const usageRes = await requestJson('/admin/ai-usage?limit=5', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${adminLoginRes.body.token}` },
+    });
+    expect(usageRes.status).toBe(200);
+    expect(usageRes.body.summary).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        grounded: expect.any(Number),
+        fallback: expect.any(Number),
+        byMode: expect.any(Object),
+        byProvider: expect.any(Object),
+      })
+    );
+    expect(usageRes.body.summary.total).toBeGreaterThan(0);
+    expect(Array.isArray(usageRes.body.events)).toBe(true);
+    expect(usageRes.body.events[0]).toEqual(
+      expect.objectContaining({
+        mode: ragRes.body.mode,
+        grounded: ragRes.body.grounded,
+        sourceCount: ragRes.body.sources.length,
+        messagePreview: 'recommend a game',
+      })
+    );
+  });
+
   test('rag endpoint keeps unrelated questions inside support scope', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',

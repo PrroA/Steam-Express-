@@ -4,6 +4,7 @@ import { addGame } from '../services/storeService';
 import {
   generateAdminGameCopy,
   ensureAdminGameVariant,
+  fetchAdminAiUsage,
   fetchAdminDashboard,
   fetchAdminGames,
   fetchAdminOrders,
@@ -15,6 +16,7 @@ import {
   updateGameActiveStatus,
   updateGameVariant,
   type AiGameCopyDraft,
+  type AdminAiUsage,
   type AdminDashboard,
   type AdminOrder,
 } from '../services/adminService';
@@ -34,6 +36,7 @@ interface AddGameForm {
 
 export function useAdminPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
+  const [aiUsage, setAiUsage] = useState<AdminAiUsage | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,14 +59,16 @@ export function useAdminPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const [dashboardData, gamesData, ordersData] = await Promise.all([
+      const [dashboardData, gamesData, ordersData, aiUsageData] = await Promise.all([
         fetchAdminDashboard(token),
         fetchAdminGames(token),
         fetchAdminOrders(token),
+        fetchAdminAiUsage(token).catch(() => null),
       ]);
       setDashboard(dashboardData);
       setGames(gamesData);
       setOrders(ordersData);
+      setAiUsage(aiUsageData);
     } catch (error) {
       toast.error('載入後台資料失敗（請確認你是管理員）');
     } finally {
@@ -319,6 +324,7 @@ export function useAdminPage() {
   return {
     loading,
     dashboard,
+    aiUsage,
     games,
     sortedOrders,
     addGameForm,

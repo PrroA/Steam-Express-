@@ -6,6 +6,7 @@ import type { CartItem, Game, GptReplyBody, JwtUser, Order } from '../../types/b
 import { persistState } from '../persistence';
 import { retrieveRagContext } from '../rag';
 import type { RagSearchResult } from '../rag';
+import { getAiUsageEvents, getAiUsageSummary, recordAiUsage } from '../aiUsageLog';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -1326,7 +1327,7 @@ function buildRagDebug(query: string, matches: RagSearchResult[] = []): RagDebug
   };
 }
 
-export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: RouteDeps) {
+export function registerChatRoutes({ app, io, state, openaiClient, secretKey, authenticate, isAdmin }: RouteDeps) {
   const { messages } = state;
 
   io.on('connection', (socket: Socket) => {
@@ -1364,6 +1365,14 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     });
   });
 
+  app.get('/admin/ai-usage', authenticate, isAdmin, (req: Request, res: Response) => {
+    const limit = Number(req.query?.limit || 30);
+    return res.json({
+      summary: getAiUsageSummary(),
+      events: getAiUsageEvents(limit),
+    });
+  });
+
   app.post('/chat/rag', async (req: TypedRequest<GptReplyBody>, res: Response) => {
     const message = req.body?.message?.trim();
     if (!message) {
@@ -1371,6 +1380,30 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     }
 
     const user = getOptionalUser(req, secretKey);
+    const startedAt = Date.now();
+    const originalJson = res.json.bind(res);
+    res.json = ((payload: unknown) => {
+      if (res.statusCode < 400 && payload && typeof payload === 'object') {
+        const body = payload as {
+          mode?: string;
+          grounded?: boolean;
+          provider?: string | null;
+          sources?: unknown[];
+        };
+        recordAiUsage({
+          requestId: ((req as any).requestId as string) || 'unknown',
+          userId: user?.id ?? null,
+          mode: body.mode,
+          grounded: body.grounded,
+          provider: body.provider || null,
+          sourceCount: Array.isArray(body.sources) ? body.sources.length : 0,
+          statusCode: res.statusCode,
+          durationMs: Date.now() - startedAt,
+          message,
+        });
+      }
+      return originalJson(payload);
+    }) as typeof res.json;
     const clientProfile = req.body?.clientProfile;
     const hasClientSignals = hasClientPreferenceSignals(clientProfile);
     const debugEnabled = shouldIncludeRagDebug(req);

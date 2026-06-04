@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { AdminActionPanel } from '../components/admin/AdminActionPanel';
+import { AiUsagePanel } from '../components/admin/AiUsagePanel';
 import { AddGamePanel } from '../components/admin/AddGamePanel';
 import { GameManagementPanel } from '../components/admin/GameManagementPanel';
 import { MetricCard } from '../components/admin/MetricCard';
@@ -67,6 +68,7 @@ function AdminPageContent() {
   const {
     loading,
     dashboard,
+    aiUsage,
     games,
     sortedOrders,
     addGameForm,
@@ -110,6 +112,8 @@ function AdminPageContent() {
             )}
 
             <AdminActionPanel dashboard={dashboard} orders={sortedOrders} games={games} />
+
+            <AiUsagePanel usage={aiUsage} />
 
             <AddGamePanel
               form={addGameForm}
