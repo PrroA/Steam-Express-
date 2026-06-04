@@ -54,26 +54,7 @@ export default function LoginPage() {
           登入後可以加入購物車、追蹤願望清單，並查看訂單付款狀態。
         </p>
 
-        <button
-          type="button"
-          data-testid="demo-login"
-          onClick={handleDemoLogin}
-          disabled={demoLoading}
-          className="mt-6 w-full rounded-md border border-[#8bc53f88] bg-[#263f2b] py-3 text-sm font-bold text-[#e7f8d8] transition hover:bg-[#315337] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {demoLoading ? '正在登入 Demo 帳號...' : '使用 Demo 帳號快速進入'}
-        </button>
-        <p className="mt-2 text-xs leading-5 text-[#9eb4c8]">
-          Demo 帳號已準備好測試購物、付款與訂單流程，適合快速展示。
-        </p>
-
-        <div className="my-5 flex items-center gap-3 text-xs text-[#708ba1]">
-          <span className="h-px flex-1 bg-[#66c0f433]" />
-          或使用自己的帳號
-          <span className="h-px flex-1 bg-[#66c0f433]" />
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <label className="block text-sm font-semibold text-[#c5dced]">
             帳號
             <input
@@ -111,6 +92,26 @@ export default function LoginPage() {
             忘記密碼？
           </Link>
         </div>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-[#708ba1]">
+          <span className="h-px flex-1 bg-[#66c0f433]" />
+          想先試用看看
+          <span className="h-px flex-1 bg-[#66c0f433]" />
+        </div>
+
+        <button
+          type="button"
+          data-testid="demo-login"
+          onClick={handleDemoLogin}
+          disabled={demoLoading}
+          className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-3 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {demoLoading ? '正在準備 Demo 帳號...' : '使用 Demo 帳號試用'}
+        </button>
+        <p className="mt-2 text-xs leading-5 text-[#9eb4c8]">
+          Demo 帳號已準備好購物、付款與訂單資料，適合快速走完整流程。
+        </p>
+
         <p className="mt-4 rounded-md border border-[#66c0f433] bg-[#132434] px-3 py-2 text-xs leading-5 text-[#9eb4c8]">
           管理展示可使用 admin / admin；正式環境請改用自己的管理員密碼。
         </p>

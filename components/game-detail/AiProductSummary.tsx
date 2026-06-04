@@ -111,46 +111,55 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
   }, []);
 
   return (
-    <section data-testid="ai-product-summary" className="mt-5 rounded-xl border border-[#8bc53f44] bg-[#102217] p-4">
+    <section data-testid="ai-product-summary" className="rounded-xl border border-[#8bc53f44] bg-[#102217] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-[0.14em] text-[#b7df9e]">AI 商品摘要</p>
           <h2 className="mt-1 flex items-center gap-2 text-xl font-black text-[#e0f4d9]">
             <FaMagic className="text-[#8bc53f]" aria-hidden />
-            購買前快速判斷
+            適不適合你？
           </h2>
         </div>
         <AiSourceBadge source={summary?.source} />
       </div>
 
-      {isLoading && <p className="mt-4 text-sm text-[#9ec09e]">正在整理這款遊戲適合哪些玩家...</p>}
+      {isLoading && <p className="mt-4 text-sm text-[#9ec09e]">正在整理這款遊戲的重點...</p>}
 
       {!isLoading && !summary && (
         <p className="mt-4 text-sm leading-6 text-[#9ec09e]">
-          這款商品目前可以先看價格、版本與玩家評論來判斷是否適合你。
+          這款商品目前可以先看價格、版本與玩家心得來判斷是否適合你。
         </p>
       )}
 
       {!isLoading && summary && (
         <div className="mt-4 grid gap-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <SummaryList title="適合你，如果你喜歡" items={summary.fitFor} />
-            <SummaryList title="可能不適合，如果你想要" items={summary.notFor} />
-          </div>
-          <SummaryList title="值得注意" items={summary.highlights} />
           <div className="rounded-lg border border-[#8bc53f44] bg-[#132816] p-3 text-sm leading-6 text-[#d6edce]">
             <p className="flex items-center gap-2 text-xs font-bold tracking-[0.12em] text-[#b7df9e]">
               <FaRegLightbulb aria-hidden />
-              購買建議
+              重點建議
             </p>
             <p className="mt-2">{summary.buyingTip}</p>
           </div>
+
+          <details className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3">
+            <summary className="cursor-pointer text-sm font-bold text-[#d8e6f3]">
+              查看更多判斷
+            </summary>
+            <div className="mt-3 grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <SummaryList title="適合你，如果你喜歡" items={summary.fitFor} />
+                <SummaryList title="可能不適合，如果你想要" items={summary.notFor} />
+              </div>
+              <SummaryList title="值得注意" items={summary.highlights} />
+            </div>
+          </details>
+
           <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3 text-sm leading-6 text-[#d7e8f4]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="flex items-center gap-2 text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">
                   <FaRobot aria-hidden />
-                  本機決策助理
+                  想更快決定？
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-[#66c0f455] bg-[#13283a] px-2.5 py-1 text-xs font-bold text-[#cceeff]">
@@ -162,7 +171,7 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                   {isAdviceLoading
                     ? '正在根據商品、版本與近期偏好整理建議。'
                     : browserAiCapability?.description ||
-                      '讓你的瀏覽器根據商品、版本與近期偏好，整理一份購買判斷。'}
+                      '可以根據商品、版本與近期偏好，整理一份購買判斷。'}
                 </p>
               </div>
               <button
@@ -196,7 +205,14 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                   <SummaryList title="先注意" items={buyingAdvice.concerns} />
                 </div>
 
-                <SummaryList title="判斷依據" items={buyingAdvice.evidence} />
+                <details className="rounded-md border border-[#66c0f422] bg-[#0e1924] p-3">
+                  <summary className="cursor-pointer text-sm font-bold text-[#d8e6f3]">
+                    查看判斷依據
+                  </summary>
+                  <div className="mt-3">
+                    <SummaryList title="判斷依據" items={buyingAdvice.evidence} />
+                  </div>
+                </details>
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-md border border-[#66c0f422] bg-[#0e1924] p-3">

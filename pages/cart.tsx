@@ -18,8 +18,6 @@ import {
 import type { CartItem } from '../types/domain';
 
 type CheckoutStep = 1 | 2 | 3;
-type PaymentMethod = 'credit-card' | 'line-pay' | 'wallet';
-
 const checkoutDraftKey = 'steam_checkout_draft_v1';
 
 function isValidEmail(email: string) {
@@ -41,7 +39,6 @@ export default function CartPage() {
   const [cartLoading, setCartLoading] = useState(true);
   const [cartLoadError, setCartLoadError] = useState('');
   const [activeStep, setActiveStep] = useState<CheckoutStep>(1);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit-card');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -86,7 +83,6 @@ export default function CartPage() {
       if (typeof draft.shippingAddress === 'string') setShippingAddress(draft.shippingAddress);
       if (typeof draft.orderNote === 'string') setOrderNote(draft.orderNote);
       if (typeof draft.agreed === 'boolean') setAgreed(draft.agreed);
-      if (['credit-card', 'line-pay', 'wallet'].includes(draft.paymentMethod)) setPaymentMethod(draft.paymentMethod);
     } catch {
       localStorage.removeItem(checkoutDraftKey);
     }
@@ -95,17 +91,16 @@ export default function CartPage() {
   useEffect(() => {
     localStorage.setItem(
       checkoutDraftKey,
-      JSON.stringify({ fullName, phone, contactEmail, shippingAddress, orderNote, agreed, paymentMethod })
+      JSON.stringify({ fullName, phone, contactEmail, shippingAddress, orderNote, agreed })
     );
-  }, [agreed, contactEmail, fullName, orderNote, paymentMethod, phone, shippingAddress]);
+  }, [agreed, contactEmail, fullName, orderNote, phone, shippingAddress]);
 
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0),
     [cart]
   );
   const itemCount = useMemo(() => cart.reduce((sum, item) => sum + (item.quantity || 0), 0), [cart]);
-  const shippingFee = subtotal >= 60 ? 0 : 5;
-  const payableTotal = subtotal + shippingFee;
+  const payableTotal = subtotal;
 
   const loadCartReviewAdvice = useCallback(async () => {
     const profile = {
@@ -201,7 +196,7 @@ export default function CartPage() {
           contactEmail: contactEmail.trim(),
           shippingAddress: shippingAddress.trim(),
           orderNote: orderNote.trim(),
-          paymentMethod,
+          paymentMethod: 'credit-card',
         },
         token
       );
@@ -259,14 +254,14 @@ export default function CartPage() {
     <main className="steam-shell px-4 py-6 md:px-6">
       <section className="mx-auto w-full max-w-6xl">
         <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">購物車</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">完成結帳</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">確認商品、填寫聯絡資料，接著到訂單中心付款。</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">確認商品</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">確認想買的遊戲，留下聯絡資料後就能建立訂單。</p>
 
         <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#66c0f433] bg-[#122333] p-2">
           {[
-            { id: 1, label: '確認商品' },
-            { id: 2, label: '填寫資料' },
-            { id: 3, label: '送出訂單' },
+            { id: 1, label: '購物車' },
+            { id: 2, label: '聯絡資料' },
+            { id: 3, label: '建立訂單' },
           ].map((step) => (
             <button
               key={step.id}
@@ -289,7 +284,7 @@ export default function CartPage() {
           <div className="steam-panel rounded-2xl p-4 md:p-5">
             {activeStep === 1 && (
               <>
-                <h2 className="text-xl font-black text-[#d8e6f3]">確認購物車內容</h2>
+                <h2 className="text-xl font-black text-[#d8e6f3]">購物車內容</h2>
                 <ul className="mt-4 space-y-3">
                   {cart.map((item) => {
                     const unitPrice = parsePrice(item.price);
@@ -333,29 +328,11 @@ export default function CartPage() {
 
             {activeStep === 2 && (
               <>
-                <h2 className="text-xl font-black text-[#d8e6f3]">填寫聯絡資料</h2>
+                <h2 className="text-xl font-black text-[#d8e6f3]">留下聯絡資料</h2>
+                <p className="mt-1 text-sm text-[#9eb4c8]">
+                  這些資料會放在訂單中心，方便你確認付款與訂單狀態。
+                </p>
                 <div className="mt-4 grid gap-4 rounded-xl border border-[#66c0f433] bg-[#142536] p-4">
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {[
-                      { id: 'credit-card', label: '信用卡' },
-                      { id: 'line-pay', label: 'LINE Pay' },
-                      { id: 'wallet', label: '商店錢包' },
-                    ].map((method) => (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => setPaymentMethod(method.id as PaymentMethod)}
-                        className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
-                          paymentMethod === method.id
-                            ? 'border-[#66c0f4aa] bg-[#1a3b53] text-[#d8e6f3]'
-                            : 'border-[#66c0f433] bg-[#11202f] text-[#9eb4c8] hover:bg-[#1a3044]'
-                        }`}
-                      >
-                        {method.label}
-                      </button>
-                    ))}
-                  </div>
-
                   <Field label="收件人" error={validationTriggered ? formErrors.fullName : ''}>
                     <input data-testid="checkout-full-name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="王小明" className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
@@ -365,15 +342,15 @@ export default function CartPage() {
                   <Field label="Email" error={validationTriggered ? formErrors.contactEmail : ''}>
                     <input data-testid="checkout-email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} placeholder="you@example.com" className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
-                  <Field label="地址" error={validationTriggered ? formErrors.shippingAddress : ''}>
-                    <textarea data-testid="checkout-shipping-address" value={shippingAddress} onChange={(event) => setShippingAddress(event.target.value)} rows={2} placeholder="請輸入配送地址" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
+                  <Field label="聯絡地址" error={validationTriggered ? formErrors.shippingAddress : ''}>
+                    <textarea data-testid="checkout-shipping-address" value={shippingAddress} onChange={(event) => setShippingAddress(event.target.value)} rows={2} placeholder="請輸入可聯絡地址" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <Field label="訂單備註">
                     <textarea value={orderNote} onChange={(event) => setOrderNote(event.target.value)} rows={3} placeholder="有需要補充的資訊可以寫在這裡" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <label className="flex items-start gap-2 text-sm text-[#9eb4c8]">
                     <input data-testid="checkout-agree" type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-1" />
-                    <span>我已確認商品、聯絡資料與付款方式正確。</span>
+                    <span>我已確認商品與聯絡資料正確。</span>
                   </label>
                   {validationTriggered && formErrors.agreed && <p className="text-xs text-[#ff9e9e]">{formErrors.agreed}</p>}
                 </div>
@@ -382,9 +359,9 @@ export default function CartPage() {
 
             {activeStep === 3 && (
               <>
-                <h2 className="text-xl font-black text-[#d8e6f3]">確認並送出訂單</h2>
+                <h2 className="text-xl font-black text-[#d8e6f3]">最後確認</h2>
                 <div className="mt-4 grid gap-3 rounded-xl border border-[#66c0f433] bg-[#142536] p-4 sm:grid-cols-2">
-                  <InfoRow label="付款方式" value={paymentMethodLabel(paymentMethod)} />
+                  <InfoRow label="付款" value="建立訂單後前往訂單中心付款" />
                   <InfoRow label="收件人" value={fullName} />
                   <InfoRow label="電話" value={phone} />
                   <InfoRow label="Email" value={contactEmail} />
@@ -397,11 +374,10 @@ export default function CartPage() {
           </div>
 
           <aside className="steam-panel h-fit rounded-2xl p-5">
-            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">訂單摘要</p>
+            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">結帳摘要</p>
             <h2 className="mt-2 text-2xl font-black text-[#d8e6f3]">共 {itemCount} 件商品</h2>
             <div className="mt-4 space-y-2 rounded-lg border border-[#66c0f433] bg-[#132334] p-4 text-sm">
               <SummaryRow label="商品小計" value={`$${subtotal.toFixed(2)}`} />
-              <SummaryRow label="運費" value={`$${shippingFee.toFixed(2)}`} />
               <SummaryRow label="總計" value={`$${payableTotal.toFixed(2)}`} strong />
             </div>
 
@@ -413,13 +389,13 @@ export default function CartPage() {
 
             {activeStep === 1 && (
               <button data-testid="checkout-next-payment" type="button" onClick={handleNextFromItems} className="steam-btn mt-4 w-full rounded-md py-2.5 text-sm">
-                前往填寫資料
+                填寫聯絡資料
               </button>
             )}
             {activeStep === 2 && (
               <div className="mt-4 grid gap-2">
                 <button data-testid="checkout-next-review" type="button" onClick={handleNextFromCustomer} className="steam-btn w-full rounded-md py-2.5 text-sm">
-                  查看訂單摘要
+                  前往最後確認
                 </button>
                 <button type="button" onClick={() => setActiveStep(1)} className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] hover:bg-[#24384d]">
                   回到購物車
@@ -444,12 +420,6 @@ export default function CartPage() {
       </section>
     </main>
   );
-}
-
-function paymentMethodLabel(method: PaymentMethod) {
-  if (method === 'credit-card') return '信用卡';
-  if (method === 'line-pay') return 'LINE Pay';
-  return '商店錢包';
 }
 
 function Field({ label, error = '', children }: { label: string; error?: string; children: React.ReactNode }) {

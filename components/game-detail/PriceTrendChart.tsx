@@ -50,7 +50,7 @@ export function PriceTrendChart({ gameId, currentPriceText }: PriceTrendChartPro
     <section className="rounded-xl border border-[#66c0f433] bg-[#132334] p-4">
       <div className="mb-3 flex items-end justify-between">
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">PRICE TREND</p>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">價格參考</p>
           <h3 className="mt-1 text-lg font-black text-[#d8e6f3]">近 {period} 天價格走勢</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export function PriceTrendChart({ gameId, currentPriceText }: PriceTrendChartPro
         <span>目前 {currentPriceText}</span>
         <span>最高 ${max.toFixed(2)}</span>
       </div>
-      <p className="mt-2 text-[11px] text-[#7fa0b8]">* 模擬數據，用於作品集展示價格走勢 UI。</p>
+      <p className="mt-2 text-[11px] text-[#7fa0b8]">* 價格走勢僅供參考，實際價格以購買選項為準。</p>
     </section>
   );
 }

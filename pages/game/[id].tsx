@@ -68,7 +68,7 @@ export default function GameDetail() {
             flashFromAlert ? 'ring-2 ring-[#66c0f4aa] shadow-[0_0_0_2px_rgba(102,192,244,0.25)]' : ''
           }`}
         >
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
             <GameGallery
               gameName={game.name}
               description={game.description}
@@ -86,21 +86,36 @@ export default function GameDetail() {
                 onAddToWishlist={handleAddToWishlist}
                 onGoToCart={() => router.push('/cart')}
               />
-              <PriceTrendChart gameId={game.id} currentPriceText={priceInfo.currentText} />
             </div>
           </div>
-          <AiProductSummary game={game} />
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
+            <AiProductSummary game={game} />
+            <details className="rounded-xl border border-[#66c0f433] bg-[#132334] p-4">
+              <summary className="cursor-pointer text-sm font-bold text-[#d8e6f3]">
+                查看價格參考
+              </summary>
+              <div className="mt-4">
+                <PriceTrendChart gameId={game.id} currentPriceText={priceInfo.currentText} />
+              </div>
+            </details>
+          </div>
         </div>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <ReviewForm
-            value={newReview}
-            isSubmitting={isSubmitting}
-            onChange={setNewReview}
-            onSubmit={handleSubmitReview}
-          />
-          <ReviewList reviews={reviews} />
-        </section>
+        <details className="steam-panel mt-6 rounded-xl p-5">
+          <summary className="cursor-pointer text-xl font-black text-[#d8e6f3]">
+            玩家心得與評論
+          </summary>
+          <section className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+            <ReviewForm
+              value={newReview}
+              isSubmitting={isSubmitting}
+              onChange={setNewReview}
+              onSubmit={handleSubmitReview}
+            />
+            <ReviewList reviews={reviews} />
+          </section>
+        </details>
       </section>
     </main>
   );

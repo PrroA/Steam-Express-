@@ -27,8 +27,8 @@ test('main user-facing pages do not expose engineering copy', async ({ page, req
   const token = await loginToken(request, account);
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '精選遊戲商店' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '從選商品到售後，一條線展示' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '找到下一款想玩的遊戲' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '先挑一款想玩的遊戲' })).toBeVisible();
   await expectUserFacingCopy(page, 'home');
 
   await page.goto('/login');
@@ -62,6 +62,6 @@ test('main user-facing pages do not expose engineering copy', async ({ page, req
 
   await page.goto('/ChatPage');
   await expect(page.getByTestId('ai-chat-page')).toBeVisible();
-  await expect(page.getByText('AI 展示順序')).toBeVisible();
+  await expect(page.getByText('常用入口')).toBeVisible();
   await expectUserFacingCopy(page, 'chat');
 });

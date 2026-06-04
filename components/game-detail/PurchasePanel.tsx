@@ -69,26 +69,28 @@ export function PurchasePanel({
         <button
           onClick={onAddToCart}
           disabled={!hasVariantStock}
-          className="steam-btn rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          className="steam-btn rounded-md py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
           加入購物車
         </button>
-        <button
-          onClick={onAddToWishlist}
-          className="rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
-        >
-          加入願望清單
-        </button>
-        <button
-          onClick={onGoToCart}
-          className="rounded-md border border-[#66c0f455] bg-[#152332] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
-        >
-          前往購物車
-        </button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            onClick={onAddToWishlist}
+            className="rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+          >
+            加入願望清單
+          </button>
+          <button
+            onClick={onGoToCart}
+            className="rounded-md border border-[#66c0f455] bg-[#152332] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+          >
+            查看購物車
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 rounded-lg border border-[#66c0f433] bg-[#122131] p-3 text-xs text-[#9eb4c8]">
-        下一步：加入購物車後前往結帳。此作品使用模擬付款，不會產生真實交易。
+        下一步：加入購物車後前往結帳，訂單狀態會保留在你的訂單中心。
       </div>
     </aside>
   );

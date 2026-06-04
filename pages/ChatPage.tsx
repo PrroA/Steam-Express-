@@ -172,11 +172,9 @@ export default function ChatPage() {
 
   const quickPrompts = useMemo(
     () => [
-      '我想找 1000 元以下、可以放鬆玩的遊戲',
-      '這筆訂單接下來怎麼辦？',
-      '幫我檢查購物車適不適合結帳',
-      'Elden Ring 跟 The Witcher 3 哪個適合？',
-      '預算 30 美金，想玩 RPG，哪一款適合？',
+      '推薦一款適合我的遊戲',
+      '怎麼完成付款？',
+      '查詢我的訂單狀態',
     ],
     []
   );
@@ -265,13 +263,13 @@ export default function ChatPage() {
     <main data-testid="ai-chat-page" className="steam-shell min-h-screen px-4 py-6 md:px-6">
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         <div>
-          <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">AI 商城客服</p>
+          <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">商城客服</p>
           <h1 className="mt-2 flex items-center gap-2 text-3xl font-black text-[#d8e6f3]">
             <FaHeadset className="text-[#66c0f4]" aria-hidden />
-            需要我幫你找遊戲嗎？
+            想找遊戲或查訂單嗎？
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#9eb4c8]">
-            可以問商品推薦、付款、退款、配送、願望清單。登入後也能詢問自己的訂單狀態。
+            可以問商品推薦、付款方式、退款規則，也能在登入後查詢自己的訂單狀態。
           </p>
         </div>
 
@@ -514,7 +512,7 @@ export default function ChatPage() {
                   type="text"
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
-                  placeholder="輸入你的問題，例如：推薦便宜的遊戲"
+                  placeholder="輸入想找的遊戲、付款或訂單問題..."
                   className="min-w-0 flex-1 rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
                   onKeyDown={(event) => event.key === 'Enter' && sendMessage()}
                 />
@@ -534,27 +532,27 @@ export default function ChatPage() {
 
           <aside className="steam-panel h-fit rounded-2xl border border-[#66c0f433] p-4">
             <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3">
-              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 展示順序</p>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">常用入口</p>
               <div className="mt-3 grid gap-2 text-sm text-[#d8e6f3]">
                 <Link
                   href="/#games"
                   className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 font-semibold transition hover:bg-[#1a3044]"
                 >
-                  1. 先挑一款商品
+                  回商店挑商品
                 </Link>
                 <Link
                   href="/compare"
                   className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 font-semibold transition hover:bg-[#1a3044]"
                 >
-                  2. 比較 2 到 3 款商品
+                  比較已選商品
                 </Link>
                 <button
                   type="button"
-                  onClick={() => sendMessage('推薦一款適合新手、價格不要太高的遊戲')}
+                  onClick={() => sendMessage('推薦一款適合我的遊戲')}
                   disabled={isReplying}
                   className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 text-left font-semibold transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  3. 直接問 AI 客服
+                  讓客服推薦一款
                 </button>
               </div>
             </div>
@@ -578,8 +576,8 @@ export default function ChatPage() {
             {debugAvailable && (
               <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#8bc53f55] bg-[#102217] p-3 text-xs text-[#d6edce]">
                 <span>
-                  <span className="block font-bold">顯示 RAG 依據</span>
-                  <span className="mt-1 block text-[#aacda1]">本機展示用，查看命中文件與分數。</span>
+                  <span className="block font-bold">顯示技術資訊</span>
+                  <span className="mt-1 block text-[#aacda1]">只在本機檢查回答來源時使用。</span>
                 </span>
                 <input
                   type="checkbox"
