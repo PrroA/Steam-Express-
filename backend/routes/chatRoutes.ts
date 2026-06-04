@@ -234,7 +234,10 @@ function isOrderLookupQuestion(message: string) {
 }
 
 function toPrice(value: string | number | undefined) {
-  const parsed = Number(value);
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : Number(String(value || '').replace(/[$,\s]/g, ''));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 

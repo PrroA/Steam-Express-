@@ -8,6 +8,7 @@ export type BuyingAdvice = {
   summary: string;
   reasons: string[];
   concerns: string[];
+  evidence: string[];
   bestEdition: string;
   nextAction: string;
   source: 'browser-ai' | 'fallback';
@@ -186,6 +187,7 @@ export function buildFallbackBuyingAdvice(game: Game, profile: ClientPreferenceP
   const price = parsePrice(lowestVariant?.price || game.price);
   const averagePrice = Number(profile.averagePrice || 0);
   const keywordText = profile.topKeywords.slice(0, 2).join('、');
+  const preferenceText = profile.topKeywords.slice(0, 2).join('、') || profile.recentlyViewedNames.slice(0, 2).join('、');
 
   const reasons = [
     keywordText ? `這款和你近期關注的 ${keywordText} 類型有關` : '商品資訊完整，適合先從玩法與版本判斷',
@@ -204,6 +206,11 @@ export function buildFallbackBuyingAdvice(game: Game, profile: ClientPreferenceP
     summary: stock <= 0 ? '這款可以先追蹤，等有庫存再決定。' : '這款適合列入優先考慮，可以先從版本差異開始看。',
     reasons,
     concerns,
+    evidence: [
+      `目前最低版本約 $${price.toFixed(2)}`,
+      `版本總庫存 ${stock} 件`,
+      preferenceText ? `參考近期偏好：${preferenceText}` : '目前沒有明顯近期偏好，主要依商品資料判斷',
+    ],
     bestEdition: lowestVariant ? lowestVariant.name : '標準版',
     nextAction: stock <= 0 ? '加入願望清單，之後再回來確認。' : '先選標準版加入購物車，再到購物車確認總價。',
     source: 'fallback',
@@ -371,6 +378,7 @@ export async function generateBrowserBuyingAdvice(game: Game, profile: ClientPre
             summary: 'string',
             reasons: ['string'],
             concerns: ['string'],
+            evidence: ['string'],
             bestEdition: 'string',
             nextAction: 'string',
           },
@@ -388,6 +396,7 @@ export async function generateBrowserBuyingAdvice(game: Game, profile: ClientPre
       summary: String((parsed as BuyingAdvice).summary || fallback.summary).trim(),
       reasons: normalizeList((parsed as BuyingAdvice).reasons, fallback.reasons, 3),
       concerns: normalizeList((parsed as BuyingAdvice).concerns, fallback.concerns, 2),
+      evidence: normalizeList((parsed as BuyingAdvice).evidence, fallback.evidence, 3),
       bestEdition: String((parsed as BuyingAdvice).bestEdition || fallback.bestEdition).trim(),
       nextAction: String((parsed as BuyingAdvice).nextAction || fallback.nextAction).trim(),
       source: 'browser-ai',

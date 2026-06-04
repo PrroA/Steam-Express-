@@ -6,6 +6,8 @@ import { GameCard } from '../components/GameCard';
 import { fetchGames as fetchGamesList } from '../services/storeService';
 import type { Game } from '../types/domain';
 
+const compareStorageKey = 'compareGameIds';
+
 const aiShowcaseSteps = [
   {
     title: '商品決策',
@@ -37,6 +39,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('default');
   const [priceRange, setPriceRange] = useState('all');
+  const [comparedIds, setComparedIds] = useState<number[]>([]);
 
   const fetchGames = useCallback(async (query: string) => {
     try {
@@ -58,6 +61,18 @@ export default function Home() {
       debouncedFetchGames.cancel();
     };
   }, [searchQuery, debouncedFetchGames]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(compareStorageKey);
+      const ids = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(ids)) {
+        setComparedIds(ids.map((id) => Number(id)).filter((id) => Number.isFinite(id)).slice(0, 3));
+      }
+    } catch {
+      setComparedIds([]);
+    }
+  }, []);
 
   const filteredGames = useMemo(() => {
     const nextGames = games.filter((game) => {
@@ -88,6 +103,14 @@ export default function Home() {
     setPriceRange('all');
   }, []);
 
+  const handleToggleCompare = useCallback((id: number) => {
+    setComparedIds((previous) => {
+      const next = previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id].slice(-3);
+      localStorage.setItem(compareStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   return (
     <main className="steam-shell pb-8">
       <Carousel />
@@ -96,7 +119,7 @@ export default function Home() {
         <div className="mb-5 rounded-xl border border-[#8bc53f44] bg-[#142a20] p-4">
           <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">展示流程</p>
           <div className="mt-3 grid gap-3 text-sm text-[#d8e6f3] md:grid-cols-4">
-            {['登入 Demo 帳號', '加入購物車', '前往付款', '查看訂單'].map((label, index) => (
+            {['登入或註冊帳號', '加入購物車', '前往付款', '查看訂單'].map((label, index) => (
               <div
                 key={label}
                 className="flex items-center gap-3 rounded-md border border-[#8bc53f33] bg-[#10251a] px-3 py-2"
@@ -206,6 +229,37 @@ export default function Home() {
           </div>
         )}
 
+        {comparedIds.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#66c0f433] bg-[#102131] px-4 py-3 text-sm text-[#d8e6f3]">
+            <span>
+              已選 {comparedIds.length} 款商品
+              {comparedIds.length < 2 ? '，再選一款就能開始比較。' : '，可以讓 AI 幫你整理差異。'}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem(compareStorageKey);
+                  setComparedIds([]);
+                }}
+                className="rounded-md border border-[#66c0f455] px-3 py-2 text-xs font-bold text-[#bfe4fb] transition hover:bg-[#1a3044]"
+              >
+                清除
+              </button>
+              <Link
+                href="/compare"
+                className={`rounded-md px-3 py-2 text-xs font-bold transition ${
+                  comparedIds.length >= 2
+                    ? 'border border-[#8bc53f88] bg-[#263f2b] text-[#e7f8d8] hover:bg-[#315337]'
+                    : 'pointer-events-none border border-[#66c0f433] bg-[#162737] text-[#7895aa]'
+                }`}
+              >
+                前往比較
+              </Link>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="steam-panel flex min-h-44 items-center justify-center rounded-xl p-10">
             <div className="flex flex-col items-center">
@@ -229,7 +283,14 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              filteredGames.map((game) => <GameCard key={game.id} game={game} />)
+              filteredGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  onToggleCompare={handleToggleCompare}
+                  isCompared={comparedIds.includes(game.id)}
+                />
+              ))
             )}
           </div>
         )}

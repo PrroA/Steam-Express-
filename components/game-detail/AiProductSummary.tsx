@@ -196,6 +196,8 @@ export function AiProductSummary({ game }: AiProductSummaryProps) {
                   <SummaryList title="先注意" items={buyingAdvice.concerns} />
                 </div>
 
+                <SummaryList title="判斷依據" items={buyingAdvice.evidence} />
+
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-md border border-[#66c0f422] bg-[#0e1924] p-3">
                     <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">建議版本</p>

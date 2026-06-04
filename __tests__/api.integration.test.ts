@@ -382,6 +382,7 @@ describe('API integration', () => {
         reason: expect.any(String),
       })
     );
+    expect(ragRes.body.sources[0].price).not.toBe('$0.00');
   });
 
   test('rag endpoint supports natural language product search', async () => {
@@ -402,6 +403,7 @@ describe('API integration', () => {
         reason: expect.any(String),
       })
     );
+    expect(ragRes.body.sources[0].price).not.toBe('$0.00');
   });
 
   test('rag endpoint uses client preference memory for anonymous recommendations', async () => {
@@ -449,6 +451,7 @@ describe('API integration', () => {
         href: expect.stringMatching(/^\/game\/\d+$/),
       })
     );
+    expect(ragRes.body.comparison.map((row) => row.price)).not.toContain('$0.00');
   });
 
   test('rag endpoint asks users to log in before reviewing cart', async () => {

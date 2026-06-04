@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
@@ -8,7 +8,6 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
-  const demoAutoStartedRef = useRef(false);
   const router = useRouter();
 
   const getRedirectPath = useCallback(
@@ -45,12 +44,6 @@ export default function LoginPage() {
       setDemoLoading(false);
     }
   }, [getRedirectPath, router]);
-
-  useEffect(() => {
-    if (!router.isReady || router.query.demo !== '1' || demoAutoStartedRef.current) return;
-    demoAutoStartedRef.current = true;
-    handleDemoLogin();
-  }, [handleDemoLogin, router.isReady, router.query.demo]);
 
   return (
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">

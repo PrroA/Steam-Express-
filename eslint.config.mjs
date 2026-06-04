@@ -1,13 +1,7 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextPlugin from '@next/eslint-plugin-next';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import typescriptParser from '@typescript-eslint/parser';
 
 const eslintConfig = [
   {
@@ -19,7 +13,25 @@ const eslintConfig = [
       'server-build/**',
     ],
   },
-  ...compat.extends('next/core-web-vitals'),
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+  },
+  nextPlugin.flatConfig.coreWebVitals,
+  reactPlugin.configs.flat['jsx-runtime'],
+  {
+    plugins: {
+      'react-hooks': reactHooksPlugin,
+    },
+    rules: reactHooksPlugin.configs.recommended.rules,
+  },
   {
     rules: {
       'react/react-in-jsx-scope': 'off',

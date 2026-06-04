@@ -12,8 +12,8 @@ export function Carousel() {
           搜尋喜歡的作品，查看價格與詳情，快速找到下一款想玩的遊戲。
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link href="/login?demo=1" className="steam-btn rounded-md px-5 py-3 text-center text-sm transition-all">
-            免註冊體驗完整購物流程
+          <Link href="/login" className="steam-btn rounded-md px-5 py-3 text-center text-sm transition-all">
+            登入後開始購物流程
           </Link>
           <Link
             href="/login"

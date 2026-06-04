@@ -66,3 +66,13 @@ test('Demo 登入會寫入會員 token 並導向 redirect', async () => {
   expect(toast.success).toHaveBeenCalledWith('已使用 Demo 帳號登入');
   expect(mockPush).toHaveBeenCalledWith('/cart');
 });
+
+test('demo query does not automatically sign in before the user chooses it', async () => {
+  mockQuery = { demo: '1' };
+
+  render(<LoginPage />);
+
+  expect(loginDemoUser).not.toHaveBeenCalled();
+  expect(localStorage.getItem('token')).toBeNull();
+  expect(screen.getByTestId('demo-login')).toBeVisible();
+});
