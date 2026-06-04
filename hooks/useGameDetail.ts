@@ -123,6 +123,9 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
         type: 'view_game',
         title: '瀏覽商品',
         subtitle: game.name,
+        gameId: game.id,
+        gameName: game.name,
+        price: game.price,
       });
     } catch (error) {
       console.error('Failed to save recently viewed games');
@@ -195,6 +198,9 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
         type: 'add_wishlist',
         title: '加入願望清單',
         subtitle: game?.name || `商品 #${numericGameId}`,
+        gameId: numericGameId,
+        gameName: game?.name,
+        price: game?.price,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知錯誤';
@@ -218,6 +224,10 @@ export function useGameDetail({ id, isReady }: UseGameDetailParams): UseGameDeta
         type: 'add_cart',
         title: '加入購物車',
         subtitle: game?.name || `商品 #${numericGameId}`,
+        gameId: numericGameId,
+        gameName: game?.name,
+        price: game?.price,
+        quantity: 1,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知錯誤';

@@ -3,6 +3,10 @@ import type { Game } from '../types/domain';
 export interface UserPreferenceProfile {
   averagePrice: number;
   topKeywords: string[];
+  recentlyViewedIds?: number[];
+  wishlistIds?: number[];
+  cartIds?: number[];
+  checkoutCreatedCount?: number;
 }
 
 export interface AiRecommendationItem {
@@ -28,7 +32,12 @@ function tokenize(text = '') {
     .toLowerCase()
     .replace(/[^\w\u4e00-\u9fff\s]/g, ' ')
     .split(/\s+/)
+    .map((word) => word.trim())
     .filter((word) => word.length >= 2);
+}
+
+function hasStock(product: ReasonProduct) {
+  return !Array.isArray(product.variants) || product.variants.some((variant) => Number(variant.stock) > 0);
 }
 
 export function buildRecommendationReasons({
@@ -42,35 +51,46 @@ export function buildRecommendationReasons({
 }) {
   const reasons: string[] = [];
   const keywords = new Set((preference.topKeywords || []).map((keyword) => keyword.toLowerCase()));
+  const wishlistIds = new Set((preference.wishlistIds || []).map(Number));
+  const cartIds = new Set((preference.cartIds || []).map(Number));
+  const viewedIds = new Set([...(preference.recentlyViewedIds || []), ...recentlyViewedIds].map(Number));
   const tokens = tokenize(`${product.name || ''} ${product.description || ''}`);
   const price = parsePrice(product.price);
   const baselinePrice = preference.averagePrice || 0;
 
+  if (wishlistIds.has(product.id)) {
+    reasons.push('你曾把這款商品加入願望清單，適合優先回來確認。');
+  }
+
+  if (cartIds.has(product.id)) {
+    reasons.push('你曾把這款商品加入購物車，可以接著完成結帳判斷。');
+  }
+
+  if (viewedIds.has(product.id)) {
+    reasons.push('你最近看過這款商品，代表它和目前購物方向有關。');
+  }
+
   const keywordHits = tokens.filter((token) => keywords.has(token));
   if (keywordHits.length > 0) {
-    reasons.push(`符合你近期關注的 ${keywordHits.slice(0, 2).join('、')} 類型`);
+    reasons.push(`和你最近關注的 ${keywordHits.slice(0, 2).join('、')} 類型相近。`);
   }
 
   if (baselinePrice > 0) {
     const distance = Math.abs(price - baselinePrice);
     const closeness = Math.max(0, 1 - distance / Math.max(1, baselinePrice));
     if (closeness > 0.6) {
-      reasons.push(`價格接近你常看的區間（約 $${baselinePrice.toFixed(2)}）`);
+      reasons.push(`價格接近你最近關注的區間，約 $${baselinePrice.toFixed(2)}。`);
     }
   }
 
-  if (recentlyViewedIds.includes(product.id)) {
-    reasons.push('你最近看過這款，可以接著比較版本與價格');
-  }
-
-  const hasStock =
-    !Array.isArray(product.variants) || product.variants.some((variant) => Number(variant.stock) > 0);
-  if (!hasStock) {
-    reasons.push('目前庫存偏少，建議先加入願望清單');
+  if (!hasStock(product)) {
+    reasons.push('目前庫存不多，建議先放入願望清單觀察。');
+  } else if (reasons.length < 2) {
+    reasons.push('目前仍有庫存，可以直接加入購物車比較。');
   }
 
   if (reasons.length === 0) {
-    reasons.push('綜合瀏覽偏好、價格帶與商品內容推薦');
+    reasons.push('商品條件穩定，適合作為下一個瀏覽選項。');
   }
 
   return reasons.slice(0, 2);
@@ -89,13 +109,14 @@ export function buildAiRecommendations({
 }): AiRecommendationItem[] {
   if (!Array.isArray(games) || games.length === 0) return [];
 
-  const viewedSet = new Set(recentlyViewedGames.map((game) => game.id));
   const recentlyViewedIds = recentlyViewedGames.map((game) => game.id);
-  const keywords = new Set(preference.topKeywords);
+  const keywords = new Set((preference.topKeywords || []).map((keyword) => keyword.toLowerCase()));
   const baselinePrice = preference.averagePrice || 0;
+  const wishlistIds = new Set((preference.wishlistIds || []).map(Number));
+  const cartIds = new Set((preference.cartIds || []).map(Number));
+  const viewedIds = new Set([...(preference.recentlyViewedIds || []), ...recentlyViewedIds].map(Number));
 
-  const scored = games
-    .filter((game) => !viewedSet.has(game.id))
+  return games
     .map((game) => {
       const reasons = buildRecommendationReasons({ product: game, preference, recentlyViewedIds });
       const contentText = `${game.name || ''} ${game.description || ''}`;
@@ -103,6 +124,10 @@ export function buildAiRecommendations({
       const price = parsePrice(game.price);
 
       let score = 30;
+      if (wishlistIds.has(game.id)) score += 28;
+      if (cartIds.has(game.id)) score += 22;
+      if (viewedIds.has(game.id)) score += 14;
+      if ((preference.checkoutCreatedCount || 0) > 0) score += 4;
 
       if (keywords.size > 0) {
         const overlap = tokens.filter((token) => keywords.has(token)).length;
@@ -117,9 +142,7 @@ export function buildAiRecommendations({
         score += Math.round(closeness * 25);
       }
 
-      const hasStock =
-        !Array.isArray(game.variants) || game.variants.some((variant) => Number(variant.stock) > 0);
-      if (hasStock) {
+      if (hasStock(game)) {
         score += 10;
       } else {
         score -= 12;
@@ -128,18 +151,9 @@ export function buildAiRecommendations({
       return {
         game,
         score: Math.max(0, Math.min(100, score)),
-        reasons: reasons.slice(0, 2),
+        reasons,
       };
     })
-    .sort((a, b) => b.score - a.score);
-
-  if (scored.length > 0) {
-    return scored.slice(0, limit);
-  }
-
-  return games.slice(0, limit).map((game) => ({
-    game,
-    score: 50,
-    reasons: buildRecommendationReasons({ product: game, preference, recentlyViewedIds: [] }),
-  }));
+    .sort((a, b) => b.score - a.score || parsePrice(a.game.price) - parsePrice(b.game.price))
+    .slice(0, limit);
 }

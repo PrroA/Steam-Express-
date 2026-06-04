@@ -206,6 +206,8 @@ export default function CartPage() {
         type: 'checkout_created',
         title: '建立訂單',
         subtitle: orderId ? `訂單 ${orderId.slice(0, 8)}...` : '等待付款',
+        orderId,
+        total: payableTotal,
       });
       toast.success('訂單已建立，接著前往付款。');
       setCart([]);

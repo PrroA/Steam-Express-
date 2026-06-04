@@ -10,6 +10,12 @@ export interface JourneyEvent {
   type: JourneyEventType;
   title: string;
   subtitle?: string;
+  gameId?: number;
+  gameName?: string;
+  price?: string;
+  quantity?: number;
+  orderId?: string;
+  total?: number;
   createdAt: string;
 }
 

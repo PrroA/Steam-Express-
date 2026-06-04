@@ -3,8 +3,12 @@ import debounce from 'lodash.debounce';
 import Link from 'next/link';
 import { Carousel } from '../components/Carousel';
 import { GameCard } from '../components/GameCard';
+import { AiRecommendationSection } from '../components/home/AiRecommendationSection';
 import { fetchGames as fetchGamesList } from '../services/storeService';
+import { buildAiRecommendations } from '../services/aiRecommendationService';
 import type { Game } from '../types/domain';
+import { buildClientPreferenceProfile } from '../utils/aiPreferenceProfile';
+import { getJourneyEvents, type JourneyEvent } from '../utils/journeyTracker';
 
 const compareStorageKey = 'compareGameIds';
 
@@ -19,6 +23,7 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState('default');
   const [priceRange, setPriceRange] = useState('all');
   const [comparedIds, setComparedIds] = useState<number[]>([]);
+  const [journeyEvents, setJourneyEvents] = useState<JourneyEvent[]>([]);
 
   const fetchGames = useCallback(async (query: string) => {
     try {
@@ -53,6 +58,17 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    const syncJourneyEvents = () => setJourneyEvents(getJourneyEvents(20));
+    syncJourneyEvents();
+    window.addEventListener('journey-events-updated', syncJourneyEvents);
+    window.addEventListener('storage', syncJourneyEvents);
+    return () => {
+      window.removeEventListener('journey-events-updated', syncJourneyEvents);
+      window.removeEventListener('storage', syncJourneyEvents);
+    };
+  }, []);
+
   const filteredGames = useMemo(() => {
     const nextGames = games.filter((game) => {
       const price = parsePrice(game.price);
@@ -74,6 +90,19 @@ export default function Home() {
   }, [games, priceRange, sortOrder]);
 
   const hasActiveFilters = searchQuery.trim() !== '' || sortOrder !== 'default' || priceRange !== 'all';
+
+  const aiRecommendations = useMemo(() => {
+    if (journeyEvents.length === 0 || games.length === 0) return [];
+    const profile = buildClientPreferenceProfile();
+    if (profile.interactedGameIds.length === 0 && profile.topKeywords.length === 0) return [];
+    const recentlyViewedGames = games.filter((game) => profile.recentlyViewedIds.includes(game.id));
+    return buildAiRecommendations({
+      games,
+      recentlyViewedGames,
+      preference: profile,
+      limit: 3,
+    });
+  }, [games, journeyEvents]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -210,6 +239,12 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        <AiRecommendationSection
+          items={aiRecommendations}
+          comparedIds={comparedIds}
+          onToggleCompare={handleToggleCompare}
+        />
 
         {loading ? (
           <div className="steam-panel flex min-h-44 items-center justify-center rounded-xl p-10">

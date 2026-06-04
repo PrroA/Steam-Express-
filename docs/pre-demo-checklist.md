@@ -23,6 +23,8 @@ npm run dev
 npm run test:showcase
 ```
 
+E2E 指令會先編譯 backend/server，再自動啟動本機服務；如果你已經開著 `npm run dev`，測試會直接沿用現有服務。
+
 這會依序跑：
 
 - `build:backend`

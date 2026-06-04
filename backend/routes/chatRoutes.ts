@@ -107,6 +107,7 @@ type PersonalizationProfile = {
   recentlyViewedIds: Set<number>;
   interestTerms: Set<string>;
   averagePrice: number;
+  checkoutCreatedCount: number;
   hasSignals: boolean;
 };
 
@@ -322,13 +323,19 @@ function describeVariants(game: Game) {
 }
 
 function normalizeClientProfile(clientProfile?: ClientPreferenceProfile) {
-  return {
-    recentlyViewedIds: Array.isArray(clientProfile?.recentlyViewedIds)
-      ? clientProfile.recentlyViewedIds
+  const normalizeIds = (ids?: number[]) =>
+    Array.isArray(ids)
+      ? ids
           .map((id) => Number(id))
           .filter((id) => Number.isInteger(id) && id > 0)
-          .slice(0, 8)
-      : [],
+          .slice(0, 12)
+      : [];
+
+  return {
+    recentlyViewedIds: normalizeIds(clientProfile?.recentlyViewedIds),
+    wishlistIds: normalizeIds(clientProfile?.wishlistIds),
+    cartIds: normalizeIds(clientProfile?.cartIds),
+    interactedGameIds: normalizeIds(clientProfile?.interactedGameIds),
     recentlyViewedNames: Array.isArray(clientProfile?.recentlyViewedNames)
       ? clientProfile.recentlyViewedNames.map((name) => String(name || '').trim()).filter(Boolean).slice(0, 8)
       : [],
@@ -336,6 +343,7 @@ function normalizeClientProfile(clientProfile?: ClientPreferenceProfile) {
       ? clientProfile.topKeywords.map((keyword) => String(keyword || '').trim()).filter(Boolean).slice(0, 8)
       : [],
     averagePrice: Number(clientProfile?.averagePrice || 0),
+    checkoutCreatedCount: Math.max(0, Number(clientProfile?.checkoutCreatedCount || 0)),
   };
 }
 
@@ -343,9 +351,13 @@ function hasClientPreferenceSignals(clientProfile?: ClientPreferenceProfile) {
   const normalized = normalizeClientProfile(clientProfile);
   return (
     normalized.recentlyViewedIds.length > 0 ||
+    normalized.wishlistIds.length > 0 ||
+    normalized.cartIds.length > 0 ||
+    normalized.interactedGameIds.length > 0 ||
     normalized.recentlyViewedNames.length > 0 ||
     normalized.topKeywords.length > 0 ||
-    normalized.averagePrice > 0
+    normalized.averagePrice > 0 ||
+    normalized.checkoutCreatedCount > 0
   );
 }
 
@@ -355,10 +367,19 @@ function buildPersonalizationProfile(
   clientProfile?: ClientPreferenceProfile
 ): PersonalizationProfile {
   const normalizedClientProfile = normalizeClientProfile(clientProfile);
-  const wishlistIds = new Set(userId ? state.wishlists[userId] || [] : []);
-  const cartIds = new Set(userId ? (state.carts[userId] || []).map((item) => item.id) : []);
+  const wishlistIds = new Set([
+    ...(userId ? state.wishlists[userId] || [] : []),
+    ...normalizedClientProfile.wishlistIds,
+  ]);
+  const cartIds = new Set([
+    ...(userId ? (state.carts[userId] || []).map((item) => item.id) : []),
+    ...normalizedClientProfile.cartIds,
+  ]);
   const purchasedIds = new Set<number>();
-  const recentlyViewedIds = new Set(normalizedClientProfile.recentlyViewedIds);
+  const recentlyViewedIds = new Set([
+    ...normalizedClientProfile.recentlyViewedIds,
+    ...normalizedClientProfile.interactedGameIds,
+  ]);
   const interestTerms = new Set<string>();
 
   const addGameTerms = (gameId: number) => {
@@ -399,12 +420,14 @@ function buildPersonalizationProfile(
     recentlyViewedIds,
     interestTerms,
     averagePrice: Number.isFinite(normalizedClientProfile.averagePrice) ? normalizedClientProfile.averagePrice : 0,
+    checkoutCreatedCount: normalizedClientProfile.checkoutCreatedCount,
     hasSignals:
       wishlistIds.size > 0 ||
       cartIds.size > 0 ||
       purchasedIds.size > 0 ||
       recentlyViewedIds.size > 0 ||
-      interestTerms.size > 0,
+      interestTerms.size > 0 ||
+      normalizedClientProfile.checkoutCreatedCount > 0,
   };
 }
 
@@ -435,10 +458,26 @@ function getPersonalizedReasons(game: Game, profile: PersonalizationProfile | nu
 
   if (profile.wishlistIds.has(game.id)) reasons.push('在你的願望清單裡');
   if (profile.cartIds.has(game.id)) reasons.push('你已經放進購物車');
+  if (!profile.wishlistIds.has(game.id) && !profile.cartIds.has(game.id) && profile.recentlyViewedIds.has(game.id)) {
+    reasons.push('你最近看過這款商品');
+  }
 
   const overlap = getGameTerms(game).filter((term) => profile.interestTerms.has(term)).length;
-  if (!profile.wishlistIds.has(game.id) && !profile.cartIds.has(game.id) && overlap > 0) {
+  if (
+    !profile.wishlistIds.has(game.id) &&
+    !profile.cartIds.has(game.id) &&
+    !profile.recentlyViewedIds.has(game.id) &&
+    overlap > 0
+  ) {
     reasons.push('和你關注過的商品相近');
+  }
+  if (profile.averagePrice > 0 && reasons.length < 2) {
+    const price = getGameLowestPrice(game);
+    const closeness = Math.max(0, 1 - Math.abs(price - profile.averagePrice) / Math.max(1, profile.averagePrice));
+    if (closeness > 0.6) reasons.push('價格接近你最近關注的區間');
+  }
+  if (profile.checkoutCreatedCount > 0 && reasons.length < 2) {
+    reasons.push('適合接續你最近的結帳流程');
   }
   if (profile.purchasedIds.has(game.id) && reasons.length === 0) {
     reasons.push('你之前買過，適合回購或確認其他版本');

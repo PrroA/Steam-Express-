@@ -4,6 +4,11 @@ import { getJourneyEvents } from './journeyTracker';
 export type ClientPreferenceProfile = {
   recentlyViewedIds: number[];
   recentlyViewedNames: string[];
+  wishlistIds: number[];
+  cartIds: number[];
+  checkoutCreatedCount: number;
+  interactedGameIds: number[];
+  actionCounts: Record<string, number>;
   topKeywords: string[];
   averagePrice: number;
 };
@@ -48,8 +53,25 @@ function readRecentlyViewedIds() {
 export function buildClientPreferenceProfile(currentGame?: Game | null): ClientPreferenceProfile {
   const recentlyViewedIds = readRecentlyViewedIds();
   const journeyEvents = getJourneyEvents(20);
+  const wishlistIds = journeyEvents
+    .filter((event) => event.type === 'add_wishlist' && Number.isInteger(Number(event.gameId)))
+    .map((event) => Number(event.gameId));
+  const cartIds = journeyEvents
+    .filter((event) => event.type === 'add_cart' && Number.isInteger(Number(event.gameId)))
+    .map((event) => Number(event.gameId));
+  const interactedGameIds = Array.from(
+    new Set(
+      [...recentlyViewedIds, ...wishlistIds, ...cartIds]
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  ).slice(0, 12);
+  const actionCounts = journeyEvents.reduce<Record<string, number>>((counts, event) => {
+    counts[event.type] = (counts[event.type] || 0) + 1;
+    return counts;
+  }, {});
   const recentlyViewedNames = journeyEvents
-    .map((event) => event.subtitle || event.title)
+    .map((event) => event.gameName || event.subtitle || event.title)
     .filter(Boolean)
     .slice(0, 8);
 
@@ -65,11 +87,19 @@ export function buildClientPreferenceProfile(currentGame?: Game | null): ClientP
     }
   }
 
-  const prices = currentGame ? [parsePrice(currentGame.price)].filter((price) => price > 0) : [];
+  const prices = [
+    ...journeyEvents.map((event) => parsePrice(event.price)).filter((price) => price > 0),
+    ...(currentGame ? [parsePrice(currentGame.price)].filter((price) => price > 0) : []),
+  ].slice(0, 10);
 
   return {
     recentlyViewedIds,
     recentlyViewedNames,
+    wishlistIds: Array.from(new Set(wishlistIds)).slice(0, 8),
+    cartIds: Array.from(new Set(cartIds)).slice(0, 8),
+    checkoutCreatedCount: actionCounts.checkout_created || 0,
+    interactedGameIds,
+    actionCounts,
     topKeywords: Array.from(keywordCounts.entries())
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([keyword]) => keyword)

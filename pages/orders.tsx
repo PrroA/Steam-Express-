@@ -71,6 +71,7 @@ export default function OrdersPage() {
         type: 'payment_success',
         title: '付款完成',
         subtitle: `訂單 ${paidOrderId.slice(0, 8)}...`,
+        orderId: paidOrderId,
       });
       toast.success('付款完成，訂單已更新');
       setTimeout(() => {

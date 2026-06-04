@@ -1,4 +1,5 @@
-import { buildRecommendationReasons } from '../services/aiRecommendationService';
+import { buildAiRecommendations, buildRecommendationReasons } from '../services/aiRecommendationService';
+import type { Game } from '../types/domain';
 
 describe('buildRecommendationReasons', () => {
   test('uses keywords and price range for recommendation reasons', () => {
@@ -20,7 +21,7 @@ describe('buildRecommendationReasons', () => {
     expect(reasons.join(' ')).toContain('價格接近');
   });
 
-  test('can explain recently viewed products', () => {
+  test('explains wishlist and cart behavior', () => {
     const reasons = buildRecommendationReasons({
       product: {
         id: 7,
@@ -32,10 +33,48 @@ describe('buildRecommendationReasons', () => {
       preference: {
         averagePrice: 0,
         topKeywords: [],
+        wishlistIds: [7],
+        cartIds: [7],
       },
-      recentlyViewedIds: [7],
     });
 
-    expect(reasons.join(' ')).toContain('最近看過');
+    expect(reasons.join(' ')).toContain('願望清單');
+    expect(reasons.join(' ')).toContain('購物車');
+  });
+});
+
+describe('buildAiRecommendations', () => {
+  const games: Game[] = [
+    {
+      id: 1,
+      name: 'Elden Ring',
+      price: '$59.99',
+      description: 'Open world fantasy RPG adventure.',
+      image: '/elden.jpg',
+      variants: [{ id: 'standard', name: 'Standard', price: '$59.99', stock: 10 }],
+    },
+    {
+      id: 2,
+      name: 'Puzzle City',
+      price: '$9.99',
+      description: 'Small casual puzzle game.',
+      image: '/puzzle.jpg',
+      variants: [{ id: 'standard', name: 'Standard', price: '$9.99', stock: 10 }],
+    },
+  ];
+
+  test('prioritizes products with explicit user behavior signals', () => {
+    const recommendations = buildAiRecommendations({
+      games,
+      recentlyViewedGames: [],
+      preference: {
+        averagePrice: 60,
+        topKeywords: ['fantasy', 'rpg'],
+        wishlistIds: [1],
+      },
+    });
+
+    expect(recommendations[0].game.id).toBe(1);
+    expect(recommendations[0].reasons.join(' ')).toContain('願望清單');
   });
 });

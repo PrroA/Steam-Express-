@@ -1,80 +1,63 @@
-# 面試口述稿
+# Interview Notes
 
-這份文件是面試時可以直接口述的版本。完整操作腳本可看 [docs/demo-script.md](./docs/demo-script.md)，展示前檢查可看 [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)。
+這份文件是面試快速講解版；完整展示流程請看 [docs/demo-script.md](./docs/demo-script.md)，展示前檢查請看 [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)。
 
 ## 30 秒介紹
 
-這是一個 Steam 風格的全端商城 demo，前端使用 Next.js、React、TypeScript，後端使用 Express 與 SQLite demo persistence。主流程包含商品瀏覽、購物車、checkout、訂單、付款 demo、願望清單、管理後台，以及 AI 商城客服。
+Steam Practice 是一個遊戲商城 demo，使用 Next.js、React、TypeScript、Express 和 SQLite demo persistence。專案包含商品瀏覽、購物車、結帳、訂單、付款、admin 管理，以及 AI 商城客服。
 
-我整理這個專案的重點不是單純堆功能，而是讓它能穩定展示：使用者可以從選商品、加入購物車、建立訂單、付款，到後台查看訂單完整跑完；AI 功能也不是孤立聊天，而是放在商品決策、商品比較、購物車檢查與客服問答裡。
+我目前把 AI 主線收斂成「可解釋的行為推薦系統」：使用者看過、加入願望清單、加入購物車、建立訂單的行為會整理成 profile，首頁與 ChatPage 都會用這份 profile 做商品推薦。
 
-## Demo 流程
+## 展示重點
 
-1. 使用 Demo 帳號快速登入。
-2. 從首頁看商品列表與 AI 助理入口。
-3. 進商品詳情，展示 AI 商品摘要與「幫我判斷」。
-4. 加入 2 到 3 款商品到比較頁，展示「幫我選一款」。
-5. 加入購物車，展示 AI 購物車檢查。
-6. Checkout 建立 `pending` 訂單。
-7. 到訂單中心使用 Stripe 測試付款或 Demo 快速付款。
-8. 確認訂單變成付款完成。
-9. 到 admin 後台查看訂單與營收。
-10. 到 AI 客服詢問付款、退款、商品推薦或個人訂單狀態。
+1. 首頁商品列表與篩選。
+2. 商品詳情頁的 AI 商品摘要。
+3. 願望清單、購物車與 checkout。
+4. 訂單中心付款與狀態更新。
+5. AI 客服回答商品推薦、付款、退款、訂單問題。
+6. 首頁與 ChatPage 都能根據使用者行為做個人化推薦。
 
-## AI 亮點
+## AI 技術說法
 
-這個專案的 AI 分成三層：
+這個專案的 AI 不是單純接一個聊天 API，而是分成三層：
 
-第一層是 AI 客服 / RAG。使用者問商品、付款、退款、配送、帳號或訂單問題時，後端會先從 FAQ、policy、商品 catalog 或登入者自己的訂單資料找依據，再產生回答。前端會顯示回答狀態與 sources，所以不是完全黑盒聊天。
+- 行為資料：記錄使用者瀏覽、願望清單、購物車、結帳與付款事件。
+- Preference profile：把行為整理成最近關注商品、價格區間、關鍵字、購物意圖。
+- AI 回覆與推薦：首頁推薦和 ChatPage 都使用同一份 profile，並回傳可解釋理由。
 
-第二層是個人化推薦。推薦會參考願望清單、購物車、買過的商品、價格與庫存，用這些資料排序與產生理由。查詢個人訂單時必須登入，而且不讓 AI 直接修改訂單。
+可以口述：
 
-第三層是 Browser-side AI / fallback。正式環境如果不想放 OpenAI key，商品頁、比較頁和購物車仍可透過瀏覽器端 AI 或商品資料 fallback 產生購買建議。畫面會標示 `AI 整理`、`本機 AI 整理` 或 `商品資料整理`，避免誤導使用者。
+> 我希望 AI 推薦不是黑盒，所以先整理使用者行為，再讓推薦結果附上理由，例如「你曾放進購物車」、「你最近看過這款」、「價格接近你最近關注的區間」。這比單純讓模型自由生成更穩定，也比較適合商城。
 
-## 付款流程
+## RAG 說法
 
-Checkout 只建立 `pending` 訂單，不直接視為付款完成。付款可以走 Stripe test mode，也可以使用 Demo 快速付款完成展示。
+目前 RAG 使用 local hybrid retrieval，來源包含商品 catalog、付款退款配送等政策資料，以及使用者訂單資料。資料量還不大，所以先不用 vector database，而是把 grounded answer 和 sources 做清楚。
 
-如果 Stripe key 沒設定，畫面會提供自然的 Demo 快速付款，不會讓使用者看到工程錯誤。正式化時會用 Stripe webhook 作為付款狀態來源，避免只靠前端操作更新訂單。
+正式化方向：
 
-## 權限與邊界
+- Postgres 儲存商品、訂單與行為事件。
+- pgvector 儲存商品與 FAQ embeddings。
+- 記錄 retrieval hit rate、fallback rate、AI request log。
+- 對推薦結果做 evaluation，避免模型亂編。
 
-一般使用者只能看自己的購物車、願望清單與訂單。admin 後台需要管理員角色。
+## 付款說法
 
-AI 客服只做導引與摘要，不會直接付款、退款、取消訂單或修改資料。個人訂單查詢一定要登入，未登入時只會引導使用者先登入或到訂單中心查看。
+付款支援 Stripe test mode，也保留快速付款作為本機 demo fallback。這樣展示時不會因第三方服務或環境變數失效而中斷流程。
 
-## 為什麼目前不用向量資料庫
-
-目前 demo 資料量小，local hybrid retrieval 已經足夠。它會用 exact、title、content、tags、intent scoring 找到相關 FAQ、policy 或商品資料。
-
-架構上有保留 retriever 的替換空間。未來資料量變大時，可以把 retrieval 改成 embeddings + pgvector / Pinecone / Weaviate，前端 API shape 和 sources 顯示不用大改。
-
-## 展示品質整理
-
-我有特別整理使用者畫面文案，不讓一般使用者看到 `API`、`server`、`token`、`PaymentIntent`、`500` 這類工程字眼。
-
-也補了展示前檢查：
-
-- `test:e2e:demo`：核心購物與付款流程。
-- `test:e2e:ai`：AI 客服、商品建議、比較建議。
-- `test:e2e:copy`：使用者頁面不露出工程字眼。
-- `test:encoding`：防止中文亂碼回歸。
-- `test:showcase`：面試展示前的一鍵檢查。
+正式環境會以 Stripe webhook 作為付款狀態來源，快速付款只保留在本機展示。
 
 ## 目前限制
 
-- SQLite / local persistence 只適合 demo。
-- 圖片上傳目前偏本機展示，不適合多節點正式部署。
-- Demo 快速付款不是正式金流。
-- RAG 還沒有接 embeddings / vector database。
-- Browser-side AI 是 POC，正式產品仍要看目標瀏覽器支援度。
-- AI 還沒有 tool calling，不會直接操作訂單。
+- SQLite / local persistence 適合 demo，不適合正式多人環境。
+- 行為事件目前在 localStorage，正式化應改成後端資料表。
+- RAG 尚未導入 embeddings。
+- AI 不直接執行付款、退款或取消訂單，只提供導引。
+- 圖片上傳目前是 local disk，正式環境應改用 Blob/S3/Cloudinary。
 
-## 正式化方向
+## 下一步方向
 
-1. 資料庫改 PostgreSQL / MySQL，補 migration。
-2. 圖片改 Vercel Blob / S3 / Cloudinary。
-3. Stripe webhook 補齊付款與退款狀態同步。
-4. RAG retrieval 改 embeddings + vector database。
-5. 補 observability，例如 AI request log、retrieval hit rate、fallback rate。
-6. 擴充 Playwright e2e，固定更多展示流程。
+1. 把 journey events 搬到後端資料庫。
+2. 用 Prisma 建立正式 schema。
+3. 導入 Postgres + pgvector。
+4. 加 AI recommendation log，記錄推薦理由、來源與結果。
+5. 補 retrieval / recommendation evaluation。

@@ -407,15 +407,22 @@ describe('API integration', () => {
   });
 
   test('rag endpoint uses client preference memory for anonymous recommendations', async () => {
+    const gamesRes = await requestJson('/games');
+    const targetGame = gamesRes.body.find((game) => game?.id && game?.name) || gamesRes.body[0];
+
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',
       body: JSON.stringify({
         message: 'recommend a game',
         clientProfile: {
-          recentlyViewedIds: [7],
-          recentlyViewedNames: ['The Last of Us Remastered'],
-          topKeywords: ['survival', 'horror'],
-          averagePrice: 19.99,
+          recentlyViewedIds: [targetGame.id],
+          recentlyViewedNames: [targetGame.name],
+          wishlistIds: [targetGame.id],
+          cartIds: [targetGame.id],
+          interactedGameIds: [targetGame.id],
+          topKeywords: String(targetGame.description || targetGame.name).split(/\s+/).slice(0, 2),
+          averagePrice: Number(String(targetGame.price || '$0').replace('$', '')) || 0,
+          checkoutCreatedCount: 1,
         },
       }),
     });
@@ -423,6 +430,8 @@ describe('API integration', () => {
     expect(ragRes.status).toBe(200);
     expect(ragRes.body.grounded).toBe(true);
     expect(ragRes.body.mode).toBe('personalized-recommendation');
+    expect(ragRes.body.reply).toContain('願望清單');
+    expect(ragRes.body.reply).toContain('購物車');
     expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
   });
 

@@ -242,6 +242,11 @@ export interface GptReplyBody {
   clientProfile?: {
     recentlyViewedIds?: number[];
     recentlyViewedNames?: string[];
+    wishlistIds?: number[];
+    cartIds?: number[];
+    interactedGameIds?: number[];
+    checkoutCreatedCount?: number;
+    actionCounts?: Record<string, number>;
     topKeywords?: string[];
     averagePrice?: number;
   };
