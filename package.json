@@ -11,7 +11,7 @@
     "start": "next start",
     "build:backend": "tsc -p tsconfig.backend.json",
     "build:server": "tsc -p tsconfig.server.json",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "pretest": "npm run build:backend && npm run build:server",
     "test": "node --no-deprecation ./node_modules/jest/bin/jest.js",
     "test:encoding": "node --no-deprecation ./node_modules/jest/bin/jest.js __tests__/noMojibake.test.ts --runInBand",

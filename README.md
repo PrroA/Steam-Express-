@@ -39,6 +39,12 @@ Stop-Process -Id <PID> -Force
 
 本機可建立 `.env.local`。不要把真實 key commit 進 Git。
 
+可以先複製範本再依照本機需求調整：
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
 ```env
 PORT=4000
 FRONTEND_BASE_URL=http://localhost:3000
@@ -48,11 +54,11 @@ SECRET_KEY=local_demo_secret
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin
 
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 
-OPENAI_API_KEY=sk-xxx
+OPENAI_API_KEY=
 OPENAI_CHAT_MODEL=gpt-4o-mini
 
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -75,6 +81,25 @@ ENABLE_RAG_DEBUG=true
 - SQLite / local upload 不適合正式上線，建議改 PostgreSQL / MySQL 與 Vercel Blob、S3 或 Cloudinary。
 - Ollama 是本機 fallback，不會自動出現在 Vercel / Render。若正式環境不想負擔 OpenAI 成本，可以保留 fallback 與 Browser-side AI POC；需要更穩定的生成品質時，再接 OpenAI 或其他 hosted model。
 - Stripe 正式化需要補 webhook 驗證、付款狀態同步、退款審核與錯誤追蹤。
+
+### 部署 env checklist
+
+| 變數 | Vercel frontend | Render / Express backend | 可留空嗎 | 說明 |
+| --- | --- | --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | 必填 | - | 否 | 前端呼叫後端的位置，例如 Render backend URL。 |
+| `FRONTEND_BASE_URL` | - | 建議 | 是 | 重設密碼連結與 CORS 參考用。 |
+| `SECRET_KEY` | - | 必填 | 否 | JWT 簽章用，正式環境不可使用 demo 值。 |
+| `ADMIN_USERNAME` | - | 建議 | 是 | 不設定時預設 `admin`。 |
+| `ADMIN_PASSWORD` | - | 必填 | 否 | 正式環境必須改掉，不要使用 `admin`。 |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | 選填 | - | 是 | 不設定時畫面會走 Demo 快速付款。 |
+| `STRIPE_SECRET_KEY` | - | 選填 | 是 | 不設定時後端不建立信用卡付款流程。 |
+| `STRIPE_WEBHOOK_SECRET` | - | 選填 | 是 | 正式 Stripe webhook 驗證用。 |
+| `OPENAI_API_KEY` | - | 選填 | 是 | 不設定時 AI 客服使用穩定 fallback。 |
+| `OPENAI_CHAT_MODEL` | - | 選填 | 是 | 預設 `gpt-4o-mini`。 |
+| `OLLAMA_BASE_URL` | - | 本機才需要 | 是 | Ollama 不會自動存在於 Vercel / Render。 |
+| `OLLAMA_MODEL` | - | 本機才需要 | 是 | 本機 Ollama fallback model。 |
+| `ENABLE_RAG_DEBUG` | - | 選填 | 是 | 正式環境只有設為 `true` 才開 debug。 |
+| `LOG_REQUESTS` | - | 選填 | 是 | `1` 開啟 request log，`0` 關閉。 |
 
 ## Demo 帳號
 

@@ -38,6 +38,7 @@ dev-*.log
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -50,6 +51,6 @@ next-env.d.ts
 # local caches
 .cache/
 
-# Optional: ignore compiled backend artifacts only if your deploy pipeline always builds first.
-# /backend-build
-# /server-build
+# compiled backend/server artifacts
+/backend-build
+/server-build
