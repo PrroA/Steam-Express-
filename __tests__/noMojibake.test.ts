@@ -4,6 +4,7 @@ import path from 'path';
 const scanTargets = [
   'README.md',
   'README.INTERVIEW.md',
+  'server.ts',
   'docs',
   'pages',
   'components',
