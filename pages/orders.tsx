@@ -3,14 +3,12 @@ import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   cancelOrder,
-  payOrder,
   reorderOrder,
   refundOrder,
   retryOrderPayment,
 } from '../services/orderService';
 import { toast } from 'react-toastify';
 import { useOrdersPage } from '../hooks/useOrdersPage';
-import { OrderStats } from '../components/orders/OrderStats';
 import { OrderOperationsPanel } from '../components/orders/OrderOperationsPanel';
 import { OrderPaymentPanel } from '../components/orders/OrderPaymentPanel';
 import { OrderList } from '../components/orders/OrderList';
@@ -53,7 +51,6 @@ export default function OrdersPage() {
     error,
     operationLoading,
     operationType,
-    stats,
     loadOrders,
     setSelectedOrder,
     setSelectedOrderById,
@@ -102,11 +99,6 @@ export default function OrdersPage() {
   const handleRetryOrder = useCallback(() => {
     if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
     return mutateOrder(retryOrderPayment, '可以重新付款了', 'retry');
-  }, [mutateOrder, selectedOrder?.id]);
-
-  const handleSimulateFailure = useCallback(() => {
-    if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
-    return mutateOrder((orderId, token) => payOrder(orderId, token, true), '已模擬付款未成功', 'simulate');
   }, [mutateOrder, selectedOrder?.id]);
 
   const handleViewOrderDetail = useCallback(
@@ -187,7 +179,6 @@ export default function OrdersPage() {
           </div>
         )}
 
-        <OrderStats stats={stats} />
         <OrderActionSummary orders={orders} />
 
         <section className="mt-5 rounded-2xl border border-[#66c0f433] bg-[#132434] p-4">
@@ -229,7 +220,6 @@ export default function OrdersPage() {
             onCancelOrder={handleCancelOrder}
             onRefundOrder={handleRefundOrder}
             onRetryOrder={handleRetryOrder}
-            onSimulateFailure={handleSimulateFailure}
             isOperating={operationLoading}
             operatingType={operationType}
             reorderingOrderId={reorderingOrderId}

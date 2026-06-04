@@ -15,7 +15,7 @@ export function FloatingSupportWidget() {
   if (isChatPage) return null;
 
   return (
-    <aside className="fixed bottom-4 right-4 z-[70] flex flex-col items-end gap-2 md:bottom-6 md:right-6">
+    <aside className="fixed bottom-4 right-4 z-[70] flex flex-col items-end gap-2 md:hidden">
       {open && (
         <div className="steam-panel w-56 rounded-xl p-3 text-sm text-[#d8e6f3]">
           <p className="mb-2 text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">需要協助嗎？</p>
@@ -24,7 +24,7 @@ export function FloatingSupportWidget() {
               href="/ChatPage"
               className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-center text-xs font-semibold transition hover:bg-[#24384d]"
             >
-              詢問 AI 商城客服
+              詢問 AI 客服
             </Link>
           </div>
         </div>

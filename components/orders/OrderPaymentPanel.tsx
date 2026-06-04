@@ -33,7 +33,7 @@ export function OrderPaymentPanel({
       <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">付款</p>
       <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">完成這筆訂單</h2>
       <p className="mt-1 text-sm text-[#9eb4c8]">
-        你可以使用測試卡號完成信用卡付款；若暫時無法載入，也能用 Demo 快速付款跑完整流程。
+        待付款訂單會在這裡完成付款；付款完成後，狀態會自動更新。
       </p>
 
       <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
@@ -62,13 +62,13 @@ export function OrderPaymentPanel({
             </div>
           </>
         ) : (
-          <p className="mt-2 text-sm text-[#9eb4c8]">請先從左側選擇一筆待付款訂單。</p>
+          <p className="mt-2 text-sm text-[#9eb4c8]">請先選擇一筆待付款訂單。</p>
         )}
       </div>
 
       {selectedOrder?.status !== ORDER_STATUS.PENDING ? (
         <p className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-          這筆訂單目前不需要付款。若要重新付款，請先在訂單操作中選擇重新付款。
+          這筆訂單目前不需要付款。若付款未成功，可以先選擇重新付款。
         </p>
       ) : clientSecret && stripePromise ? (
         <Elements stripe={stripePromise} options={elementOptions}>
@@ -115,9 +115,9 @@ function DemoPaymentFallback({
 
   return (
     <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-      <p className="font-bold text-[#d8e6f3]">目前無法載入信用卡付款</p>
+      <p className="font-bold text-[#d8e6f3]">信用卡付款暫時無法使用</p>
       <p className="mt-2 text-[#ffd079]">
-        {errorMessage || '請使用 Demo 快速付款完成流程，或稍後再回來嘗試信用卡付款。'}
+        {errorMessage || '你可以先用快速付款完成這筆訂單，或稍後再回來嘗試信用卡付款。'}
       </p>
       <button
         type="button"
@@ -126,7 +126,7 @@ function DemoPaymentFallback({
         disabled={quickPayLoading}
         className="mt-3 w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {quickPayLoading ? '付款處理中...' : '使用 Demo 快速付款'}
+        {quickPayLoading ? '付款處理中...' : '快速完成付款'}
       </button>
       {message && <p className="mt-2 text-sm text-[#ffd079]">{message}</p>}
     </div>
@@ -223,9 +223,10 @@ function CheckoutForm({
       <div data-testid="stripe-card-box" className="rounded-lg border border-[#66c0f444] bg-[#132434] p-4">
         <p className="mb-3 text-sm font-bold text-[#d8e6f3]">信用卡資料</p>
         <CardElement options={cardOptions} />
-        <p className="mt-3 text-xs text-[#8faac0]">
-          測試可使用 4242 4242 4242 4242，日期填未來月份，CVC 任意三碼。
-        </p>
+        <details className="mt-3 text-xs text-[#8faac0]">
+          <summary className="cursor-pointer font-semibold text-[#9eb4c8]">需要範例卡號？</summary>
+          <p className="mt-2">範例卡號：4242 4242 4242 4242，日期填未來月份，CVC 任意三碼。</p>
+        </details>
       </div>
       <button
         type="submit"
@@ -242,7 +243,7 @@ function CheckoutForm({
         disabled={quickPayLoading || loading}
         className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {quickPayLoading ? '付款處理中...' : '使用 Demo 快速付款'}
+        {quickPayLoading ? '付款處理中...' : '快速完成付款'}
       </button>
       {message && <p className="text-sm text-[#ffd079]">{message}</p>}
     </form>

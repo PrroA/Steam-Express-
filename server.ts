@@ -25,10 +25,17 @@ const allowedOrigins = [
   'https://steam-express.onrender.com',
 ];
 
+function isAllowedOrigin(origin?: string) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) return true;
+  if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return true;
+  return false;
+}
+
 const io = new Server(server, {
   cors: {
     origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -70,7 +77,7 @@ function normalizeError(status: number, payload: any, requestId: string) {
     payload?.error?.message ||
     payload?.message ||
     payload?.error ||
-    (status >= 500 ? '伺服器內部錯誤' : '請求失敗');
+    (status >= 500 ? '目前無法完成操作，請稍後再試。' : '這次操作沒有完成，請再試一次。');
 
   const code =
     payload?.error?.code ||
@@ -157,7 +164,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(
   cors({
     origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -223,7 +230,7 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   const status = typedError.status || 500;
   console.error('Global Error:', err);
   res.status(status).json({
-    message: typedError.message || '伺服器內部錯誤',
+    message: typedError.message || '目前無法完成操作，請稍後再試。',
     code: status >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR',
   });
 });

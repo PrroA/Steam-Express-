@@ -127,7 +127,7 @@ export function registerAuthRoutes({ app, state, secretKey, authenticate }: Rout
     const { newPassword } = req.body;
     const resetTokenData = resetTokens[token];
     if (!resetTokenData || Date.now() > resetTokenData.expires) {
-      return res.status(400).json({ message: 'Token 無效或已過期' });
+      return res.status(400).json({ message: '驗證碼無效或已過期。' });
     }
 
     const user = users.find((u) => u.username === resetTokenData.username);

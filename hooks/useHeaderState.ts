@@ -28,9 +28,10 @@ export function useHeaderState(pathname) {
 
   const navItems = useMemo(
     () => [
+      { href: '/', label: '商店' },
       { href: '/cart', label: '購物車' },
-      { href: '/wishlist', label: '願望清單' },
       { href: '/orders', label: '我的訂單' },
+      { href: '/ChatPage', label: 'AI 客服' },
     ],
     []
   );

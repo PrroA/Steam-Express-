@@ -36,10 +36,10 @@ export default function LoginPage() {
       localStorage.setItem('token', response.token);
       localStorage.setItem('profile_username', response.user?.username || 'demo_user');
       window.dispatchEvent(new Event('auth-user-updated'));
-      toast.success('已使用 Demo 帳號登入');
+      toast.success('已使用試用帳號登入');
       router.push(getRedirectPath());
     } catch {
-      toast.error('Demo 登入暫時無法使用，請稍後再試。');
+      toast.error('試用帳號暫時無法使用，請稍後再試。');
     } finally {
       setDemoLoading(false);
     }
@@ -106,10 +106,10 @@ export default function LoginPage() {
           disabled={demoLoading}
           className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-3 text-sm font-bold text-[#d8e6f3] transition hover:bg-[#24384d] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {demoLoading ? '正在準備 Demo 帳號...' : '使用 Demo 帳號試用'}
+          {demoLoading ? '正在準備試用帳號...' : '使用試用帳號'}
         </button>
         <p className="mt-2 text-xs leading-5 text-[#9eb4c8]">
-          Demo 帳號已準備好購物、付款與訂單資料，適合快速走完整流程。
+          試用帳號已準備好購物、付款與訂單資料，適合快速走完整流程。
         </p>
 
         <p className="mt-4 rounded-md border border-[#66c0f433] bg-[#132434] px-3 py-2 text-xs leading-5 text-[#9eb4c8]">

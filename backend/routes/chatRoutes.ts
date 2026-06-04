@@ -1145,7 +1145,7 @@ function getOrderCareAction(order: Order) {
   if (order.status === 'payment_failed') {
     return {
       primaryAction: '重新付款',
-      nextStep: '付款上次沒有成功，建議回到訂單詳情重新付款，或改用 Demo 快速付款完成流程。',
+      nextStep: '付款上次沒有成功，建議回到訂單詳情重新付款，或改用快速付款完成流程。',
       canRequestRefund: false,
     };
   }
@@ -1240,13 +1240,13 @@ function buildFallbackReply(message: string, grounded: boolean) {
       return '可以在訂單詳情申請退款。退款完成後訂單會顯示已退款，demo 版本也會把商品庫存補回。';
     }
     if (/(付款|結帳|信用卡|payment|checkout|card)/i.test(message)) {
-      return '先把商品加入購物車並完成結帳，訂單建立後可以使用信用卡測試付款；如果信用卡付款暫時無法載入，也可以用 Demo 快速付款完成流程。';
+      return '先把商品加入購物車並完成結帳，訂單建立後可以使用信用卡付款；如果信用卡付款暫時無法載入，也可以用快速付款完成流程。';
     }
     if (/(配送|出貨|shipping|delivery)/i.test(message)) {
       return '付款完成後訂單會進入待出貨。你可以在訂單中心查看目前出貨狀態。';
     }
     if (/(帳號|登入|密碼|account|login|password)/i.test(message)) {
-      return '你可以註冊帳號或使用 Demo 快速登入。登入後可以管理購物車、願望清單和訂單中心。';
+      return '你可以註冊帳號或使用試用帳號快速登入。登入後可以管理購物車、願望清單和訂單中心。';
     }
     return '我可以依照商店資料協助你整理商品、付款、訂單、退款、配送和帳號相關問題。';
   }
@@ -1339,7 +1339,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     if (isOrderCareQuestion(message)) {
       if (!user) {
         return res.json({
-          reply: '登入後我才能幫你查看自己的訂單售後狀態。你可以使用 Demo 快速登入，再到訂單中心建立或查看訂單。',
+          reply: '登入後我才能幫你查看自己的訂單售後狀態。你可以使用試用帳號快速登入，再到訂單中心建立或查看訂單。',
           grounded: false,
           mode: 'order-auth-required',
           sources: [],
@@ -1371,7 +1371,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     if (isOrderLookupQuestion(message)) {
       if (!user) {
         return res.json({
-          reply: '登入後我才能幫你查看自己的訂單狀態。你也可以先到訂單中心查看，或使用 Demo 快速登入體驗完整流程。',
+          reply: '登入後我才能幫你查看自己的訂單狀態。你也可以先到訂單中心查看，或使用試用帳號快速登入體驗完整流程。',
           grounded: false,
           mode: 'order-auth-required',
           sources: [],
@@ -1392,7 +1392,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey }: 
     if (isCartReviewQuestion(message)) {
       if (!user) {
         return res.json({
-          reply: '登入後我才能幫你查看自己的購物車。你可以使用 Demo 快速登入，再把商品加入購物車，我就能幫你做結帳前建議。',
+          reply: '登入後我才能幫你查看自己的購物車。你可以使用試用帳號快速登入，再把商品加入購物車，我就能幫你做結帳前建議。',
           grounded: false,
           mode: 'cart-auth-required',
           sources: [],

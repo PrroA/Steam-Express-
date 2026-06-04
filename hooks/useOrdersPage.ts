@@ -15,9 +15,7 @@ export function useOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [operationLoading, setOperationLoading] = useState(false);
-  const [operationType, setOperationType] = useState<
-    'cancel' | 'refund' | 'retry' | 'simulate' | null
-  >(null);
+  const [operationType, setOperationType] = useState<'cancel' | 'refund' | 'retry' | null>(null);
   const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
 
   const loadOrders = useCallback(async (preferredOrderId?: string) => {
@@ -59,7 +57,7 @@ export function useOrdersPage() {
         const data = await createPaymentIntent(selectedOrder.id, token);
         setClientSecret(data.clientSecret || null);
       } catch (fetchError: any) {
-        setPaymentIntentError(fetchError?.message || '建立 Stripe 付款流程失敗');
+        setPaymentIntentError(fetchError?.message || '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。');
         setClientSecret(null);
       } finally {
         setLoading(false);
@@ -81,7 +79,7 @@ export function useOrdersPage() {
     async (
       runner: (orderId: string, token?: string | null) => Promise<any>,
       successText: string,
-      nextOperationType: 'cancel' | 'refund' | 'retry' | 'simulate'
+      nextOperationType: 'cancel' | 'refund' | 'retry'
     ) => {
       if (!selectedOrder?.id) return;
       setOperationLoading(true);

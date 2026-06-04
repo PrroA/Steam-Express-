@@ -6,13 +6,13 @@ const openai = new OpenAI({
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: '這個操作目前無法使用。' });
   }
 
   const { message } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: 'Missing message' });
+    return res.status(400).json({ error: '請輸入想詢問的內容。' });
   }
 
   try {

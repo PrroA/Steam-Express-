@@ -47,12 +47,12 @@ function safeJsonParse(text: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: '這個操作目前無法使用。' });
   }
 
   const items: CompareItem[] = Array.isArray(req.body?.items) ? req.body.items.slice(0, 3) : [];
   if (items.length < 2) {
-    return res.status(400).json({ error: 'Need at least 2 items' });
+    return res.status(400).json({ error: '請至少選擇兩項商品。' });
   }
 
   if (!process.env.OPENAI_API_KEY) {

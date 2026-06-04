@@ -112,12 +112,12 @@ function safeJsonParse(content: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: '這個操作目前無法使用。' });
   }
 
   const query = String(req.body?.query || '').trim();
   if (!query) {
-    return res.status(400).json({ error: 'Missing query' });
+    return res.status(400).json({ error: '請輸入想找的商品。' });
   }
 
   if (Date.now() < openaiQuotaBlockedUntil) {

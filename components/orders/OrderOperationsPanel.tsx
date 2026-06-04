@@ -27,9 +27,8 @@ interface OrderOperationsPanelProps {
   onCancelOrder: () => void;
   onRefundOrder: () => void;
   onRetryOrder: () => void;
-  onSimulateFailure: () => void;
   isOperating: boolean;
-  operatingType: 'cancel' | 'refund' | 'retry' | 'simulate' | null;
+  operatingType: 'cancel' | 'refund' | 'retry' | null;
   reorderingOrderId?: string | null;
 }
 
@@ -41,14 +40,13 @@ export function OrderOperationsPanel({
   onCancelOrder,
   onRefundOrder,
   onRetryOrder,
-  onSimulateFailure,
   isOperating,
   operatingType,
   reorderingOrderId,
 }: OrderOperationsPanelProps) {
   return (
     <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
-      <h2 className="text-xl font-black text-[#d8e6f3]">訂單操作</h2>
+      <h2 className="text-xl font-black text-[#d8e6f3]">目前選取的訂單</h2>
 
       {orders.length === 0 ? (
         <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
@@ -62,7 +60,7 @@ export function OrderOperationsPanel({
         </div>
       ) : (
         <>
-          <label className="mt-4 block text-sm text-[#9eb4c8]">選擇要處理的訂單</label>
+          <label className="mt-4 block text-sm text-[#9eb4c8]">選擇訂單</label>
           <select
             value={selectedOrder?.id || ''}
             onChange={(event) => onSelectOrderById(event.target.value)}
@@ -162,14 +160,6 @@ export function OrderOperationsPanel({
               className="rounded-md border border-[#66c0f455] bg-[#193142] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24445a] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {operatingType === 'retry' ? '準備中...' : '重新付款'}
-            </button>
-            <button
-              type="button"
-              onClick={onSimulateFailure}
-              disabled={isOperating || !selectedOrder || selectedOrder.status !== ORDER_STATUS.PENDING}
-              className="rounded-md border border-[#ffcf5a55] bg-[#3f3318] px-3 py-2 text-sm font-semibold text-[#ffe0a6] transition hover:bg-[#524423] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {operatingType === 'simulate' ? '處理中...' : '模擬付款未成功'}
             </button>
           </div>
         </>

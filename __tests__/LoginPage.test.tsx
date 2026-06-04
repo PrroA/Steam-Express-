@@ -51,7 +51,7 @@ test('登入失敗時顯示提示', async () => {
   await waitFor(() => expect(toast.error).toHaveBeenCalledWith('登入失敗，請確認帳號或密碼。'));
 });
 
-test('Demo 登入會寫入會員 token 並導向 redirect', async () => {
+test('試用帳號登入會寫入會員 token 並導向 redirect', async () => {
   mockQuery = { redirect: '/cart' };
   loginDemoUser.mockResolvedValueOnce({
     token: 'DEMO_JWT',
@@ -63,7 +63,7 @@ test('Demo 登入會寫入會員 token 並導向 redirect', async () => {
 
   await waitFor(() => expect(localStorage.getItem('token')).toBe('DEMO_JWT'));
   expect(localStorage.getItem('profile_username')).toBe('demo_user');
-  expect(toast.success).toHaveBeenCalledWith('已使用 Demo 帳號登入');
+  expect(toast.success).toHaveBeenCalledWith('已使用試用帳號登入');
   expect(mockPush).toHaveBeenCalledWith('/cart');
 });
 

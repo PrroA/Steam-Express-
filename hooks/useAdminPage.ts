@@ -127,7 +127,7 @@ export function useAdminPage() {
       const payload = await uploadAdminImage(file, token);
       const uploadedUrl = payload?.imageUrl;
       if (!uploadedUrl) {
-        throw new Error('伺服器未回傳圖片 URL');
+        throw new Error('圖片上傳後沒有取得可用網址');
       }
       setAddGameForm((prev) => ({
         ...prev,
@@ -180,7 +180,7 @@ export function useAdminPage() {
         description: addGameForm.description,
       });
       setAiDraft(draft);
-      toast.success(`AI 文案已生成（${draft.source || 'fallback'}）`);
+      toast.success('AI 文案已生成');
     } catch (error: any) {
       toast.error(getApiErrorMessage(error, 'AI 文案生成失敗'));
     } finally {
@@ -207,7 +207,7 @@ export function useAdminPage() {
   const handleApplyAiSeoTitle = useCallback(() => {
     if (!aiDraft?.seoTitle) return;
     setAddGameForm((prev) => ({ ...prev, name: aiDraft.seoTitle }));
-    toast.success('已套用 SEO 標題到遊戲名稱欄位');
+    toast.success('已套用建議標題到遊戲名稱欄位');
   }, [aiDraft?.seoTitle]);
 
   const handleToggleActive = useCallback(

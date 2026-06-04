@@ -77,7 +77,7 @@ export function AddGamePanel({
         />
         <div className="rounded-md border border-[#8bc53f55] bg-[#172b1f] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#b9d8b9]">AI COPY ASSISTANT</p>
+            <p className="text-xs font-bold tracking-[0.12em] text-[#b9d8b9]">AI 文案助理</p>
             <button
               type="button"
               onClick={onGenerateAiCopy}
@@ -119,7 +119,7 @@ export function AddGamePanel({
                 </button>
               </div>
               <div className="rounded-md border border-[#8bc53f33] bg-[#112318] p-2">
-                <p className="font-semibold text-[#dff3d2]">SEO 標題</p>
+                <p className="font-semibold text-[#dff3d2]">建議標題</p>
                 <p className="mt-1 text-[#c3dbc3]">{aiDraft.seoTitle}</p>
                 <button
                   type="button"

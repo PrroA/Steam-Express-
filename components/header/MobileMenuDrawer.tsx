@@ -52,6 +52,13 @@ export function MobileMenuDrawer({
                       {isAdmin ? <span className="ml-1 text-xs font-medium text-[#8fb8d5]">管理員</span> : null}
                     </p>
                   </Link>
+                  <Link
+                    href="/wishlist"
+                    onClick={onClose}
+                    className="mt-1.5 block rounded-md border border-[#66c0f433] bg-[#142636] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044]"
+                  >
+                    願望清單
+                  </Link>
                   <button
                     type="button"
                     onClick={onLogout}

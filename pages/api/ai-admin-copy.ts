@@ -37,7 +37,7 @@ function safeJsonParse(text: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: '這個操作目前無法使用。' });
   }
 
   const name = String(req.body?.name || '').trim();
@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const description = String(req.body?.description || '').trim();
 
   if (!name) {
-    return res.status(400).json({ error: 'Missing game name' });
+    return res.status(400).json({ error: '請先輸入商品名稱。' });
   }
 
   if (!process.env.OPENAI_API_KEY) {

@@ -63,7 +63,7 @@ function sendStripeDemoFallback(res: Response, error: any) {
   return res.status(503).json({
     error: {
       code: 'STRIPE_TEMPORARILY_UNAVAILABLE',
-      message: '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。',
+      message: '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。',
     },
   });
 }
@@ -163,7 +163,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     const { id, variantId } = req.body;
     const game = games.find((g) => g.id === id);
     if (!game || game.isActive === false) {
-      return res.status(404).json({ message: 'Game not found' });
+      return res.status(404).json({ message: '找不到這項商品' });
     }
 
     const selectedVariant = findVariant(game, variantId);
@@ -194,7 +194,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     }
 
     persistState(state);
-    return res.status(201).json({ message: 'Added to cart', cart: carts[userId] });
+    return res.status(201).json({ message: '已加入購物車', cart: carts[userId] });
   });
 
   app.patch('/cart/:id', authenticate, (req: TypedAuthRequest<UpdateCartBody, IdParam>, res: Response) => {
@@ -593,7 +593,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       return res.status(200).json({ message: '結帳成功！', order: newOrder });
     } catch (error) {
       console.error('結帳錯誤:', error);
-      return res.status(500).json({ message: '伺服器錯誤，請稍後再試' });
+      return res.status(500).json({ message: '目前無法完成操作，請稍後再試。' });
     }
   });
 
@@ -649,12 +649,12 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
   app.post('/stripe/webhook', (req: Request, res: Response) => {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      return res.status(500).json({ message: 'Stripe webhook secret 未設定' });
+      return res.status(500).json({ message: '目前無法確認付款狀態，請稍後再試。' });
     }
 
     const signature = req.headers['stripe-signature'];
     if (!signature || Array.isArray(signature)) {
-      return res.status(400).json({ message: '缺少 stripe-signature' });
+      return res.status(400).json({ message: '付款資料不完整，請重新付款。' });
     }
 
     let event;
@@ -662,7 +662,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       event = stripeClient.webhooks.constructEvent(req.body, signature, webhookSecret);
     } catch (error: any) {
       console.error('Stripe webhook 驗證失敗:', error?.message || error);
-      return res.status(400).json({ message: 'Webhook 驗證失敗' });
+      return res.status(400).json({ message: '付款資料驗證未通過，請重新付款。' });
     }
 
     if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed') {
@@ -714,7 +714,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         return res.status(503).json({
           error: {
             code: 'STRIPE_NOT_CONFIGURED',
-            message: 'Stripe 金鑰尚未設定，請使用 Demo 快速付款或設定 STRIPE_SECRET_KEY。',
+            message: '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。',
           },
         });
       }
@@ -757,7 +757,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       return res.status(500).json({
         error: {
           code: 'PAYMENT_INTENT_FAILED',
-          message: '目前無法載入信用卡付款，請使用 Demo 快速付款完成流程。',
+          message: '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。',
         },
       });
     }
@@ -769,7 +769,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         return res.status(503).json({
           error: {
             code: 'STRIPE_NOT_CONFIGURED',
-            message: 'Stripe 金鑰尚未設定，無法確認付款結果。',
+            message: '信用卡付款暫時無法確認，請稍後再試。',
           },
         });
       }
@@ -790,12 +790,12 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         return res.status(403).json({ error: '付款資訊與訂單不符' });
       }
       if (paymentIntent.status !== 'succeeded') {
-        return res.status(400).json({ error: `Stripe 付款尚未成功：${paymentIntent.status}` });
+        return res.status(400).json({ error: '付款尚未成功，請再試一次。' });
       }
 
       markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe confirm API: payment_intent.succeeded');
       persistState(state);
-      return res.status(200).json({ message: 'Stripe 付款已確認', order });
+      return res.status(200).json({ message: '付款已確認', order });
     } catch (error: any) {
       if (isExpectedStripeDemoFallback(error)) {
         return sendStripeDemoFallback(res, error);
@@ -804,7 +804,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       return res.status(500).json({
         error: {
           code: 'PAYMENT_CONFIRM_FAILED',
-          message: '付款還沒完成，請再試一次或使用 Demo 快速付款。',
+          message: '付款還沒完成，請再試一次，或先用快速付款完成這筆訂單。',
         },
       });
     }

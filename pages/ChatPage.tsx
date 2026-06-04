@@ -134,17 +134,6 @@ function isLocalHost() {
   return host === 'localhost' || host === '127.0.0.1' || host === '::1';
 }
 
-function formatScoreBreakdown(scoreBreakdown?: RagScoreBreakdown) {
-  if (!scoreBreakdown) return [];
-  return [
-    ['exact', scoreBreakdown.exact],
-    ['title', scoreBreakdown.title],
-    ['content', scoreBreakdown.content],
-    ['tags', scoreBreakdown.tags],
-    ['intent', scoreBreakdown.intent],
-  ].filter(([, value]) => Number(value || 0) > 0);
-}
-
 function getCatalogSources(sources?: ChatSource[]) {
   return (sources || []).filter((source) => source.type === 'catalog' && source.gameId);
 }
@@ -462,10 +451,7 @@ export default function ChatPage() {
                       {!isUser && debugEnabled && message.debug && (
                         <div className="mt-3 rounded-lg border border-[#8bc53f55] bg-[#122816] p-3 text-xs text-[#cfe8c5]">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="font-bold tracking-[0.12em] text-[#b7df9e]">RAG 依據</p>
-                            <span className="rounded-full border border-[#8bc53f55] px-2 py-0.5 text-[11px]">
-                              {message.debug.retriever}
-                            </span>
+                            <p className="font-bold tracking-[0.12em] text-[#b7df9e]">回答來源</p>
                           </div>
                           <p className="mt-2 text-[#adcda5]">查詢：{message.debug.query}</p>
                           <div className="mt-2 space-y-2">
@@ -476,14 +462,7 @@ export default function ChatPage() {
                               <div key={match.id} className="rounded-md border border-[#8bc53f33] bg-[#0f2113] p-2">
                                 <div className="flex flex-wrap justify-between gap-2">
                                   <span className="font-semibold text-[#e0f4d9]">{match.title}</span>
-                                  <span>score {match.score}</span>
-                                </div>
-                                <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-[#bddab4]">
-                                  {formatScoreBreakdown(match.scoreBreakdown).map(([label, value]) => (
-                                    <span key={String(label)} className="rounded border border-[#8bc53f33] px-1.5 py-0.5">
-                                      {label}: {value}
-                                    </span>
-                                  ))}
+                                  <span>相關度 {match.score}</span>
                                 </div>
                               </div>
                             ))}
@@ -576,8 +555,8 @@ export default function ChatPage() {
             {debugAvailable && (
               <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#8bc53f55] bg-[#102217] p-3 text-xs text-[#d6edce]">
                 <span>
-                  <span className="block font-bold">顯示技術資訊</span>
-                  <span className="mt-1 block text-[#aacda1]">只在本機檢查回答來源時使用。</span>
+                  <span className="block font-bold">顯示回答來源</span>
+                  <span className="mt-1 block text-[#aacda1]">查看這次回答參考了哪些商城資料。</span>
                 </span>
                 <input
                   type="checkbox"

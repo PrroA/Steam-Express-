@@ -35,7 +35,7 @@ export function AiRecommendationSection({
               isCompared={comparedIds.includes(item.game.id)}
             />
             <div className="rounded-md border border-[#66c0f433] bg-[#132434] px-3 py-2">
-              <p className="text-xs font-bold text-[#8fd1ff]">AI Match {item.score}%</p>
+              <p className="text-xs font-bold text-[#8fd1ff]">AI 適合度 {item.score}%</p>
               {item.reasons.map((reason) => (
                 <p key={reason} className="mt-1 text-xs text-[#b8d4e8]">
                   • {reason}

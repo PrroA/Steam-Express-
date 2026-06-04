@@ -25,7 +25,7 @@ function parseJsonResponse(text: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: '這個操作目前無法使用。' });
   }
 
   const items: RecommendItemInput[] = Array.isArray(req.body?.items) ? req.body.items.slice(0, 5) : [];
@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const averagePrice: number = Number(req.body?.averagePrice || 0);
 
   if (items.length === 0) {
-    return res.status(400).json({ error: 'Missing recommendation items' });
+    return res.status(400).json({ error: '目前沒有足夠商品可以推薦。' });
   }
 
   if (!process.env.OPENAI_API_KEY) {

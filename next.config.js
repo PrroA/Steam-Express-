@@ -8,7 +8,7 @@ const ContentSecurityPolicy = isDev
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https:;
-    connect-src 'self' http://localhost:4000 https://steam-express.onrender.com https://api.stripe.com https://m.stripe.network https://r.stripe.com;
+    connect-src 'self' http://localhost:* http://127.0.0.1:* https://steam-express.onrender.com https://api.stripe.com https://m.stripe.network https://r.stripe.com;
     frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
     font-src 'self' data:;
     object-src 'none';
@@ -58,7 +58,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'steam-express.onrender.com' },
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
-      { protocol: 'http', hostname: 'localhost', port: '4000' },
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'http', hostname: '127.0.0.1' },
     ],
   },
   async headers() {
