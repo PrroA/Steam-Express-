@@ -34,7 +34,7 @@ export default function AdminPage() {
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
-          <h1 className="mt-4 text-2xl font-black text-[#d8e6f3]">正在確認登入狀態</h1>
+          <h1 className="mt-4 text-2xl font-black text-[#d8e6f3]">正在確認管理權限</h1>
           <p className="mt-2 text-sm text-[#9eb4c8]">請稍候，我們正在確認你是否可以進入管理後台。</p>
         </div>
       </main>
@@ -46,9 +46,9 @@ export default function AdminPage() {
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">管理後台</p>
-          <h1 className="mt-3 text-2xl font-black text-[#d8e6f3]">這個帳號無法進入</h1>
+          <h1 className="mt-3 text-2xl font-black text-[#d8e6f3]">這個帳號無法進入後台</h1>
           <p className="mt-2 text-sm text-[#9eb4c8]">
-            請使用管理員帳號登入。本機展示可使用 admin / admin，正式環境請改用自己的管理員密碼。
+            請改用管理員帳號登入。本機展示可使用 admin / admin，正式環境請改用安全密碼。
           </p>
           <button
             type="button"
@@ -97,11 +97,11 @@ function AdminPageContent() {
     <main className="steam-shell px-4 py-6 md:px-6">
       <section className="mx-auto w-full max-w-7xl">
         <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">管理後台</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">商城管理</h1>
-        <p className="mt-1 text-sm text-[#9eb4c8]">查看營收、訂單與商品狀態，並管理展示用的遊戲資料。</p>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">商店營運總覽</h1>
+        <p className="mt-1 text-sm text-[#9eb4c8]">查看訂單、商品、庫存、AI 使用狀態與最近付款紀錄。</p>
 
         {loading ? (
-          <div className="steam-panel mt-5 rounded-2xl p-8 text-center text-[#9eb4c8]">正在整理後台資料...</div>
+          <div className="steam-panel mt-5 rounded-2xl p-8 text-center text-[#9eb4c8]">正在載入後台資料...</div>
         ) : (
           <>
             {dashboard && (

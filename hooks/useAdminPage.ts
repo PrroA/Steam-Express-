@@ -75,7 +75,7 @@ export function useAdminPage() {
       setAiUsage(aiUsageData);
       setPaymentAudits(paymentAuditsData);
     } catch (error) {
-      toast.error('載入後台資料失敗（請確認你是管理員）');
+      toast.error('後台資料載入失敗，請重新整理後再試一次。');
     } finally {
       setLoading(false);
     }
@@ -121,12 +121,12 @@ export function useAdminPage() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setAddGameForm((prev) => ({ ...prev, imageUrlError: '請選擇圖片檔案' }));
+      setAddGameForm((prev) => ({ ...prev, imageUrlError: '請選擇圖片檔案。' }));
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setAddGameForm((prev) => ({ ...prev, imageUrlError: '圖片大小需小於 2MB' }));
+      setAddGameForm((prev) => ({ ...prev, imageUrlError: '圖片大小請控制在 2MB 以內。' }));
       return;
     }
 
@@ -137,7 +137,7 @@ export function useAdminPage() {
       const payload = await uploadAdminImage(file, token);
       const uploadedUrl = payload?.imageUrl;
       if (!uploadedUrl) {
-        throw new Error('圖片上傳後沒有取得可用網址');
+        throw new Error('圖片上傳完成，但沒有取得圖片網址。');
       }
       setAddGameForm((prev) => ({
         ...prev,
@@ -145,9 +145,9 @@ export function useAdminPage() {
         preview: uploadedUrl,
         imageUrlError: '',
       }));
-      toast.success('圖片上傳成功，可直接新增商品');
+      toast.success('圖片已上傳，可以套用到商品。');
     } catch (error: any) {
-      setAddGameForm((prev) => ({ ...prev, imageUrlError: getApiErrorMessage(error, '圖片上傳失敗') }));
+      setAddGameForm((prev) => ({ ...prev, imageUrlError: getApiErrorMessage(error, '圖片上傳失敗，請再試一次。') }));
     } finally {
       setAddGameForm((prev) => ({ ...prev, uploadingImage: false }));
     }
@@ -155,7 +155,7 @@ export function useAdminPage() {
 
   const handleAddGame = useCallback(async () => {
     if (addGameForm.imageUrlError) {
-      toast.warn('圖片預覽失敗，但仍可先新增商品，之後再更換圖片網址');
+      toast.warn('圖片目前無法預覽，仍可先儲存商品，之後再回來調整圖片。');
     }
 
     try {
@@ -169,17 +169,17 @@ export function useAdminPage() {
         },
         token
       );
-      toast.success('遊戲已添加');
+      toast.success('商品已新增。');
       resetAddGameForm();
       await loadAdminData();
     } catch (error: any) {
-      toast.error(`添加遊戲失敗：${getApiErrorMessage(error, '添加遊戲失敗')}`);
+      toast.error(`新增商品失敗：${getApiErrorMessage(error, '請確認商品資料後再試一次。')}`);
     }
   }, [addGameForm, loadAdminData, resetAddGameForm]);
 
   const handleGenerateAiCopy = useCallback(async () => {
     if (!addGameForm.name.trim()) {
-      toast.warn('請先輸入遊戲名稱，再生成文案');
+      toast.warn('請先輸入商品名稱，才能產生商品文案。');
       return;
     }
     try {
@@ -190,9 +190,9 @@ export function useAdminPage() {
         description: addGameForm.description,
       });
       setAiDraft(draft);
-      toast.success('AI 文案已生成');
+      toast.success('AI 商品文案已產生。');
     } catch (error: any) {
-      toast.error(getApiErrorMessage(error, 'AI 文案生成失敗'));
+      toast.error(getApiErrorMessage(error, '商品文案暫時無法產生，請稍後再試。'));
     } finally {
       setAiGenerating(false);
     }
@@ -201,23 +201,23 @@ export function useAdminPage() {
   const handleApplyAiShortDescription = useCallback(() => {
     if (!aiDraft?.shortDescription) return;
     setAddGameForm((prev) => ({ ...prev, description: aiDraft.shortDescription }));
-    toast.success('已套用短描述到商品描述欄位');
+    toast.success('已套用商品描述。');
   }, [aiDraft?.shortDescription]);
 
   const handleAppendAiSellingPoints = useCallback(() => {
     if (!aiDraft?.sellingPoints || aiDraft.sellingPoints.length === 0) return;
-    const bullets = aiDraft.sellingPoints.map((point) => `• ${point}`).join('\n');
+    const bullets = aiDraft.sellingPoints.map((point) => `- ${point}`).join('\n');
     setAddGameForm((prev) => ({
       ...prev,
       description: prev.description ? `${prev.description}\n${bullets}` : bullets,
     }));
-    toast.success('已將賣點加入商品描述');
+    toast.success('已加入商品賣點。');
   }, [aiDraft?.sellingPoints]);
 
   const handleApplyAiSeoTitle = useCallback(() => {
     if (!aiDraft?.seoTitle) return;
     setAddGameForm((prev) => ({ ...prev, name: aiDraft.seoTitle }));
-    toast.success('已套用建議標題到遊戲名稱欄位');
+    toast.success('已套用商品標題。');
   }, [aiDraft?.seoTitle]);
 
   const handleToggleActive = useCallback(
@@ -225,10 +225,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await updateGameActiveStatus(game.id, !(game.isActive !== false), token);
-        toast.success(game.isActive !== false ? '商品已下架' : '商品已上架');
+        toast.success(game.isActive !== false ? '商品已下架。' : '商品已重新上架。');
         await loadAdminData();
       } catch (error) {
-        toast.error('更新上架狀態失敗');
+        toast.error('商品上下架失敗，請再試一次。');
       }
     },
     [loadAdminData]
@@ -239,10 +239,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await updateGameVariant(gameId, variantId, payload, token);
-        toast.success('版本資料已更新');
+        toast.success('商品版本已更新。');
         await loadAdminData();
       } catch (error: any) {
-        toast.error(`更新版本資料失敗：${getApiErrorMessage(error)}`);
+        toast.error(`商品版本更新失敗：${getApiErrorMessage(error, '請確認庫存與價格後再試一次。')}`);
       }
     },
     [loadAdminData]
@@ -256,10 +256,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await updateAdminGame(gameId, payload, token);
-        toast.success('商品基本資料已更新');
+        toast.success('商品資料已更新。');
         await loadAdminData();
       } catch (error: any) {
-        toast.error(`更新商品失敗：${getApiErrorMessage(error)}`);
+        toast.error(`商品資料更新失敗：${getApiErrorMessage(error, '請確認商品資料後再試一次。')}`);
       }
     },
     [loadAdminData]
@@ -270,10 +270,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await ensureAdminGameVariant(gameId, token);
-        toast.success('已建立預設版本，可調整價格與庫存');
+        toast.success('已補上預設版本，可以繼續調整庫存與價格。');
         await loadAdminData();
       } catch (error: any) {
-        toast.error(`建立預設版本失敗：${getApiErrorMessage(error)}`);
+        toast.error(`新增商品版本失敗：${getApiErrorMessage(error, '請稍後再試一次。')}`);
       }
     },
     [loadAdminData]
@@ -284,10 +284,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await updateAdminOrderStatus(orderId, status, token, 'Admin panel update');
-        toast.success('訂單狀態已更新');
+        toast.success('訂單狀態已更新。');
         await loadAdminData();
       } catch (error) {
-        toast.error('更新訂單狀態失敗');
+        toast.error('訂單狀態更新失敗，請再試一次。');
       }
     },
     [loadAdminData]
@@ -303,10 +303,10 @@ export function useAdminPage() {
           token,
           'Admin fulfillment update'
         );
-        toast.success('出貨狀態已更新');
+        toast.success('出貨狀態已更新。');
         await loadAdminData();
       } catch (error) {
-        toast.error('更新出貨狀態失敗');
+        toast.error('出貨狀態更新失敗，請再試一次。');
       }
     },
     [loadAdminData]
@@ -317,10 +317,10 @@ export function useAdminPage() {
       try {
         const token = getToken();
         await updateAdminShippingDetails(orderId, payload, token);
-        toast.success('物流資訊已更新');
+        toast.success('配送資訊已更新。');
         await loadAdminData();
       } catch (error) {
-        toast.error('更新物流資訊失敗');
+        toast.error('配送資訊更新失敗，請再試一次。');
       }
     },
     [loadAdminData]

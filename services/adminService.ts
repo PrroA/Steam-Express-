@@ -132,7 +132,7 @@ export async function uploadAdminImage(
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = payload?.error?.message || payload?.message || '圖片上傳失敗';
+    const message = payload?.error?.message || payload?.message || '圖片上傳失敗，請再試一次。';
     throw new Error(message);
   }
   return payload;
@@ -237,7 +237,7 @@ export async function generateAdminGameCopy(payload: {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.error || 'AI 文案生成失敗');
+    throw new Error(data?.error || '商品文案暫時無法產生，請稍後再試。');
   }
   return {
     shortDescription: data?.shortDescription || '',

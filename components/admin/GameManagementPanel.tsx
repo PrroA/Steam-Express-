@@ -31,7 +31,7 @@ export function GameManagementPanel({
         <div>
           <h2 className="text-xl font-black text-[#d8e6f3]">商品管理</h2>
           <p className="mt-1 text-xs text-[#8faac0]">
-            上架 {activeCount} / {games.length} 款，低庫存版本 {lowStockCount} 個
+            上架中 {activeCount} / {games.length} 款，低庫存版本 {lowStockCount} 個
           </p>
         </div>
       </div>
@@ -77,12 +77,12 @@ export function GameManagementPanel({
 
             {(!Array.isArray(game.variants) || game.variants.length === 0) && (
               <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
-                <p className="text-xs text-[#9eb4c8]">此商品尚未建立版本，無法調整庫存。</p>
+                <p className="text-xs text-[#9eb4c8]">這個商品還沒有版本資料，請先補上預設版本。</p>
                 <button
                   onClick={() => onEnsureVariant(game.id)}
                   className="mt-2 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
                 >
-                  建立預設版本（Standard）
+                  補上預設版本
                 </button>
               </div>
             )}
@@ -123,19 +123,19 @@ function GameBasicEditor({
 
   return (
     <div data-testid="admin-game-basic-editor" className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
-      <p className="text-xs font-bold text-[#8fb8d5]">基本資料編輯</p>
+      <p className="text-xs font-bold text-[#8fb8d5]">基本資料</p>
       <div className="mt-2 grid gap-2">
         <input
           data-testid="admin-game-name-input"
           type="text"
           value={draftName}
-          onChange={(e) => setDraftName(e.target.value)}
+          onChange={(event) => setDraftName(event.target.value)}
           placeholder="商品名稱"
           className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
         />
         <textarea
           value={draftDescription}
-          onChange={(e) => setDraftDescription(e.target.value)}
+          onChange={(event) => setDraftDescription(event.target.value)}
           rows={2}
           placeholder="商品描述"
           className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
@@ -144,14 +144,14 @@ function GameBasicEditor({
           <input
             type="text"
             value={draftImage}
-            onChange={(e) => setDraftImage(e.target.value)}
-            placeholder="封面 URL / 路徑"
+            onChange={(event) => setDraftImage(event.target.value)}
+            placeholder="圖片 URL / 路徑"
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
           />
           <input
             type="text"
             value={draftPrice}
-            onChange={(e) => setDraftPrice(e.target.value)}
+            onChange={(event) => setDraftPrice(event.target.value)}
             placeholder="價格"
             className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
           />
@@ -161,7 +161,7 @@ function GameBasicEditor({
           onClick={handleSave}
           className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
         >
-          更新商品基本資料
+          儲存基本資料
         </button>
       </div>
     </div>
@@ -210,19 +210,19 @@ function VariantEditor({
           </span>
         )}
       </div>
-      <p className="text-xs text-[#8faac0]">價格 {variant.price}</p>
+      <p className="text-xs text-[#8faac0]">目前價格 {variant.price}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input
           type="number"
           min={0}
           value={stock}
-          onChange={(e) => setStock(Number(e.target.value))}
+          onChange={(event) => setStock(Number(event.target.value))}
           className="w-24 rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
         />
         <input
           type="text"
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
+          onChange={(event) => setPrice(event.target.value)}
           placeholder="59.99"
           className="w-28 rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
         />
@@ -230,7 +230,7 @@ function VariantEditor({
           onClick={handleSave}
           className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
         >
-          更新價格/庫存
+          儲存價格與庫存
         </button>
       </div>
     </div>

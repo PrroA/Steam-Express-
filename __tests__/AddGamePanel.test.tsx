@@ -17,6 +17,10 @@ describe('AddGamePanel', () => {
     const onImageUrlChange = jest.fn();
     const onImageFileChange = jest.fn();
     const onSubmit = jest.fn();
+    const onGenerateAiCopy = jest.fn();
+    const onApplyAiShortDescription = jest.fn();
+    const onAppendAiSellingPoints = jest.fn();
+    const onApplyAiSeoTitle = jest.fn();
 
     render(
       <AddGamePanel
@@ -25,37 +29,43 @@ describe('AddGamePanel', () => {
         onImageUrlChange={onImageUrlChange}
         onImageFileChange={onImageFileChange}
         onSubmit={onSubmit}
+        aiDraft={null}
+        aiGenerating={false}
+        onGenerateAiCopy={onGenerateAiCopy}
+        onApplyAiShortDescription={onApplyAiShortDescription}
+        onAppendAiSellingPoints={onAppendAiSellingPoints}
+        onApplyAiSeoTitle={onApplyAiSeoTitle}
       />
     );
 
-    return { onFieldChange, onImageUrlChange, onImageFileChange, onSubmit };
+    return { onFieldChange, onImageUrlChange, onImageFileChange, onSubmit, onGenerateAiCopy };
   };
 
   it('renders core fields and submit button', () => {
     setup();
 
-    expect(screen.getByText('新增商品')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('遊戲名稱')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('價格（例如：59.99）')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('遊戲描述')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('封面圖片 URL')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '添加遊戲' })).toBeInTheDocument();
-    expect(screen.queryByAltText('封面預覽')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '新增商品' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('商品名稱')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('價格，例如 59.99')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('商品描述')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('商品圖片 URL')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '新增商品' })).toBeInTheDocument();
+    expect(screen.queryByAltText('商品圖片預覽')).not.toBeInTheDocument();
   });
 
   it('triggers field change handlers when user types', () => {
     const { onFieldChange, onImageUrlChange } = setup();
 
-    fireEvent.change(screen.getByPlaceholderText('遊戲名稱'), {
+    fireEvent.change(screen.getByPlaceholderText('商品名稱'), {
       target: { value: 'Cyberpunk 2077' },
     });
-    fireEvent.change(screen.getByPlaceholderText('價格（例如：59.99）'), {
+    fireEvent.change(screen.getByPlaceholderText('價格，例如 59.99'), {
       target: { value: '59.99' },
     });
-    fireEvent.change(screen.getByPlaceholderText('遊戲描述'), {
+    fireEvent.change(screen.getByPlaceholderText('商品描述'), {
       target: { value: 'Open world RPG' },
     });
-    fireEvent.change(screen.getByPlaceholderText('封面圖片 URL'), {
+    fireEvent.change(screen.getByPlaceholderText('商品圖片 URL'), {
       target: { value: 'https://example.com/cp2077.jpg' },
     });
 
@@ -79,23 +89,32 @@ describe('AddGamePanel', () => {
   it('calls onSubmit when submit button clicked', () => {
     const { onSubmit } = setup();
 
-    fireEvent.click(screen.getByRole('button', { name: '添加遊戲' }));
+    fireEvent.click(screen.getByRole('button', { name: '新增商品' }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it('renders preview image and handles image load/error callbacks', () => {
     const { onFieldChange } = setup({ preview: 'https://example.com/cover.jpg' });
-    const preview = screen.getByAltText('封面預覽');
+    const preview = screen.getByAltText('商品圖片預覽');
 
     fireEvent.error(preview);
-    expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '圖片載入失敗，請確認網址可公開存取');
+    expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '圖片無法載入，請確認網址或重新上傳。');
+
   });
 
   it('shows uploading and error states', () => {
     setup({ uploadingImage: true, imageUrlError: '圖片格式錯誤' });
 
-    expect(screen.getByText('圖片處理中...')).toBeInTheDocument();
+    expect(screen.getByText('圖片上傳中...')).toBeInTheDocument();
     expect(screen.getByText('圖片格式錯誤')).toBeInTheDocument();
+  });
+
+  it('triggers AI copy generation', () => {
+    const { onGenerateAiCopy } = setup();
+
+    fireEvent.click(screen.getByRole('button', { name: '產生商品文案' }));
+
+    expect(onGenerateAiCopy).toHaveBeenCalledTimes(1);
   });
 });
