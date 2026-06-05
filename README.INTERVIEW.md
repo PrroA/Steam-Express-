@@ -95,3 +95,5 @@ Admin dashboard 可以查看商品、訂單、銷售與 AI 使用狀態。AI 使
 3. AI evaluation：追蹤 retrieval 命中率、fallback rate、回答品質。
 4. Stripe webhook：讓付款狀態由可信事件更新。
 5. Admin analytics：把 AI 使用紀錄轉成更清楚的營運指標。
+
+資料庫正式化細節請看 [docs/database-roadmap.md](./docs/database-roadmap.md)。
