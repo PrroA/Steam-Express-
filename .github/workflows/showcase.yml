@@ -1,0 +1,56 @@
+name: Showcase Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'components/**'
+      - 'docs/**'
+      - 'e2e/**'
+      - 'pages/**'
+      - 'services/**'
+      - 'scripts/**'
+      - '__tests__/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+
+jobs:
+  showcase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create showcase env file
+        run: |
+          {
+            echo "PORT=4000"
+            echo "FRONTEND_BASE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:4000"
+            echo "SECRET_KEY=showcase_demo_secret"
+            echo "ADMIN_USERNAME=admin"
+            echo "ADMIN_PASSWORD=admin"
+            echo "OPENAI_CHAT_MODEL=gpt-4o-mini"
+            echo "ENABLE_RAG_DEBUG=true"
+            echo "LOG_REQUESTS=0"
+          } >> .env.local
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run showcase checks
+        run: npm run test:showcase

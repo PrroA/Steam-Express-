@@ -21,6 +21,8 @@ npm run dev
 npm run test:showcase
 ```
 
+GitHub Actions 也可以手動執行 `Showcase Check` workflow，適合 push 後或面試前確認遠端環境也能跑完整展示驗收。
+
 這個指令會檢查：
 
 - backend / server TypeScript build

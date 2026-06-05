@@ -141,6 +141,8 @@ npm run build
 npm run test:showcase
 ```
 
+GitHub Actions 可手動執行 `Showcase Check` workflow，會跑同一組展示驗收。
+
 個別 E2E：
 
 ```bash
