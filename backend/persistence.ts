@@ -143,3 +143,9 @@ const aiUsageStorage: AiUsageStorage = {
 };
 
 configureAiUsageStorage(aiUsageStorage);
+
+export function closePersistenceForTests() {
+  if (process.env.NODE_ENV === 'test') {
+    db.close();
+  }
+}
