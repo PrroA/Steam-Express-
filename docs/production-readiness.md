@@ -15,6 +15,7 @@
 目前還不是正式 production 架構，主要限制是：
 
 - SQLite JSON state 只適合 demo persistence。
+- AI 使用紀錄已先拆到 SQLite `ai_usage_events`，但正式環境仍建議搬到 PostgreSQL。
 - 圖片上傳仍是 local disk。
 - Demo 快速付款不是正式付款依據。
 - AI provider / Browser-side AI 仍有環境差異。
@@ -169,7 +170,7 @@
 
 ### Phase 3：AI 與 RAG 資料化
 
-- 搬 `ai_usage_events`。
+- 將 SQLite `ai_usage_events` 搬到 PostgreSQL。
 - 建 `rag_documents`。
 - 將目前 static knowledge 變成資料。
 - 讓 admin 可以看 RAG hit rate / fallback rate。

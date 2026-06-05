@@ -15,6 +15,8 @@
 - `resetTokens`
 - `games`
 
+另外 AI 使用紀錄已先獨立到 `ai_usage_events` table，作為正式化前的小步切分。這讓 admin 的 AI 命中率、備用回覆率與平均回覆時間重開 server 後仍可保留，也讓未來搬到 PostgreSQL 時有明確表結構方向。
+
 這個做法適合 demo：
 
 - 本機容易啟動。
@@ -278,6 +280,7 @@ AI 使用紀錄。
 對應目前：
 
 - `backend/aiUsageLog.ts`
+- SQLite `ai_usage_events`
 
 這張表可以支援 admin dashboard 的資料命中率、備用回覆率與平均回覆時間。
 
@@ -320,7 +323,7 @@ RAG 文件主表。
 2. 先搬 `users`、`games`、`game_variants`。
 3. 再搬 `carts`、`orders`、`order_items`、`order_status_events`。
 4. 補 Stripe webhook，讓付款狀態由 `payment_records` 驅動。
-5. 搬 `ai_usage_events`，讓 admin 指標不只存在記憶體。
+5. 將目前 SQLite `ai_usage_events` 搬到 PostgreSQL，讓 admin 指標成為正式資料。
 6. 建 `rag_documents`，把目前 static knowledge 正式資料化。
 7. 最後再導入 `pgvector` 與 embeddings。
 

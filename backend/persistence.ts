@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import type { AppState } from '../types/backend';
+import { configureAiUsageStorage } from './aiUsageLog';
+import type { AiUsageEvent, AiUsageStorage } from './aiUsageLog';
 
 const BetterSqlite3 = require('better-sqlite3');
 
@@ -34,6 +36,12 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS ai_usage_events (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    payload TEXT NOT NULL
+  );
 `);
 
 const readStmt = db.prepare('SELECT value FROM app_state WHERE key = ?');
@@ -41,6 +49,17 @@ const upsertStmt = db.prepare(`
   INSERT INTO app_state (key, value)
   VALUES (?, ?)
   ON CONFLICT(key) DO UPDATE SET value = excluded.value
+`);
+const readAiUsageStmt = db.prepare(`
+  SELECT payload
+  FROM ai_usage_events
+  ORDER BY created_at DESC
+  LIMIT ?
+`);
+const clearAiUsageStmt = db.prepare('DELETE FROM ai_usage_events');
+const insertAiUsageStmt = db.prepare(`
+  INSERT INTO ai_usage_events (id, created_at, payload)
+  VALUES (?, ?, ?)
 `);
 
 function replaceStateValue(state: AppState, key: PersistKey, value: unknown) {
@@ -94,3 +113,33 @@ export function persistState(state: AppState) {
 
   writeAll(state);
 }
+
+const aiUsageStorage: AiUsageStorage = {
+  load(limit: number) {
+    const rows = readAiUsageStmt.all(Math.max(1, Math.min(80, Number(limit) || 30))) as Array<{ payload: string }>;
+    return rows
+      .map((row) => {
+        try {
+          return JSON.parse(row.payload) as AiUsageEvent;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as AiUsageEvent[];
+  },
+  save(items: AiUsageEvent[]) {
+    const writeAll = db.transaction((payload: AiUsageEvent[]) => {
+      clearAiUsageStmt.run();
+      payload.forEach((event) => {
+        insertAiUsageStmt.run(event.id, event.createdAt, JSON.stringify(event));
+      });
+    });
+
+    writeAll(items);
+  },
+  clear() {
+    clearAiUsageStmt.run();
+  },
+};
+
+configureAiUsageStorage(aiUsageStorage);

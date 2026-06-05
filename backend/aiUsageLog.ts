@@ -26,12 +26,65 @@ export type AiUsageSummary = {
 const MAX_EVENTS = 80;
 const events: AiUsageEvent[] = [];
 
+export interface AiUsageStorage {
+  load(limit: number): AiUsageEvent[];
+  save(events: AiUsageEvent[]): void;
+  clear?(): void;
+}
+
+let storage: AiUsageStorage | null = null;
+let storageHydrated = false;
+
 function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function sanitizeMessagePreview(message: string) {
   return message.replace(/\s+/g, ' ').trim().slice(0, 80);
+}
+
+function normalizeEvent(value: unknown): AiUsageEvent | null {
+  if (!value || typeof value !== 'object') return null;
+  const event = value as Partial<AiUsageEvent>;
+  if (!event.id || !event.createdAt) return null;
+
+  return {
+    id: String(event.id),
+    createdAt: String(event.createdAt),
+    requestId: String(event.requestId || 'unknown'),
+    userId: typeof event.userId === 'number' ? event.userId : null,
+    mode: String(event.mode || 'unknown'),
+    grounded: Boolean(event.grounded),
+    provider: event.provider ? String(event.provider) : null,
+    sourceCount: Math.max(0, Number(event.sourceCount || 0)),
+    statusCode: Number(event.statusCode || 200),
+    durationMs: Math.max(0, Number(event.durationMs || 0)),
+    messagePreview: sanitizeMessagePreview(String(event.messagePreview || '')),
+  };
+}
+
+function trimEvents() {
+  if (events.length > MAX_EVENTS) {
+    events.splice(MAX_EVENTS);
+  }
+}
+
+function persistEvents() {
+  if (!storage || !storageHydrated) return;
+  storage.save(events);
+}
+
+export function configureAiUsageStorage(nextStorage: AiUsageStorage | null) {
+  storage = nextStorage;
+  storageHydrated = false;
+  events.splice(0, events.length);
+
+  if (!storage) return;
+
+  const loaded = storage.load(MAX_EVENTS).map(normalizeEvent).filter(Boolean) as AiUsageEvent[];
+  events.splice(0, events.length, ...loaded);
+  trimEvents();
+  storageHydrated = true;
 }
 
 export function recordAiUsage(input: {
@@ -60,9 +113,8 @@ export function recordAiUsage(input: {
   };
 
   events.unshift(event);
-  if (events.length > MAX_EVENTS) {
-    events.splice(MAX_EVENTS);
-  }
+  trimEvents();
+  persistEvents();
 
   return event;
 }
@@ -113,5 +165,6 @@ export function getAiUsageSummary(): AiUsageSummary {
 export function resetAiUsageLogForTests() {
   if (process.env.NODE_ENV === 'test') {
     events.splice(0, events.length);
+    storage?.clear?.();
   }
 }
