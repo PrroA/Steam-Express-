@@ -148,6 +148,64 @@ function markOrderPaidFromStripe(order: Order, paymentIntentId: string, note: st
   return true;
 }
 
+export function applyStripePaymentIntentEvent({
+  eventType,
+  paymentIntent,
+  orders,
+}: {
+  eventType: 'payment_intent.succeeded' | 'payment_intent.payment_failed';
+  paymentIntent: {
+    id: string;
+    metadata?: { orderId?: string; userId?: string };
+  };
+  orders: RouteDeps['state']['orders'];
+}) {
+  const orderId = paymentIntent.metadata?.orderId;
+  if (!orderId) {
+    return { changed: false, reason: 'missing-order-id' as const };
+  }
+
+  const metadataUserId = Number(paymentIntent.metadata?.userId);
+  let found: { userId: number; order: Order } | null = null;
+  if (metadataUserId && Array.isArray(orders[metadataUserId])) {
+    const order = orders[metadataUserId].find((item) => item.id === orderId);
+    if (order) {
+      found = { userId: metadataUserId, order };
+    }
+  }
+  if (!found) {
+    found = findOrderAcrossUsers(orders, orderId);
+  }
+
+  if (!found) {
+    return { changed: false, reason: 'order-not-found' as const };
+  }
+
+  const { order } = found;
+  if (eventType === 'payment_intent.succeeded') {
+    normalizeOrderRecord(order);
+    if (
+      ([ORDER_STATUS.CANCELLED, ORDER_STATUS.REFUNDED] as Array<Order['status']>).includes(order.status) ||
+      order.status === ORDER_STATUS.PAID
+    ) {
+      return { changed: false, reason: 'order-not-payable' as const, order };
+    }
+
+    return {
+      changed: markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe webhook: payment_intent.succeeded'),
+      reason: 'marked-paid' as const,
+      order,
+    };
+  }
+
+  if (normalizeOrderStatus(order.status) === ORDER_STATUS.PENDING) {
+    pushOrderStatus(order, ORDER_STATUS.PAYMENT_FAILED, 'Stripe webhook: payment_intent.payment_failed');
+    return { changed: true, reason: 'marked-payment-failed' as const, order };
+  }
+
+  return { changed: false, reason: 'order-not-pending' as const, order };
+}
+
 export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }: RouteDeps) {
   const { carts, orders, games } = state;
   const hasStripeSecret = Boolean(
@@ -670,38 +728,14 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         id: string;
         metadata?: { orderId?: string; userId?: string };
       };
-      const orderId = intent.metadata?.orderId;
-      const metadataUserId = Number(intent.metadata?.userId);
+      const result = applyStripePaymentIntentEvent({
+        eventType: event.type,
+        paymentIntent: intent,
+        orders,
+      });
 
-      let found: { userId: number; order: Order } | null = null;
-      if (metadataUserId && Array.isArray(orders[metadataUserId])) {
-        const order = orders[metadataUserId].find((item) => item.id === orderId);
-        if (order) {
-          found = { userId: metadataUserId, order };
-        }
-      }
-      if (!found && orderId) {
-        found = findOrderAcrossUsers(orders, orderId);
-      }
-
-      if (found) {
-        const { order } = found;
-        if (event.type === 'payment_intent.succeeded') {
-          normalizeOrderRecord(order);
-          if (
-            !([ORDER_STATUS.CANCELLED, ORDER_STATUS.REFUNDED] as Array<Order['status']>).includes(
-              order.status
-            ) &&
-            order.status !== ORDER_STATUS.PAID
-          ) {
-            if (markOrderPaidFromStripe(order, intent.id, 'Stripe webhook: payment_intent.succeeded')) {
-              persistState(state);
-            }
-          }
-        } else if (normalizeOrderStatus(order.status) === ORDER_STATUS.PENDING) {
-          pushOrderStatus(order, ORDER_STATUS.PAYMENT_FAILED, 'Stripe webhook: payment_intent.payment_failed');
-          persistState(state);
-        }
+      if (result.changed) {
+        persistState(state);
       }
     }
 
