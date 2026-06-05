@@ -2,6 +2,8 @@
 
 這份文件是面試口述用，重點是講清楚專案價值、技術取捨與後續可延伸方向。
 
+如果只需要作品集或履歷亮點，請看 [docs/project-highlights.md](./docs/project-highlights.md)。
+
 ## 30 秒介紹
 
 Steam Practice 是一個以遊戲商城為主題的全端 demo。我用 Next.js、React、TypeScript、Express 和 SQLite 做出商品瀏覽、購物車、訂單付款、admin 管理，再加入 AI 商品推薦、商品比較與 RAG 客服問答。

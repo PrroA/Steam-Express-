@@ -169,6 +169,7 @@ npm run test:rag-eval
 ## 面試輔助文件
 
 - [README.INTERVIEW.md](./README.INTERVIEW.md)
+- [docs/project-highlights.md](./docs/project-highlights.md)
 - [docs/demo-script.md](./docs/demo-script.md)
 - [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)
 - [docs/rag-evaluation.md](./docs/rag-evaluation.md)
