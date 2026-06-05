@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Request, Response } from 'express';
 import type { RouteDeps } from './types';
 import { persistState } from '../persistence';
+import { createPaymentAuditEvent } from '../paymentAudit';
 import {
   FULFILLMENT_STATUS,
   FULFILLMENT_STATUS_OPTIONS,
@@ -162,7 +163,18 @@ export function applyStripePaymentIntentEvent({
 }) {
   const orderId = paymentIntent.metadata?.orderId;
   if (!orderId) {
-    return { changed: false, reason: 'missing-order-id' as const };
+    return {
+      changed: false,
+      reason: 'missing-order-id' as const,
+      auditEvent: createPaymentAuditEvent({
+        source: 'stripe-webhook',
+        providerPaymentId: paymentIntent.id,
+        orderId: null,
+        userId: paymentIntent.metadata?.userId,
+        status: 'ignored',
+        reason: 'missing-order-id',
+      }),
+    };
   }
 
   const metadataUserId = Number(paymentIntent.metadata?.userId);
@@ -178,32 +190,88 @@ export function applyStripePaymentIntentEvent({
   }
 
   if (!found) {
-    return { changed: false, reason: 'order-not-found' as const };
+    return {
+      changed: false,
+      reason: 'order-not-found' as const,
+      auditEvent: createPaymentAuditEvent({
+        source: 'stripe-webhook',
+        providerPaymentId: paymentIntent.id,
+        orderId,
+        userId: paymentIntent.metadata?.userId,
+        status: 'ignored',
+        reason: 'order-not-found',
+      }),
+    };
   }
 
-  const { order } = found;
+  const { order, userId } = found;
   if (eventType === 'payment_intent.succeeded') {
     normalizeOrderRecord(order);
     if (
       ([ORDER_STATUS.CANCELLED, ORDER_STATUS.REFUNDED] as Array<Order['status']>).includes(order.status) ||
       order.status === ORDER_STATUS.PAID
     ) {
-      return { changed: false, reason: 'order-not-payable' as const, order };
+      return {
+        changed: false,
+        reason: 'order-not-payable' as const,
+        order,
+        auditEvent: createPaymentAuditEvent({
+          source: 'stripe-webhook',
+          providerPaymentId: paymentIntent.id,
+          orderId,
+          userId,
+          status: 'ignored',
+          reason: 'order-not-payable',
+        }),
+      };
     }
 
+    const changed = markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe webhook: payment_intent.succeeded');
     return {
-      changed: markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe webhook: payment_intent.succeeded'),
+      changed,
       reason: 'marked-paid' as const,
       order,
+      auditEvent: createPaymentAuditEvent({
+        source: 'stripe-webhook',
+        providerPaymentId: paymentIntent.id,
+        orderId,
+        userId,
+        status: changed ? 'succeeded' : 'ignored',
+        reason: 'marked-paid',
+      }),
     };
   }
 
   if (normalizeOrderStatus(order.status) === ORDER_STATUS.PENDING) {
     pushOrderStatus(order, ORDER_STATUS.PAYMENT_FAILED, 'Stripe webhook: payment_intent.payment_failed');
-    return { changed: true, reason: 'marked-payment-failed' as const, order };
+    return {
+      changed: true,
+      reason: 'marked-payment-failed' as const,
+      order,
+      auditEvent: createPaymentAuditEvent({
+        source: 'stripe-webhook',
+        providerPaymentId: paymentIntent.id,
+        orderId,
+        userId,
+        status: 'failed',
+        reason: 'marked-payment-failed',
+      }),
+    };
   }
 
-  return { changed: false, reason: 'order-not-pending' as const, order };
+  return {
+    changed: false,
+    reason: 'order-not-pending' as const,
+    order,
+    auditEvent: createPaymentAuditEvent({
+      source: 'stripe-webhook',
+      providerPaymentId: paymentIntent.id,
+      orderId,
+      userId,
+      status: 'ignored',
+      reason: 'order-not-pending',
+    }),
+  };
 }
 
 export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }: RouteDeps) {

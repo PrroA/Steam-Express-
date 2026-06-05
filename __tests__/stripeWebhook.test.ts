@@ -41,6 +41,16 @@ describe('Stripe webhook payment intent handling', () => {
         note: 'Stripe webhook: payment_intent.succeeded',
       })
     );
+    expect(result.auditEvent).toEqual(
+      expect.objectContaining({
+        provider: 'stripe',
+        source: 'stripe-webhook',
+        providerPaymentId: 'pi_123',
+        orderId: order.id,
+        userId: 7,
+        status: 'succeeded',
+      })
+    );
   });
 
   test('marks pending order as payment failed on payment_intent.payment_failed', () => {
@@ -61,6 +71,13 @@ describe('Stripe webhook payment intent handling', () => {
       expect.objectContaining({
         status: 'payment_failed',
         note: 'Stripe webhook: payment_intent.payment_failed',
+      })
+    );
+    expect(result.auditEvent).toEqual(
+      expect.objectContaining({
+        providerPaymentId: 'pi_failed',
+        status: 'failed',
+        reason: 'marked-payment-failed',
       })
     );
   });
