@@ -12,6 +12,14 @@ export interface PaymentAuditEvent {
   createdAt: string;
 }
 
+export interface PaymentAuditStorage {
+  save(event: PaymentAuditEvent): void;
+  list?(limit: number): PaymentAuditEvent[];
+  clear?(): void;
+}
+
+let storage: PaymentAuditStorage | null = null;
+
 export function createPaymentAuditEvent(input: {
   provider?: 'stripe' | 'demo';
   source: PaymentAuditSource;
@@ -34,4 +42,24 @@ export function createPaymentAuditEvent(input: {
     reason: input.reason,
     createdAt: input.createdAt || new Date().toISOString(),
   };
+}
+
+export function configurePaymentAuditStorage(nextStorage: PaymentAuditStorage | null) {
+  storage = nextStorage;
+}
+
+export function recordPaymentAuditEvent(event: PaymentAuditEvent) {
+  storage?.save(event);
+  return event;
+}
+
+export function getPaymentAuditEventsForTests(limit = 30) {
+  if (process.env.NODE_ENV !== 'test') return [];
+  return storage?.list?.(limit) || [];
+}
+
+export function resetPaymentAuditForTests() {
+  if (process.env.NODE_ENV === 'test') {
+    storage?.clear?.();
+  }
 }

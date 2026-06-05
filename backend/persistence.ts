@@ -3,6 +3,8 @@ import path from 'path';
 import type { AppState } from '../types/backend';
 import { configureAiUsageStorage } from './aiUsageLog';
 import type { AiUsageEvent, AiUsageStorage } from './aiUsageLog';
+import { configurePaymentAuditStorage } from './paymentAudit';
+import type { PaymentAuditEvent, PaymentAuditStorage } from './paymentAudit';
 
 const BetterSqlite3 = require('better-sqlite3');
 
@@ -42,6 +44,19 @@ db.exec(`
     created_at TEXT NOT NULL,
     payload TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS payment_audit_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    source TEXT NOT NULL,
+    provider_payment_id TEXT,
+    order_id TEXT,
+    user_id INTEGER,
+    status TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    payload TEXT NOT NULL
+  );
 `);
 
 const readStmt = db.prepare('SELECT value FROM app_state WHERE key = ?');
@@ -61,6 +76,27 @@ const insertAiUsageStmt = db.prepare(`
   INSERT INTO ai_usage_events (id, created_at, payload)
   VALUES (?, ?, ?)
 `);
+const insertPaymentAuditStmt = db.prepare(`
+  INSERT INTO payment_audit_events (
+    created_at,
+    provider,
+    source,
+    provider_payment_id,
+    order_id,
+    user_id,
+    status,
+    reason,
+    payload
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const readPaymentAuditStmt = db.prepare(`
+  SELECT payload
+  FROM payment_audit_events
+  ORDER BY id DESC
+  LIMIT ?
+`);
+const clearPaymentAuditStmt = db.prepare('DELETE FROM payment_audit_events');
 
 function replaceStateValue(state: AppState, key: PersistKey, value: unknown) {
   if (Array.isArray(state[key]) && Array.isArray(value)) {
@@ -143,6 +179,41 @@ const aiUsageStorage: AiUsageStorage = {
 };
 
 configureAiUsageStorage(aiUsageStorage);
+
+const paymentAuditStorage: PaymentAuditStorage = {
+  save(event: PaymentAuditEvent) {
+    insertPaymentAuditStmt.run(
+      event.createdAt,
+      event.provider,
+      event.source,
+      event.providerPaymentId,
+      event.orderId,
+      event.userId,
+      event.status,
+      event.reason,
+      JSON.stringify(event)
+    );
+  },
+  list(limit: number) {
+    const rows = readPaymentAuditStmt.all(Math.max(1, Math.min(100, Number(limit) || 30))) as Array<{
+      payload: string;
+    }>;
+    return rows
+      .map((row) => {
+        try {
+          return JSON.parse(row.payload) as PaymentAuditEvent;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as PaymentAuditEvent[];
+  },
+  clear() {
+    clearPaymentAuditStmt.run();
+  },
+};
+
+configurePaymentAuditStorage(paymentAuditStorage);
 
 export function closePersistenceForTests() {
   if (process.env.NODE_ENV === 'test') {

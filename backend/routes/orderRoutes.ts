@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Request, Response } from 'express';
 import type { RouteDeps } from './types';
 import { persistState } from '../persistence';
-import { createPaymentAuditEvent } from '../paymentAudit';
+import { createPaymentAuditEvent, recordPaymentAuditEvent } from '../paymentAudit';
 import {
   FULFILLMENT_STATUS,
   FULFILLMENT_STATUS_OPTIONS,
@@ -820,6 +820,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
 
     const result = applyDemoQuickPayEvent({ order, userId, simulateFailure });
     if (result.changed) {
+      recordPaymentAuditEvent(result.auditEvent);
       persistState(state);
     }
 
@@ -870,6 +871,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       });
 
       if (result.changed) {
+        recordPaymentAuditEvent(result.auditEvent);
         persistState(state);
       }
     }
