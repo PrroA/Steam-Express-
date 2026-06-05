@@ -335,3 +335,5 @@ RAG 文件主表。
 - 不建議先做大型資料搬遷，因為目前展示版重點是穩定 demo flow。
 
 建議採取小步替換：先 schema，再逐步替換 persistence。
+
+正式部署前的整體工程檢查請看 [production-readiness.md](./production-readiness.md)。

@@ -176,3 +176,4 @@ npm run test:rag-eval
 - [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)
 - [docs/rag-evaluation.md](./docs/rag-evaluation.md)
 - [docs/database-roadmap.md](./docs/database-roadmap.md)
+- [docs/production-readiness.md](./docs/production-readiness.md)
