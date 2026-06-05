@@ -274,6 +274,93 @@ export function applyStripePaymentIntentEvent({
   };
 }
 
+export function applyDemoQuickPayEvent({
+  order,
+  userId,
+  simulateFailure = false,
+  transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+}: {
+  order: Order;
+  userId: number;
+  simulateFailure?: boolean;
+  transactionId?: string;
+}) {
+  normalizeOrderRecord(order);
+  if (order.status === ORDER_STATUS.PAID) {
+    return {
+      changed: false,
+      reason: 'already-paid' as const,
+      statusCode: 400,
+      message: '訂單已付款，無法重複支付',
+      auditEvent: createPaymentAuditEvent({
+        source: 'demo-quick-pay',
+        providerPaymentId: order.paymentDetails?.transactionId || null,
+        orderId: order.id,
+        userId,
+        status: 'ignored',
+        reason: 'already-paid',
+      }),
+    };
+  }
+  if (order.status === ORDER_STATUS.CANCELLED || order.status === ORDER_STATUS.REFUNDED) {
+    return {
+      changed: false,
+      reason: 'order-not-payable' as const,
+      statusCode: 400,
+      message: '目前訂單狀態不可付款',
+      auditEvent: createPaymentAuditEvent({
+        source: 'demo-quick-pay',
+        providerPaymentId: null,
+        orderId: order.id,
+        userId,
+        status: 'ignored',
+        reason: 'order-not-payable',
+      }),
+    };
+  }
+
+  if (simulateFailure) {
+    pushOrderStatus(order, ORDER_STATUS.PAYMENT_FAILED, '支付通道回傳失敗');
+    return {
+      changed: true,
+      reason: 'demo-payment-failed' as const,
+      statusCode: 400,
+      message: '支付失敗，請重試',
+      auditEvent: createPaymentAuditEvent({
+        source: 'demo-quick-pay',
+        providerPaymentId: null,
+        orderId: order.id,
+        userId,
+        status: 'failed',
+        reason: 'demo-payment-failed',
+      }),
+    };
+  }
+
+  order.paymentDetails = {
+    transactionId,
+    paidAt: new Date().toISOString(),
+  };
+  if (!order.fulfillmentStatus) {
+    order.fulfillmentStatus = FULFILLMENT_STATUS.PENDING_SHIPMENT;
+  }
+  pushOrderStatus(order, ORDER_STATUS.PAID, '支付成功');
+  return {
+    changed: true,
+    reason: 'demo-paid' as const,
+    statusCode: 200,
+    message: '支付成功',
+    auditEvent: createPaymentAuditEvent({
+      source: 'demo-quick-pay',
+      providerPaymentId: transactionId,
+      orderId: order.id,
+      userId,
+      status: 'succeeded',
+      reason: 'demo-paid',
+    }),
+  };
+}
+
 export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeClient }: RouteDeps) {
   const { carts, orders, games } = state;
   const hasStripeSecret = Boolean(
@@ -731,32 +818,12 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       return res.status(404).json({ message: '訂單未找到' });
     }
 
-    normalizeOrderRecord(order);
-    if (order.status === ORDER_STATUS.PAID) {
-      return res.status(400).json({ message: '訂單已付款，無法重複支付' });
-    }
-    if (order.status === ORDER_STATUS.CANCELLED || order.status === ORDER_STATUS.REFUNDED) {
-      return res.status(400).json({ message: '目前訂單狀態不可付款' });
-    }
-
-    if (simulateFailure) {
-      pushOrderStatus(order, ORDER_STATUS.PAYMENT_FAILED, '支付通道回傳失敗');
+    const result = applyDemoQuickPayEvent({ order, userId, simulateFailure });
+    if (result.changed) {
       persistState(state);
-      return res.status(400).json({ message: '支付失敗，請重試', order });
     }
 
-    const transactionId = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    order.paymentDetails = {
-      transactionId,
-      paidAt: new Date().toISOString(),
-    };
-    if (!order.fulfillmentStatus) {
-      order.fulfillmentStatus = FULFILLMENT_STATUS.PENDING_SHIPMENT;
-    }
-    pushOrderStatus(order, ORDER_STATUS.PAID, '支付成功');
-    persistState(state);
-
-    return res.status(200).json({ message: '支付成功', order });
+    return res.status(result.statusCode).json({ message: result.message, order });
   });
 
   app.get('/transactions', authenticate, (req: TypedAuthRequest, res: Response) => {
