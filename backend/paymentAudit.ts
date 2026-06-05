@@ -53,9 +53,13 @@ export function recordPaymentAuditEvent(event: PaymentAuditEvent) {
   return event;
 }
 
+export function getPaymentAuditEvents(limit = 30) {
+  return storage?.list?.(limit) || [];
+}
+
 export function getPaymentAuditEventsForTests(limit = 30) {
   if (process.env.NODE_ENV !== 'test') return [];
-  return storage?.list?.(limit) || [];
+  return getPaymentAuditEvents(limit);
 }
 
 export function resetPaymentAuditForTests() {

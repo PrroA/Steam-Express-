@@ -8,6 +8,7 @@ import {
   fetchAdminDashboard,
   fetchAdminGames,
   fetchAdminOrders,
+  fetchAdminPaymentAudits,
   uploadAdminImage,
   updateAdminGame,
   updateAdminFulfillmentStatus,
@@ -19,6 +20,7 @@ import {
   type AdminAiUsage,
   type AdminDashboard,
   type AdminOrder,
+  type AdminPaymentAudits,
 } from '../services/adminService';
 import type { Game } from '../types/domain';
 import { getApiErrorMessage, normalizeImagePreviewUrl } from '../utils/adminUtils';
@@ -37,6 +39,7 @@ interface AddGameForm {
 export function useAdminPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [aiUsage, setAiUsage] = useState<AdminAiUsage | null>(null);
+  const [paymentAudits, setPaymentAudits] = useState<AdminPaymentAudits | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,16 +62,18 @@ export function useAdminPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const [dashboardData, gamesData, ordersData, aiUsageData] = await Promise.all([
+      const [dashboardData, gamesData, ordersData, aiUsageData, paymentAuditsData] = await Promise.all([
         fetchAdminDashboard(token),
         fetchAdminGames(token),
         fetchAdminOrders(token),
         fetchAdminAiUsage(token).catch(() => null),
+        fetchAdminPaymentAudits(token).catch(() => null),
       ]);
       setDashboard(dashboardData);
       setGames(gamesData);
       setOrders(ordersData);
       setAiUsage(aiUsageData);
+      setPaymentAudits(paymentAuditsData);
     } catch (error) {
       toast.error('載入後台資料失敗（請確認你是管理員）');
     } finally {
@@ -325,6 +330,7 @@ export function useAdminPage() {
     loading,
     dashboard,
     aiUsage,
+    paymentAudits,
     games,
     sortedOrders,
     addGameForm,

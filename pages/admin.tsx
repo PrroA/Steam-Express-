@@ -6,6 +6,7 @@ import { AddGamePanel } from '../components/admin/AddGamePanel';
 import { GameManagementPanel } from '../components/admin/GameManagementPanel';
 import { MetricCard } from '../components/admin/MetricCard';
 import { OrderManagementPanel } from '../components/admin/OrderManagementPanel';
+import { PaymentAuditPanel } from '../components/admin/PaymentAuditPanel';
 import { useAdminPage } from '../hooks/useAdminPage';
 import { clearStoredAuth, isTokenExpired, parseTokenPayload } from '../utils/authToken';
 
@@ -69,6 +70,7 @@ function AdminPageContent() {
     loading,
     dashboard,
     aiUsage,
+    paymentAudits,
     games,
     sortedOrders,
     addGameForm,
@@ -114,6 +116,8 @@ function AdminPageContent() {
             <AdminActionPanel dashboard={dashboard} orders={sortedOrders} games={games} />
 
             <AiUsagePanel usage={aiUsage} />
+
+            <PaymentAuditPanel audits={paymentAudits} />
 
             <AddGamePanel
               form={addGameForm}

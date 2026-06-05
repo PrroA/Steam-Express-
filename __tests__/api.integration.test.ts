@@ -336,6 +336,78 @@ describe('API integration', () => {
     expect(stockAfterRefund).toBe(initialStock);
   });
 
+  test('admin can inspect payment audit events after demo quick pay', async () => {
+    const username = `payment_audit_${Date.now()}`;
+    const password = 'Password1!';
+
+    await requestJson('/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    const userLoginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    expect(userLoginRes.status).toBe(200);
+    const userToken = userLoginRes.body.token;
+
+    const gamesRes = await requestJson('/games', { method: 'GET' });
+    const game = gamesRes.body.find((item) => item.isActive !== false && item.variants?.some((variant) => variant.stock > 0));
+    const variant = game.variants.find((item) => item.stock > 0);
+
+    const addRes = await requestJson('/cart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({ id: game.id, variantId: variant.id }),
+    });
+    expect(addRes.status).toBe(201);
+
+    const checkoutRes = await requestJson('/checkout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({}),
+    });
+    expect(checkoutRes.status).toBe(200);
+    const orderId = checkoutRes.body.order.id;
+
+    const payRes = await requestJson('/pay', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userToken}` },
+      body: JSON.stringify({ orderId }),
+    });
+    expect(payRes.status).toBe(200);
+
+    const forbiddenRes = await requestJson('/admin/payment-audits', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${userToken}` },
+    });
+    expect(forbiddenRes.status).toBe(403);
+
+    const adminLoginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: 'admin', password: 'admin' }),
+    });
+    expect(adminLoginRes.status).toBe(200);
+
+    const auditRes = await requestJson('/admin/payment-audits?limit=10', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${adminLoginRes.body.token}` },
+    });
+    expect(auditRes.status).toBe(200);
+    expect(Array.isArray(auditRes.body.events)).toBe(true);
+    expect(auditRes.body.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: 'demo',
+          source: 'demo-quick-pay',
+          orderId,
+          status: 'succeeded',
+          reason: 'demo-paid',
+        }),
+      ])
+    );
+  });
+
   test('rag endpoint rejects empty message', async () => {
     const ragRes = await requestJson('/chat/rag', {
       method: 'POST',

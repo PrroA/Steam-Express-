@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Request, Response } from 'express';
 import type { RouteDeps } from './types';
 import { persistState } from '../persistence';
-import { createPaymentAuditEvent, recordPaymentAuditEvent } from '../paymentAudit';
+import { createPaymentAuditEvent, getPaymentAuditEvents, recordPaymentAuditEvent } from '../paymentAudit';
 import {
   FULFILLMENT_STATUS,
   FULFILLMENT_STATUS_OPTIONS,
@@ -517,6 +517,14 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       totalRevenue,
       totalItemsSold,
       lowStockGames,
+    });
+  });
+
+  app.get('/admin/payment-audits', authenticate, isAdmin, (req: TypedAuthRequest, res: Response) => {
+    const query = req.query as { limit?: string };
+    const limit = Number(query.limit || 30);
+    return res.status(200).json({
+      events: getPaymentAuditEvents(Number.isFinite(limit) && limit > 0 ? limit : 30),
     });
   });
 

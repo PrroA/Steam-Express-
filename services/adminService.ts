@@ -48,6 +48,21 @@ export interface AdminAiUsage {
   events: AdminAiUsageEvent[];
 }
 
+export interface AdminPaymentAuditEvent {
+  provider: 'stripe' | 'demo';
+  source: 'stripe-webhook' | 'stripe-confirm-api' | 'demo-quick-pay';
+  providerPaymentId: string | null;
+  orderId: string | null;
+  userId: number | null;
+  status: 'succeeded' | 'failed' | 'ignored';
+  reason: string;
+  createdAt: string;
+}
+
+export interface AdminPaymentAudits {
+  events: AdminPaymentAuditEvent[];
+}
+
 export interface AiGameCopyDraft {
   shortDescription: string;
   sellingPoints: string[];
@@ -198,6 +213,13 @@ export async function fetchAdminDashboard(token?: string | null): Promise<AdminD
 
 export async function fetchAdminAiUsage(token?: string | null): Promise<AdminAiUsage> {
   const response = await apiClient.get('/admin/ai-usage?limit=5', {
+    headers: authHeader(token),
+  });
+  return response.data;
+}
+
+export async function fetchAdminPaymentAudits(token?: string | null): Promise<AdminPaymentAudits> {
+  const response = await apiClient.get('/admin/payment-audits?limit=10', {
     headers: authHeader(token),
   });
   return response.data;
