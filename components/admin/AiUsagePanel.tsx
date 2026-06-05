@@ -36,6 +36,10 @@ function formatTime(value: string) {
   return date.toLocaleString();
 }
 
+function formatPercent(value: number | undefined) {
+  return `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%`;
+}
+
 export function AiUsagePanel({ usage }: AiUsagePanelProps) {
   const summary = usage?.summary;
   const events = usage?.events || [];
@@ -47,13 +51,19 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
           <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 觀測</p>
           <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">客服與推薦使用狀態</h2>
         </div>
-        <p className="text-xs text-[#8faac0]">只顯示最近使用紀錄，方便展示 AI 回覆是否有根據商城資料。</p>
+        <p className="text-xs text-[#8faac0]">用命中率與備用回覆率快速確認 AI 回答是否有根據商城資料。</p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <StatTile testId="admin-ai-usage-total" label="AI 回覆次數" value={summary?.total || 0} />
         <StatTile testId="admin-ai-usage-grounded" label="根據資料回答" value={summary?.grounded || 0} tone="success" />
         <StatTile testId="admin-ai-usage-fallback" label="備用或引導回覆" value={summary?.fallback || 0} tone="warn" />
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <MetricTile testId="admin-ai-usage-grounded-rate" label="資料命中率" value={formatPercent(summary?.groundedRate)} tone="success" />
+        <MetricTile testId="admin-ai-usage-fallback-rate" label="備用回覆率" value={formatPercent(summary?.fallbackRate)} tone="warn" />
+        <MetricTile testId="admin-ai-usage-average-duration" label="平均回覆時間" value={`${summary?.averageDurationMs || 0}ms`} />
       </div>
 
       <div className="mt-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
@@ -80,6 +90,31 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  tone = 'default',
+  testId,
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'success' | 'warn';
+  testId?: string;
+}) {
+  const toneClass = {
+    default: 'border-[#66c0f433] bg-[#102131] text-[#d8e6f3]',
+    success: 'border-[#8bc53f44] bg-[#13271d] text-[#b7f0a2]',
+    warn: 'border-[#ffcf5a44] bg-[#2a2417] text-[#ffe0a6]',
+  }[tone];
+
+  return (
+    <article data-testid={testId} className={`rounded-xl border p-3 ${toneClass}`}>
+      <p className="text-xs opacity-75">{label}</p>
+      <p className="mt-1 text-xl font-black">{value}</p>
+    </article>
   );
 }
 

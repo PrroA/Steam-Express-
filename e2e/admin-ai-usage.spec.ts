@@ -29,9 +29,15 @@ test('admin can see AI usage after a customer support answer', async ({ page, re
 
   await expect(page.getByTestId('admin-ai-usage-panel')).toBeVisible();
   await expect(page.getByText('recommend a game')).toBeVisible();
+  await expect(page.getByTestId('admin-ai-usage-grounded-rate')).toBeVisible();
+  await expect(page.getByTestId('admin-ai-usage-fallback-rate')).toBeVisible();
+  await expect(page.getByTestId('admin-ai-usage-average-duration')).toBeVisible();
 
   const totalText = await page.getByTestId('admin-ai-usage-total').innerText();
   const totalMatch = totalText.match(/\d+/);
   expect(totalMatch).toBeTruthy();
   expect(Number(totalMatch?.[0])).toBeGreaterThan(0);
+
+  await expect(page.getByTestId('admin-ai-usage-grounded-rate')).toContainText('%');
+  await expect(page.getByTestId('admin-ai-usage-fallback-rate')).toContainText('%');
 });

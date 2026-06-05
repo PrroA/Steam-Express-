@@ -16,6 +16,9 @@ export type AiUsageSummary = {
   total: number;
   grounded: number;
   fallback: number;
+  groundedRate: number;
+  fallbackRate: number;
+  averageDurationMs: number;
   byMode: Record<string, number>;
   byProvider: Record<string, number>;
 };
@@ -69,18 +72,42 @@ export function getAiUsageEvents(limit = 30) {
 }
 
 export function getAiUsageSummary(): AiUsageSummary {
-  return events.reduce<AiUsageSummary>(
+  const summary = events.reduce<AiUsageSummary & { totalDurationMs: number }>(
     (summary, event) => {
       summary.total += 1;
       if (event.grounded) summary.grounded += 1;
       if (/fallback|unavailable|auth-required|out-of-scope/i.test(event.mode)) summary.fallback += 1;
+      summary.totalDurationMs += event.durationMs;
       summary.byMode[event.mode] = (summary.byMode[event.mode] || 0) + 1;
       const provider = event.provider || 'fallback';
       summary.byProvider[provider] = (summary.byProvider[provider] || 0) + 1;
       return summary;
     },
-    { total: 0, grounded: 0, fallback: 0, byMode: {}, byProvider: {} }
+    {
+      total: 0,
+      grounded: 0,
+      fallback: 0,
+      groundedRate: 0,
+      fallbackRate: 0,
+      averageDurationMs: 0,
+      totalDurationMs: 0,
+      byMode: {},
+      byProvider: {},
+    }
   );
+
+  const total = Math.max(0, summary.total);
+  const totalDurationMs = summary.totalDurationMs;
+  return {
+    total,
+    grounded: summary.grounded,
+    fallback: summary.fallback,
+    groundedRate: total > 0 ? summary.grounded / total : 0,
+    fallbackRate: total > 0 ? summary.fallback / total : 0,
+    averageDurationMs: total > 0 ? Math.round(totalDurationMs / total) : 0,
+    byMode: summary.byMode,
+    byProvider: summary.byProvider,
+  };
 }
 
 export function resetAiUsageLogForTests() {

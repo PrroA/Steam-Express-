@@ -634,11 +634,18 @@ describe('API integration', () => {
         total: expect.any(Number),
         grounded: expect.any(Number),
         fallback: expect.any(Number),
+        groundedRate: expect.any(Number),
+        fallbackRate: expect.any(Number),
+        averageDurationMs: expect.any(Number),
         byMode: expect.any(Object),
         byProvider: expect.any(Object),
       })
     );
     expect(usageRes.body.summary.total).toBeGreaterThan(0);
+    expect(usageRes.body.summary.groundedRate).toBeGreaterThanOrEqual(0);
+    expect(usageRes.body.summary.groundedRate).toBeLessThanOrEqual(1);
+    expect(usageRes.body.summary.fallbackRate).toBeGreaterThanOrEqual(0);
+    expect(usageRes.body.summary.fallbackRate).toBeLessThanOrEqual(1);
     expect(Array.isArray(usageRes.body.events)).toBe(true);
     expect(usageRes.body.events[0]).toEqual(
       expect.objectContaining({

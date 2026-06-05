@@ -39,6 +39,9 @@ export interface AdminAiUsage {
     total: number;
     grounded: number;
     fallback: number;
+    groundedRate: number;
+    fallbackRate: number;
+    averageDurationMs: number;
     byMode: Record<string, number>;
     byProvider: Record<string, number>;
   };

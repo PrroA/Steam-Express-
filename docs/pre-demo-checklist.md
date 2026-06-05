@@ -25,6 +25,7 @@ npm run test:showcase
 
 - backend / server TypeScript build
 - 中文亂碼檢查
+- RAG 基本命中率檢查
 - checkout / payment demo flow
 - AI demo flow
 - AI 展示入口
@@ -63,6 +64,12 @@ npm run test:e2e:copy
 npm run test:encoding
 ```
 
+RAG 命中率檢查：
+
+```bash
+npm run test:rag-eval
+```
+
 ## 4. 手動 Demo Flow
 
 1. 從首頁進入，不應該預設顯示已登入 Demo 帳號。
@@ -99,5 +106,6 @@ npm run test:encoding
 - 這是一個完整商城 demo，不是只有靜態頁。
 - AI 放在購物決策與客服導引，不直接操作付款或退款。
 - RAG 目前是 local hybrid retrieval，下一步可升級 pgvector。
+- RAG 有固定問題集驗收，避免知識庫或 scoring 改動後退化。
 - Stripe 有 test mode 與 demo fallback，正式環境應補 webhook。
 - Admin 有 AI 使用狀態，代表 AI 功能有被觀測與測試。

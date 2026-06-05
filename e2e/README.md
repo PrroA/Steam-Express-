@@ -22,6 +22,16 @@ Run the interview showcase checks after `npm run dev` is already running:
 npm run test:showcase
 ```
 
+`test:showcase` also runs the RAG retrieval evaluation before the browser checks, so AI customer-support sources are validated together with the demo flow.
+
+Run only the RAG retrieval evaluation:
+
+```bash
+npm run test:rag-eval
+```
+
+`test:rag-eval` checks the fixed payment, refund, shipping, account, wishlist, and catalog retrieval cases.
+
 Run only the core demo smoke flow:
 
 ```bash

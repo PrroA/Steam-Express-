@@ -150,6 +150,12 @@ npm run test:e2e:admin-ai
 npm run test:e2e:copy
 ```
 
+RAG retrieval 評估：
+
+```bash
+npm run test:rag-eval
+```
+
 展示前 checklist 請看 [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)。
 
 ## 已知限制
@@ -165,3 +171,4 @@ npm run test:e2e:copy
 - [README.INTERVIEW.md](./README.INTERVIEW.md)
 - [docs/demo-script.md](./docs/demo-script.md)
 - [docs/pre-demo-checklist.md](./docs/pre-demo-checklist.md)
+- [docs/rag-evaluation.md](./docs/rag-evaluation.md)
