@@ -7,7 +7,7 @@ export function OrderTimeline({ selectedOrder }: { selectedOrder: Order | null }
 
   return (
     <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-5">
-      <h2 className="text-xl font-black text-[#d8e6f3]">訂單更新紀錄</h2>
+      <h2 className="text-xl font-black text-[#d8e6f3]">訂單狀態紀錄</h2>
       <div className="mt-4 space-y-3">
         {selectedOrder.statusHistory.map((node, index) => (
           <div

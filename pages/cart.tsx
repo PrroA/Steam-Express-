@@ -126,9 +126,9 @@ export default function CartPage() {
     () => ({
       fullName: fullName.trim().length >= 2 ? '' : '請輸入收件人姓名。',
       phone: isValidPhone(phone) ? '' : '請輸入可聯絡的電話。',
-      contactEmail: isValidEmail(contactEmail) ? '' : '請輸入正確的 Email。',
+      contactEmail: isValidEmail(contactEmail) ? '' : '請輸入有效的 Email。',
       shippingAddress: shippingAddress.trim().length >= 6 ? '' : '請輸入完整地址。',
-      agreed: agreed ? '' : '請先確認訂單資料。',
+      agreed: agreed ? '' : '請確認訂單資料正確。',
     }),
     [agreed, contactEmail, fullName, phone, shippingAddress]
   );
@@ -156,7 +156,7 @@ export default function CartPage() {
       const response = await updateCartQuantity(Number(item.id), newQuantity, token, item.variantId);
       if (response.cart) setCart(response.cart);
     } catch {
-      toast.error('數量沒有更新成功，請再試一次。');
+      toast.error('數量暫時無法更新，請再試一次。');
     }
   };
 
@@ -171,7 +171,7 @@ export default function CartPage() {
   const handleNextFromCustomer = () => {
     setValidationTriggered(true);
     if (hasFormErrors) {
-      toast.error(Object.values(formErrors).find(Boolean) || '請確認訂單資料。');
+      toast.error(Object.values(formErrors).find(Boolean) || '請確認資料是否完整。');
       return;
     }
     setActiveStep(3);
@@ -181,7 +181,7 @@ export default function CartPage() {
     if (isSubmitting) return;
     setValidationTriggered(true);
     if (hasFormErrors) {
-      toast.error(Object.values(formErrors).find(Boolean) || '請確認訂單資料。');
+      toast.error(Object.values(formErrors).find(Boolean) || '請確認資料是否完整。');
       setActiveStep(2);
       return;
     }
@@ -216,7 +216,7 @@ export default function CartPage() {
         router.push({ pathname: '/orders', query: orderId ? { orderId } : undefined });
       }, 900);
     } catch {
-      toast.error('訂單還沒建立成功，請再試一次。');
+      toast.error('訂單暫時無法建立，請再試一次。');
     } finally {
       setIsSubmitting(false);
     }
@@ -243,7 +243,7 @@ export default function CartPage() {
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <FaShoppingCart size={68} className="mx-auto text-[#58738a]" />
           <h1 className="mt-4 text-3xl font-black text-[#d8e6f3]">購物車是空的</h1>
-          <p className="mt-2 text-[#9eb4c8]">先挑一款想玩的遊戲，再回來完成結帳。</p>
+          <p className="mt-2 text-[#9eb4c8]">先挑一款想玩的遊戲，加入購物車後就能建立訂單。</p>
           <Link href="/" className="steam-btn mt-5 inline-flex rounded-md px-5 py-2 text-sm">
             回到商店
           </Link>
@@ -330,7 +330,7 @@ export default function CartPage() {
 
             {activeStep === 2 && (
               <>
-                <h2 className="text-xl font-black text-[#d8e6f3]">留下聯絡資料</h2>
+                <h2 className="text-xl font-black text-[#d8e6f3]">聯絡資料</h2>
                 <p className="mt-1 text-sm text-[#9eb4c8]">
                   這些資料會放在訂單中心，方便你確認付款與訂單狀態。
                 </p>
@@ -348,11 +348,11 @@ export default function CartPage() {
                     <textarea data-testid="checkout-shipping-address" value={shippingAddress} onChange={(event) => setShippingAddress(event.target.value)} rows={2} placeholder="請輸入可聯絡地址" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <Field label="訂單備註">
-                    <textarea value={orderNote} onChange={(event) => setOrderNote(event.target.value)} rows={3} placeholder="有需要補充的資訊可以寫在這裡" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
+                    <textarea value={orderNote} onChange={(event) => setOrderNote(event.target.value)} rows={3} placeholder="可以填寫希望我們注意的事項" className="w-full resize-none rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none" />
                   </Field>
                   <label className="flex items-start gap-2 text-sm text-[#9eb4c8]">
                     <input data-testid="checkout-agree" type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-1" />
-                    <span>我已確認商品與聯絡資料正確。</span>
+                    <span>我已確認購物車商品、數量與聯絡資料正確。</span>
                   </label>
                   {validationTriggered && formErrors.agreed && <p className="text-xs text-[#ff9e9e]">{formErrors.agreed}</p>}
                 </div>
@@ -380,7 +380,7 @@ export default function CartPage() {
             <h2 className="mt-2 text-2xl font-black text-[#d8e6f3]">共 {itemCount} 件商品</h2>
             <div className="mt-4 space-y-2 rounded-lg border border-[#66c0f433] bg-[#132334] p-4 text-sm">
               <SummaryRow label="商品小計" value={`$${subtotal.toFixed(2)}`} />
-              <SummaryRow label="總計" value={`$${payableTotal.toFixed(2)}`} strong />
+              <SummaryRow label="總金額" value={`$${payableTotal.toFixed(2)}`} strong />
             </div>
 
             <CartReviewPanel
@@ -445,10 +445,10 @@ function CartReviewPanel({
 }) {
   const verdictLabel = advice
     ? advice.verdict === 'ready'
-      ? '可以結帳'
+      ? '適合結帳'
       : advice.verdict === 'check'
-        ? '先確認預算'
-        : '建議調整'
+        ? '再確認一下'
+        : '建議先調整'
     : '結帳前檢查';
 
   return (
@@ -468,7 +468,7 @@ function CartReviewPanel({
           disabled={isLoading}
           className="shrink-0 rounded-md border border-[#8bc53f66] bg-[#18351e] px-3 py-2 text-xs font-bold text-[#dff5d5] transition hover:border-[#8bc53f] hover:bg-[#204a29] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? '正在整理檢查' : advice ? '重新檢查' : '檢查'}
+          {isLoading ? '檢查中' : advice ? '重新檢查' : '開始檢查'}
         </button>
       </div>
 
@@ -482,18 +482,18 @@ function CartReviewPanel({
         <div className="mt-3 space-y-3 leading-6 text-[#cde8c7]">
           <p>{advice.summary}</p>
           <div className="rounded-lg border border-[#8bc53f33] bg-[#132816] p-3">
-            <p className="text-xs font-bold text-[#b7df9e]">重點</p>
+            <p className="text-xs font-bold text-[#b7df9e]">亮點</p>
             <ul className="mt-2 space-y-1">
               {advice.highlights.map((item) => (
-                <li key={item}>・{item}</li>
+                <li key={item}>- {item}</li>
               ))}
             </ul>
           </div>
           <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3 text-[#d7e8f4]">
-            <p className="text-xs font-bold text-[#8fb8d5]">送出前看一下</p>
+            <p className="text-xs font-bold text-[#8fb8d5]">需要留意</p>
             <ul className="mt-2 space-y-1">
               {advice.concerns.map((item) => (
-                <li key={item}>・{item}</li>
+                <li key={item}>- {item}</li>
               ))}
             </ul>
             <p className="mt-2 font-semibold text-[#e8f6ff]">{advice.nextAction}</p>
@@ -502,7 +502,7 @@ function CartReviewPanel({
         </div>
       ) : !isLoading ? (
         <p className="mt-3 leading-6 text-[#9ec09e]">
-          送出訂單前，可以先讓助理幫你看總價、版本和數量是否合理。
+          建立訂單前，可以先讓 AI 幫你看總價、版本與數量是否需要調整。
         </p>
       ) : null}
     </section>

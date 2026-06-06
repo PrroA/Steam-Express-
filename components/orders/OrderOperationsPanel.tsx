@@ -46,7 +46,7 @@ export function OrderOperationsPanel({
 }: OrderOperationsPanelProps) {
   return (
     <div className="steam-panel rounded-2xl border border-[#66c0f433] p-5">
-      <h2 className="text-xl font-black text-[#d8e6f3]">目前選取的訂單</h2>
+      <h2 className="text-xl font-black text-[#d8e6f3]">訂單操作</h2>
 
       {orders.length === 0 ? (
         <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
@@ -75,7 +75,7 @@ export function OrderOperationsPanel({
           </select>
 
           <div className="mt-4 rounded-lg border border-[#66c0f433] bg-[#132434] p-4">
-            <p className="text-xs text-[#9eb4c8]">應付金額</p>
+            <p className="text-xs text-[#9eb4c8]">總金額</p>
             <p className="mt-1 text-3xl font-black text-[#8bc53f]">
               ${selectedOrder?.total?.toFixed(2) || '0.00'}
             </p>
@@ -100,7 +100,7 @@ export function OrderOperationsPanel({
               </span>
             </p>
             <p className="mt-2 text-xs text-[#8faac0]">
-              建立時間：{selectedOrder?.date ? new Date(selectedOrder.date).toLocaleString() : '尚無時間'}
+              建立時間：{selectedOrder?.date ? new Date(selectedOrder.date).toLocaleString() : '時間不明'}
             </p>
             {(selectedOrder?.customerInfo?.fullName ||
               selectedOrder?.customerInfo?.phone ||
@@ -116,7 +116,7 @@ export function OrderOperationsPanel({
                   <p>地址：{selectedOrder.customerInfo.shippingAddress}</p>
                 )}
                 {selectedOrder?.shippingDetails?.trackingNumber && (
-                  <p>物流單號：{selectedOrder.shippingDetails.trackingNumber}</p>
+                  <p>配送追蹤：{selectedOrder.shippingDetails.trackingNumber}</p>
                 )}
               </div>
             )}
@@ -129,7 +129,7 @@ export function OrderOperationsPanel({
               disabled={isOperating || !selectedOrder || Boolean(reorderingOrderId)}
               className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {reorderingOrderId && selectedOrder?.id === reorderingOrderId ? '加入中...' : '再買一次'}
+              {reorderingOrderId && selectedOrder?.id === reorderingOrderId ? '加入中...' : '再次購買'}
             </button>
             <button
               type="button"

@@ -84,7 +84,7 @@ export default function WishlistPage() {
       setWishlist((prev) => prev.filter((game) => game.id !== gameId));
       toast.success('已加入購物車。');
     } catch {
-      toast.error('暫時無法加入購物車，請再試一次。');
+      toast.error('暫時無法加入購物車，請稍後再試。');
     }
   };
 
@@ -96,8 +96,8 @@ export default function WishlistPage() {
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <FaHeartBroken size={72} className="mx-auto text-[#58738a]" />
-          <h1 className="mt-4 text-3xl font-black text-[#d8e6f3]">願望清單還是空的</h1>
-          <p className="mt-2 text-[#9eb4c8]">看到喜歡的遊戲可以先收藏，之後再回來加入購物車。</p>
+          <h1 className="mt-4 text-3xl font-black text-[#d8e6f3]">願望清單是空的</h1>
+          <p className="mt-2 text-[#9eb4c8]">把感興趣的遊戲先收藏起來，之後可以快速加入購物車。</p>
           <Link href="/" className="steam-btn mt-5 inline-flex rounded-md px-5 py-2 text-sm">
             回到商店
           </Link>
@@ -111,11 +111,11 @@ export default function WishlistPage() {
       <section className="mx-auto w-full max-w-6xl">
         <div className="rounded-2xl border border-[#66c0f433] bg-[#132434] p-5">
           <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">願望清單</p>
-          <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">想玩的遊戲</h1>
-          <p className="mt-1 text-sm text-[#9eb4c8]">收藏喜歡的遊戲，之後可以快速加入購物車。</p>
+          <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">想之後再看的遊戲</h1>
+          <p className="mt-1 text-sm text-[#9eb4c8]">收藏感興趣的商品，想買時可以直接加入購物車。</p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <StatCard label="收藏數" value={`${stats.itemCount} 款`} />
+            <StatCard label="收藏數量" value={`${stats.itemCount} 款`} />
             <StatCard label="目前總價" value={`$${stats.totalPrice.toFixed(2)}`} />
           </div>
 
@@ -132,8 +132,8 @@ export default function WishlistPage() {
               className="rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
             >
               <option value="default">預設排序</option>
-              <option value="price-low">價格由低到高</option>
-              <option value="price-high">價格由高到低</option>
+              <option value="price-low">價格低到高</option>
+              <option value="price-high">價格高到低</option>
               <option value="name">名稱 A-Z</option>
             </select>
           </div>
@@ -141,8 +141,8 @@ export default function WishlistPage() {
 
         {filteredWishlist.length === 0 ? (
           <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-8 text-center">
-            <p className="text-lg font-black text-[#d8e6f3]">找不到符合條件的遊戲</p>
-            <p className="mt-2 text-sm text-[#9eb4c8]">可以換個關鍵字再找一次。</p>
+            <p className="text-lg font-black text-[#d8e6f3]">沒有符合條件的商品</p>
+            <p className="mt-2 text-sm text-[#9eb4c8]">可以換個關鍵字再搜尋一次。</p>
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -164,7 +164,7 @@ export default function WishlistPage() {
                       <Link href={`/game/${game.id}`}>
                         <h2 className="text-xl font-black text-[#d8e6f3] transition hover:text-[#66c0f4]">{game.name}</h2>
                       </Link>
-                      <p className="mt-1 line-clamp-2 text-sm text-[#9eb4c8]">{game.description || '暫無介紹'}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-[#9eb4c8]">{game.description || '暫無描述'}</p>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-xl font-black text-[#8bc53f]">${price.toFixed(2)}</p>

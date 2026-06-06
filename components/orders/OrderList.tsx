@@ -106,7 +106,7 @@ export function OrderList({
                   onClick={() => onViewOrderDetail(order.id)}
                   className="rounded-md border border-[#66c0f455] bg-[#162839] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
                 >
-                  查看明細
+                  詳細
                 </button>
                 <button
                   type="button"
@@ -114,7 +114,7 @@ export function OrderList({
                   disabled={Boolean(reorderingOrderId)}
                   className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-xs font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {reorderingOrderId === order.id ? '加入中...' : '再買一次'}
+                  {reorderingOrderId === order.id ? '加入中...' : '再次購買'}
                 </button>
               </div>
             </article>

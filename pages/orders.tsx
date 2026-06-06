@@ -94,7 +94,7 @@ export default function OrdersPage() {
 
   const handleRefundOrder = useCallback(() => {
     if (selectedOrder?.id) setSpotlightOrderId(selectedOrder.id);
-    return mutateOrder(refundOrder, '退款已完成', 'refund');
+    return mutateOrder(refundOrder, '退款已送出', 'refund');
   }, [mutateOrder, selectedOrder?.id]);
 
   const handleRetryOrder = useCallback(() => {
@@ -116,13 +116,13 @@ export default function OrdersPage() {
       try {
         const result = await reorderOrder(orderId, token);
         if (result.skipped?.length) {
-          toast.info(`已加入 ${result.addedCount} 件商品，另有 ${result.skipped.length} 件暫時無法加入。`);
+          toast.info(`已加入 ${result.addedCount} 個商品，另有 ${result.skipped.length} 個商品目前無法加入。`);
         } else {
           toast.success('已把這筆訂單的商品加入購物車。');
         }
         router.push('/cart');
       } catch {
-        toast.error('暫時無法重新加入購物車，請稍後再試。');
+        toast.error('暫時無法再次購買，請稍後再試。');
       } finally {
         setReorderingOrderId(null);
       }
@@ -183,8 +183,8 @@ export default function OrdersPage() {
         <OrderActionSummary orders={orders} />
 
         <section className="mt-5 rounded-2xl border border-[#66c0f433] bg-[#132434] p-4">
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速找到訂單</p>
-          <h2 className="mt-2 text-xl font-black text-[#d8e6f3]">篩選與搜尋</h2>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">篩選訂單</p>
+          <h2 className="mt-2 text-xl font-black text-[#d8e6f3]">快速找到訂單</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {statusFilters.map((filter) => (
               <button
@@ -247,8 +247,8 @@ export default function OrdersPage() {
           />
         ) : (
           <div className="steam-panel mt-5 rounded-2xl border border-[#66c0f433] p-6 text-center">
-            <p className="text-lg font-black text-[#d8e6f3]">找不到符合條件的訂單</p>
-            <p className="mt-2 text-sm text-[#9eb4c8]">可以切換篩選條件，或回到商店建立新的訂單。</p>
+            <p className="text-lg font-black text-[#d8e6f3]">沒有符合條件的訂單</p>
+            <p className="mt-2 text-sm text-[#9eb4c8]">可以調整篩選條件，或回到商店建立新的訂單。</p>
           </div>
         )}
 

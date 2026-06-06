@@ -224,8 +224,8 @@ function CheckoutForm({
         <p className="mb-3 text-sm font-bold text-[#d8e6f3]">信用卡資料</p>
         <CardElement options={cardOptions} />
         <details className="mt-3 text-xs text-[#8faac0]">
-          <summary className="cursor-pointer font-semibold text-[#9eb4c8]">需要範例卡號？</summary>
-          <p className="mt-2">範例卡號：4242 4242 4242 4242，日期填未來月份，CVC 任意三碼。</p>
+          <summary className="cursor-pointer font-semibold text-[#9eb4c8]">測試卡資訊</summary>
+          <p className="mt-2">測試卡號：4242 4242 4242 4242，到期日可填未來月份，CVC 任意三碼。</p>
         </details>
       </div>
       <button
