@@ -3,9 +3,8 @@ import { ErrorPageView } from '../components/ErrorPageView';
 export default function Custom500() {
   return (
     <ErrorPageView
-      code="500"
-      title="頁面暫時無法顯示"
-      description="剛剛的操作沒有順利完成，請稍後再試，或先回到商店繼續瀏覽。"
+      title="頁面暫時無法載入"
+      description="這個頁面剛剛沒有順利打開。你可以先回到商店，或稍後再重新整理一次。"
     />
   );
 }

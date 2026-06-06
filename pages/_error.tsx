@@ -1,27 +1,17 @@
 import { ErrorPageView } from '../components/ErrorPageView';
 import type { NextPage, NextPageContext } from 'next';
 
-function getErrorText(statusCode) {
+function getErrorText(statusCode: number) {
   if (statusCode === 404) {
     return {
-      code: '404',
       title: '找不到這個頁面',
-      description: '這個連結可能已經移動，請回到商店重新瀏覽。',
-    };
-  }
-
-  if (statusCode === 500) {
-    return {
-      code: '500',
-      title: '頁面暫時無法顯示',
-      description: '剛剛的操作沒有順利完成，請稍後再試，或先回到商店繼續瀏覽。',
+      description: '這個連結可能已經不存在，或商品暫時沒有上架。你可以先回到商店繼續瀏覽。',
     };
   }
 
   return {
-    code: String(statusCode || ''),
-    title: '頁面暫時無法顯示',
-    description: '請稍後再試，或回到商店繼續瀏覽。',
+    title: '頁面暫時無法載入',
+    description: '這個頁面剛剛沒有順利打開。你可以先回到商店，或稍後再重新整理一次。',
   };
 }
 
@@ -35,7 +25,7 @@ type ErrorPageComponent = NextPage<ErrorPageProps> & {
 
 const ErrorPage: ErrorPageComponent = ({ statusCode }) => {
   const copy = getErrorText(statusCode);
-  return <ErrorPageView code={copy.code} title={copy.title} description={copy.description} />;
+  return <ErrorPageView title={copy.title} description={copy.description} />;
 };
 
 ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
