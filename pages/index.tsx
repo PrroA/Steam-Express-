@@ -30,7 +30,7 @@ export default function Home() {
       const data = await fetchGamesList(query);
       setGames(data);
     } catch (error) {
-      console.error('Failed to load games:', error);
+      console.error('商品載入失敗:', error);
     } finally {
       setLoading(false);
     }
@@ -126,18 +126,15 @@ export default function Home() {
         <section className="mb-5 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">開始使用</p>
-              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">先挑一款想玩的遊戲</h2>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">購物流程</p>
+              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">先挑商品，再比較與結帳</h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-[#b9d1e3]">
-                商品頁可以加入購物車、收藏到願望清單，也能把 2 到 3 款遊戲加入比較；有付款或訂單問題，再請 AI 客服協助整理。
+                商品頁可以加入購物車、收藏到願望清單，也能把 2 到 3 款遊戲加入比較；付款或訂單問題可交給 AI 客服協助整理。
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="#games"
-                className="steam-btn rounded-md px-4 py-2 text-sm"
-              >
-                瀏覽商品
+              <Link href="#games" className="steam-btn rounded-md px-4 py-2 text-sm">
+                查看商品
               </Link>
               <Link
                 href="/ChatPage"
@@ -151,8 +148,8 @@ export default function Home() {
 
         <div id="games" className="mb-5 flex flex-col gap-4 rounded-xl border border-[#66c0f433] bg-[#122333] p-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">遊戲商店</p>
-            <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">所有遊戲</h2>
+            <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">商品列表</p>
+            <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">目前上架商品</h2>
             <p className="mt-1 text-xs text-[#8faac0]">
               目前顯示 {filteredGames.length} / {games.length} 款
             </p>
@@ -177,8 +174,8 @@ export default function Home() {
                 className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-2.5 text-sm text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
               >
                 <option value="default">預設排序</option>
-                <option value="low-to-high">價格由低到高</option>
-                <option value="high-to-low">價格由高到低</option>
+                <option value="low-to-high">價格低到高</option>
+                <option value="high-to-low">價格高到低</option>
               </select>
             </label>
             <label className="block">
@@ -212,8 +209,8 @@ export default function Home() {
         {comparedIds.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#66c0f433] bg-[#102131] px-4 py-3 text-sm text-[#d8e6f3]">
             <span>
-              已選 {comparedIds.length} 款商品
-              {comparedIds.length < 2 ? '，再選一款就能開始比較。' : '，可以讓 AI 幫你整理差異。'}
+              已選擇 {comparedIds.length} 款商品
+              {comparedIds.length < 2 ? '，再選一款就能開始比較。' : '，可以前往比較頁看差異。'}
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -250,21 +247,21 @@ export default function Home() {
           <div className="steam-panel flex min-h-44 items-center justify-center rounded-xl p-10">
             <div className="flex flex-col items-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
-              <p className="mt-3 text-sm text-[#9eb4c8]">正在整理遊戲清單...</p>
+              <p className="mt-3 text-sm text-[#9eb4c8]">正在載入商品...</p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {filteredGames.length === 0 ? (
               <div className="steam-panel col-span-full rounded-xl p-10 text-center text-[#9eb4c8]">
-                <p>找不到符合條件的遊戲。</p>
+                <p>找不到符合條件的商品。</p>
                 {hasActiveFilters && (
                   <button
                     type="button"
                     onClick={clearFilters}
                     className="mt-3 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-4 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
                   >
-                    回到全部遊戲
+                    回到全部商品
                   </button>
                 )}
               </div>

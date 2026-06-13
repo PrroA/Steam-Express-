@@ -42,7 +42,7 @@ export function GameCard({ game, onQuickView, onToggleCompare, isCompared = fals
             {game.name}
           </h3>
           <p className="line-clamp-2 min-h-[36px] text-xs leading-[18px] text-[#9eb4c8]">
-            {game.description || 'No description available.'}
+            {game.description || '目前沒有商品介紹。'}
           </p>
           <div className="flex items-end justify-between gap-2">
             <span className="text-xs text-[#8ca7bc] line-through">${originalPrice}</span>
@@ -51,7 +51,7 @@ export function GameCard({ game, onQuickView, onToggleCompare, isCompared = fals
         </div>
         <div className={`mt-4 grid gap-2 ${onQuickView ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <Link href={`/game/${game.id}`} className="steam-btn w-full rounded-md py-2 text-center text-sm transition-all">
-            查看詳情
+            查看商品
           </Link>
           {onQuickView && (
             <button
@@ -59,7 +59,7 @@ export function GameCard({ game, onQuickView, onToggleCompare, isCompared = fals
               onClick={() => onQuickView(game)}
               className="rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
             >
-              快速預覽
+              快速瀏覽
             </button>
           )}
           {onToggleCompare && (

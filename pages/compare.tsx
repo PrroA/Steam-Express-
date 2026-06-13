@@ -33,6 +33,10 @@ function getStock(game: Game) {
   return game.variants.reduce((sum, variant) => sum + (Number(variant.stock) || 0), 0);
 }
 
+function isGame(value: Game | undefined): value is Game {
+  return Boolean(value);
+}
+
 export default function ComparePage() {
   const router = useRouter();
   const [allGames, setAllGames] = useState<Game[]>([]);
@@ -66,7 +70,7 @@ export default function ComparePage() {
       if (Array.isArray(parsed)) {
         setComparedIds(parsed.map((id) => Number(id)).filter(Boolean).slice(0, 3));
       }
-    } catch (error) {
+    } catch {
       setComparedIds([]);
     }
   }, [router.isReady, router.query.ids]);
@@ -76,7 +80,7 @@ export default function ComparePage() {
       try {
         const data = await fetchGames('');
         setAllGames(Array.isArray(data) ? data : []);
-      } catch (error) {
+      } catch {
         setAllGames([]);
       } finally {
         setLoading(false);
@@ -98,7 +102,7 @@ export default function ComparePage() {
   const comparedGames = useMemo(() => {
     if (!comparedIds.length || !allGames.length) return [];
     const gameMap = new Map(allGames.map((game) => [game.id, game]));
-    return comparedIds.map((id) => gameMap.get(id)).filter(Boolean);
+    return comparedIds.map((id) => gameMap.get(id)).filter(isGame);
   }, [comparedIds, allGames]);
 
   const lowestPriceId = useMemo(() => {
@@ -172,7 +176,7 @@ export default function ComparePage() {
           cautions: Array.isArray(data?.cautions) ? data.cautions : [],
           source: data?.source || 'fallback',
         });
-      } catch (error) {
+      } catch {
         if (canceled) return;
         setAiSummary(null);
       } finally {
@@ -197,24 +201,24 @@ export default function ComparePage() {
       },
       {
         id: 'variants',
-        label: '版本數',
+        label: '版本',
         values: comparedGames.map((game) =>
-          Array.isArray(game.variants) ? `${game.variants.length} 種` : '1 種'
+          Array.isArray(game.variants) ? `${game.variants.length} 種版本` : '1 種版本'
         ),
         bestIndex: -1,
         compact: false,
       },
       {
         id: 'stock',
-        label: '總庫存',
+        label: '庫存',
         values: comparedGames.map((game) => `${getStock(game)} 件`),
         bestIndex: comparedGames.findIndex((game) => game.id === highestStockId),
         compact: false,
       },
       {
         id: 'desc',
-        label: '描述',
-        values: comparedGames.map((game) => game.description || '無描述'),
+        label: '商品介紹',
+        values: comparedGames.map((game) => game.description || '目前沒有商品介紹。'),
         bestIndex: -1,
         compact: true,
       },
@@ -238,7 +242,7 @@ export default function ComparePage() {
   if (loading) {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
-        <p className="text-sm text-[#9eb4c8]">比較資料載入中...</p>
+        <p className="text-sm text-[#9eb4c8]">正在載入比較資料...</p>
       </main>
     );
   }
@@ -247,14 +251,14 @@ export default function ComparePage() {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-8 text-center">
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">COMPARE</p>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">商品比較</p>
           <h1 className="mt-2 text-2xl font-black text-[#d8e6f3]">目前沒有可比較商品</h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#9eb4c8]">
             先回商店挑 2 到 3 款商品，按「加入比較」後再回來，AI 助理就能幫你整理差異與選擇建議。
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/#games" className="steam-btn inline-flex rounded-md px-5 py-2 text-sm">
-              回商店挑商品
+              回到商品列表
             </Link>
             <Link
               href="/ChatPage"
@@ -273,26 +277,26 @@ export default function ComparePage() {
       <section className="mx-auto w-full max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">PRODUCT COMPARISON</p>
+            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">商品比較</p>
             <h1 className="mt-1 text-3xl font-black text-[#d8e6f3]">商品比較</h1>
           </div>
           <Link
             href="/"
             className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
           >
-            回商店繼續選
+            回到商店
           </Link>
         </div>
 
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-[#66c0f433] bg-[#14283a] px-4 py-3">
-          <p className="text-sm text-[#b9d1e3]">可切換只看不同欄位，快速找出差異點</p>
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[#66c0f433] bg-[#14283a] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[#b9d1e3]">先看價格、版本、庫存與介紹差異，再用 AI 建議輔助判斷。</p>
           <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-[#d8e6f3]">
             <input
               type="checkbox"
               checked={onlyShowDiff}
               onChange={(event) => setOnlyShowDiff(event.target.checked)}
             />
-            只顯示差異
+            只看有差異的項目
           </label>
         </div>
 
@@ -307,14 +311,14 @@ export default function ComparePage() {
 
         <div className="mb-4 rounded-xl border border-[#8bc53f66] bg-[#1a3324] p-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">AI COMPARE SUMMARY</p>
-            {aiSummaryLoading && <span className="text-xs text-[#cce9c7]">正在整理摘要</span>}
+            <p className="text-xs font-bold tracking-[0.14em] text-[#b9e0bd]">AI 比較摘要</p>
+            {aiSummaryLoading && <span className="text-xs text-[#cce9c7]">正在整理...</span>}
           </div>
           {aiSummary ? (
             <div className="mt-2 space-y-2 text-sm text-[#def4c7]">
               <p className="font-semibold text-[#e7ffd8]">{aiSummary.headline}</p>
-              <p>預算優先：{aiSummary.bestForBudget || '—'}</p>
-              <p>可買性優先：{aiSummary.bestForAvailability || '—'}</p>
+              <p>預算優先：{aiSummary.bestForBudget || '目前沒有明確差異'}</p>
+              <p>庫存優先：{aiSummary.bestForAvailability || '目前沒有明確差異'}</p>
               <p className="text-[#cde8c8]">{aiSummary.recommendation}</p>
               {aiSummary.cautions.length > 0 && (
                 <ul className="list-inside list-disc space-y-1 text-xs text-[#c4dfbf]">
@@ -333,11 +337,11 @@ export default function ComparePage() {
         <div className="mb-4 rounded-xl border border-[#66c0f466] bg-[#12283a] p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold tracking-[0.14em] text-[#9fd2f1]">本機比較決策</p>
-              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">如果只能先選一款</h2>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#9fd2f1]">購買決策助理</p>
+              <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">幫我選一款比較適合的</h2>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-[#66c0f455] bg-[#173246] px-2.5 py-1 text-xs font-bold text-[#d8f1ff]">
-                  {browserAiCapability?.label || '正在確認本機分析方式'}
+                  {browserAiCapability?.label || '使用內建規則建議'}
                 </span>
                 {comparisonAdvice && <AiSourceBadge source={comparisonAdvice.source} prefix />}
               </div>
@@ -355,20 +359,20 @@ export default function ComparePage() {
               disabled={comparisonAdviceLoading || comparedGames.length < 2}
               className="rounded-md border border-[#66c0f466] bg-[#1b3b52] px-3 py-2 text-xs font-bold text-[#d8f1ff] transition hover:border-[#66c0f4] hover:bg-[#24506f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {comparisonAdviceLoading ? '正在整理建議' : '幫我選一款'}
+              {comparisonAdviceLoading ? '整理建議中...' : '產生選購建議'}
             </button>
           </div>
 
           {comparisonAdvice ? (
             <div data-testid="compare-ai-advice-result" className="mt-3 grid gap-3 text-sm text-[#d7e8f4]">
               <div className="rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
-                <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">建議先看</p>
+                <p className="text-xs font-bold tracking-[0.12em] text-[#8fb8d5]">建議首選</p>
                 <p className="mt-1 text-lg font-black text-[#e8f6ff]">{comparisonAdvice.winnerName}</p>
                 <p className="mt-2 leading-6">{comparisonAdvice.summary}</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <DecisionList title="為什麼" items={comparisonAdvice.reasons} />
-                <DecisionList title="取捨點" items={comparisonAdvice.tradeoffs} />
+                <DecisionList title="為什麼適合" items={comparisonAdvice.reasons} />
+                <DecisionList title="需要注意" items={comparisonAdvice.tradeoffs} />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#66c0f433] bg-[#0e1924] p-3">
                 <p className="text-sm leading-6 text-[#d7e8f4]">{comparisonAdvice.nextAction}</p>
@@ -383,7 +387,7 @@ export default function ComparePage() {
               </div>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-[#b9d1e3]">選好 2 到 3 款商品後，可以讓決策助理幫你收斂選擇。</p>
+            <p className="mt-3 text-sm text-[#b9d1e3]">選滿 2 到 3 款商品後，可以讓助理幫你整理選購建議。</p>
           )}
         </div>
 
@@ -421,7 +425,7 @@ export default function ComparePage() {
               ))}
               <tr className="bg-[#102131]">
                 <td className="border-t border-[#66c0f433] px-4 py-3 text-sm font-semibold text-[#9eb4c8]">
-                  快速操作
+                  下一步
                 </td>
                 {comparedGames.map((game) => (
                   <td
@@ -432,7 +436,7 @@ export default function ComparePage() {
                       href={`/game/${game.id}`}
                       className="steam-btn inline-flex rounded-md px-4 py-2 text-xs"
                     >
-                      查看詳情
+                      查看商品
                     </Link>
                   </td>
                 ))}
@@ -475,7 +479,7 @@ function CompareRow({
           >
             {isDiff && (
               <span className="mr-2 inline-block rounded border border-[#66c0f477] bg-[#21415d] px-1.5 py-0.5 text-[10px] font-bold text-[#c7e7ff]">
-                DIFF
+                差異
               </span>
             )}
             {value}

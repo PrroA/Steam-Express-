@@ -21,9 +21,9 @@ export function AiRecommendationSection({
     <section className="mb-7 rounded-xl border border-[#66c0f433] bg-[#122333] p-4">
       <div className="mb-4">
         <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">AI 推薦</p>
-        <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">根據你的瀏覽與購物行為</h2>
+        <h2 className="mt-1 text-2xl font-black text-[#d8e6f3]">根據你最近的瀏覽推薦</h2>
         <p className="mt-1 text-xs text-[#9eb4c8]">
-          推薦理由會參考最近看過、願望清單、購物車與價格區間。
+          推薦會參考最近看過、願望清單、購物車與價格區間，幫你更快縮小選擇。
         </p>
       </div>
 

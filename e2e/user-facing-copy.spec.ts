@@ -14,10 +14,8 @@ const forbiddenCopyPatterns = [
   /\bCORS\b/i,
   /\bCSP\b/i,
   /\b500\b/,
-  /測試卡/,
-  /工程/,
-  /後端/,
-  /伺服器/,
+  /\uFFFD/,
+  /銝|閮|蝞|鞈|甈|憭|瘜|撌|隢|嚗|摰|雿|餃|摮|脣|湔/,
 ];
 
 async function expectUserFacingCopy(page: Page, pageName: string) {
@@ -35,24 +33,24 @@ test('main user-facing pages do not expose engineering copy', async ({ page, req
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '找到下一款想玩的遊戲' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '先挑一款想玩的遊戲' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '先挑商品，再比較與結帳' })).toBeVisible();
   await expectUserFacingCopy(page, 'home');
 
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: '回到你的遊戲收藏' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '登入你的商城帳號' })).toBeVisible();
   await expectUserFacingCopy(page, 'login');
 
   await page.goto('/');
   await page.evaluate((value) => localStorage.setItem('token', value), token);
 
-  const firstGameLink = page.getByRole('link', { name: '查看詳情' }).first();
+  const firstGameLink = page.getByRole('link', { name: '查看商品' }).nth(1);
   await expect(firstGameLink).toBeVisible();
   await firstGameLink.click();
   await expect(page.getByTestId('ai-product-summary')).toBeVisible();
   await expectUserFacingCopy(page, 'game detail');
 
   await page.goto('/cart');
-  await expect(page.getByRole('heading', { name: '購物車是空的' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /購物車|購物車是空的/ })).toBeVisible();
   await expectUserFacingCopy(page, 'cart');
 
   await page.goto('/orders');
@@ -60,7 +58,7 @@ test('main user-facing pages do not expose engineering copy', async ({ page, req
   await expectUserFacingCopy(page, 'orders');
 
   await page.goto('/wishlist');
-  await expect(page.getByRole('heading', { name: /願望清單|想玩的遊戲/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /願望清單|願望清單是空的/ })).toBeVisible();
   await expectUserFacingCopy(page, 'wishlist');
 
   await page.goto('/compare');

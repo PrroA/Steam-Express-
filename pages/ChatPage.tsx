@@ -117,7 +117,7 @@ function getStatusLabel(message: ChatMessage) {
 
 function getSourceTypeLabel(type: ChatSource['type']) {
   if (type === 'catalog') return '商品資料';
-  if (type === 'policy') return '商店規則';
+  if (type === 'policy') return '商城規則';
   if (type === 'order') return '你的訂單';
   return '客服說明';
 }
@@ -162,7 +162,7 @@ export default function ChatPage() {
   const quickPrompts = useMemo(
     () => [
       '推薦一款適合我的遊戲',
-      '怎麼完成付款？',
+      '怎麼付款？',
       '查詢我的訂單狀態',
     ],
     []
@@ -288,6 +288,7 @@ export default function ChatPage() {
                         </p>
                       )}
                       <p className="whitespace-pre-wrap">{message.text}</p>
+
                       {!isUser && message.orderCare && (
                         <div className="mt-3 overflow-hidden rounded-lg border border-[#66c0f455] bg-[#101d2a]">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#66c0f422] px-3 py-2">
@@ -331,6 +332,7 @@ export default function ChatPage() {
                           </div>
                         </div>
                       )}
+
                       {!isUser && message.cartReview && (
                         <div className="mt-3 overflow-hidden rounded-lg border border-[#8bc53f55] bg-[#101d2a]">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8bc53f33] px-3 py-2">
@@ -366,6 +368,7 @@ export default function ChatPage() {
                           </div>
                         </div>
                       )}
+
                       {!isUser && message.comparison && message.comparison.length > 0 && (
                         <div className="mt-3 overflow-hidden rounded-lg border border-[#66c0f433] bg-[#101d2a]">
                           <div className="border-b border-[#66c0f422] px-3 py-2 text-[11px] font-bold tracking-[0.12em] text-[#8fb8d5]">
@@ -394,6 +397,7 @@ export default function ChatPage() {
                           </div>
                         </div>
                       )}
+
                       {!isUser && catalogSources.length > 0 && (
                         <div className="mt-3 grid gap-2">
                           {catalogSources.map((source) => (
@@ -433,6 +437,7 @@ export default function ChatPage() {
                           ))}
                         </div>
                       )}
+
                       {!isUser && supportSources.length > 0 && (
                         <div className="mt-3 rounded-lg border border-[#66c0f433] bg-[#101d2a] p-2">
                           <p className="text-[11px] font-bold text-[#8faac0]">參考資料</p>
@@ -448,12 +453,13 @@ export default function ChatPage() {
                           </div>
                         </div>
                       )}
+
                       {!isUser && debugEnabled && message.debug && (
                         <div className="mt-3 rounded-lg border border-[#8bc53f55] bg-[#122816] p-3 text-xs text-[#cfe8c5]">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="font-bold tracking-[0.12em] text-[#b7df9e]">回答來源</p>
+                            <p className="font-bold tracking-[0.12em] text-[#b7df9e]">資料來源檢查</p>
                           </div>
-                          <p className="mt-2 text-[#adcda5]">查詢：{message.debug.query}</p>
+                          <p className="mt-2 text-[#adcda5]">查詢內容：{message.debug.query}</p>
                           <div className="mt-2 space-y-2">
                             {message.debug.matches.length === 0 && (
                               <p className="text-[#adcda5]">這次沒有命中文件，使用一般客服範圍回覆。</p>
@@ -517,7 +523,7 @@ export default function ChatPage() {
                   href="/#games"
                   className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 font-semibold transition hover:bg-[#1a3044]"
                 >
-                  回商店挑商品
+                  回到商品列表
                 </Link>
                 <Link
                   href="/compare"
@@ -537,26 +543,26 @@ export default function ChatPage() {
             </div>
 
             <div className="mt-4">
-            <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速詢問</p>
-            <div className="mt-3 grid gap-2">
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => sendMessage(prompt)}
-                  disabled={isReplying}
-                  className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 text-left text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+              <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">快速提問</p>
+              <div className="mt-3 grid gap-2">
+                {quickPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => sendMessage(prompt)}
+                    disabled={isReplying}
+                    className="rounded-md border border-[#66c0f433] bg-[#11202f] px-3 py-2 text-left text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </div>
             {debugAvailable && (
               <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#8bc53f55] bg-[#102217] p-3 text-xs text-[#d6edce]">
                 <span>
-                  <span className="block font-bold">顯示回答來源</span>
-                  <span className="mt-1 block text-[#aacda1]">查看這次回答參考了哪些商城資料。</span>
+                  <span className="block font-bold">顯示資料來源</span>
+                  <span className="mt-1 block text-[#aacda1]">查看這次回覆參考了哪些商城資料。</span>
                 </span>
                 <input
                   type="checkbox"

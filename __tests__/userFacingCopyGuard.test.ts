@@ -2,6 +2,13 @@ import fs from 'fs';
 import path from 'path';
 
 const targetFiles = [
+  'components/Carousel.tsx',
+  'components/GameCard.tsx',
+  'components/home/AiRecommendationSection.tsx',
+  'pages/ChatPage.tsx',
+  'pages/compare.tsx',
+  'pages/index.tsx',
+  'pages/login.tsx',
   'pages/profile.tsx',
   'pages/transactions.tsx',
   'pages/orders/[orderId].tsx',
