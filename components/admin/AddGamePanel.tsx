@@ -44,11 +44,11 @@ export function AddGamePanel({
         <div className="relative mt-4 aspect-video w-full overflow-hidden rounded-xl border border-[#66c0f433] bg-[#0f1d2b]">
           <Image
             src={form.preview}
-            alt="商品圖片預覽"
+            alt="商品預覽"
             fill
             unoptimized
             className="object-cover"
-            onError={() => onFieldChange('imageUrlError', '圖片無法載入，請確認網址或重新上傳。')}
+            onError={() => onFieldChange('imageUrlError', '圖片載入失敗，請確認網址或改用上傳。')}
             onLoad={() => onFieldChange('imageUrlError', '')}
             referrerPolicy="no-referrer"
           />
@@ -70,7 +70,7 @@ export function AddGamePanel({
           className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
         />
         <textarea
-          placeholder="商品描述"
+          placeholder="商品介紹"
           value={form.description}
           onChange={(event) => onFieldChange('description', event.target.value)}
           className="min-h-24 w-full rounded-md border border-[#66c0f444] bg-[#162737] px-4 py-3 text-sm text-[#d8e6f3] placeholder:text-[#89a8bf] focus:border-[#66c0f4aa] focus:outline-none"
@@ -91,21 +91,21 @@ export function AddGamePanel({
 
           {!aiDraft && (
             <p className="mt-2 text-xs text-[#9ec09e]">
-              輸入商品名稱後，可以請 AI 先整理商品描述、賣點與展示標題。
+              輸入商品名稱後，可以請 AI 產生商品介紹、賣點與展示標題。
             </p>
           )}
 
           {aiDraft && (
             <div className="mt-3 space-y-2 text-xs text-[#d2e7d2]">
               <div className="rounded-md border border-[#8bc53f33] bg-[#112318] p-2">
-                <p className="font-semibold text-[#dff3d2]">商品描述</p>
+                <p className="font-semibold text-[#dff3d2]">商品介紹</p>
                 <p className="mt-1 text-[#c3dbc3]">{aiDraft.shortDescription}</p>
                 <button
                   type="button"
                   onClick={onApplyAiShortDescription}
                   className="mt-2 rounded border border-[#8bc53f66] bg-[#29412f] px-2 py-1 text-[11px] font-semibold text-[#e2f4d1]"
                 >
-                  套用描述
+                  套用介紹
                 </button>
               </div>
               <div className="rounded-md border border-[#8bc53f33] bg-[#112318] p-2">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { requestPasswordReset } from '../services/authService';
+import type { FormEvent } from 'react';
 
 export default function ForgotPasswordPage() {
   const [accountInput, setAccountInput] = useState('');
@@ -12,7 +13,7 @@ export default function ForgotPasswordPage() {
   const [emailSent, setEmailSent] = useState(false);
   const router = useRouter();
 
-  const handleForgotPassword = async (event) => {
+  const handleForgotPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       const response = await requestPasswordReset(accountInput);
@@ -75,7 +76,7 @@ export default function ForgotPasswordPage() {
 
         {resetUrl && !emailSent && (
           <div className="mt-3 rounded-lg border border-[#66c0f455] bg-[#102131] p-3">
-            <p className="text-xs text-[#8faac0]">本機展示連結：</p>
+            <p className="text-xs text-[#8faac0]">本機展示重設連結：</p>
             <p className="mt-1 break-all text-sm font-bold text-[#d8e6f3]">{resetUrl}</p>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { AddGamePanel } from '../components/admin/AddGamePanel';
 
 describe('AddGamePanel', () => {
@@ -47,10 +47,10 @@ describe('AddGamePanel', () => {
     expect(screen.getByRole('heading', { name: '新增商品' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('商品名稱')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('價格，例如 59.99')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('商品描述')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('商品介紹')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('商品圖片 URL')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '新增商品' })).toBeInTheDocument();
-    expect(screen.queryByAltText('商品圖片預覽')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('商品預覽')).not.toBeInTheDocument();
   });
 
   it('triggers field change handlers when user types', () => {
@@ -62,7 +62,7 @@ describe('AddGamePanel', () => {
     fireEvent.change(screen.getByPlaceholderText('價格，例如 59.99'), {
       target: { value: '59.99' },
     });
-    fireEvent.change(screen.getByPlaceholderText('商品描述'), {
+    fireEvent.change(screen.getByPlaceholderText('商品介紹'), {
       target: { value: 'Open world RPG' },
     });
     fireEvent.change(screen.getByPlaceholderText('商品圖片 URL'), {
@@ -94,20 +94,19 @@ describe('AddGamePanel', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it('renders preview image and handles image load/error callbacks', () => {
+  it('renders preview image and handles image error callback', () => {
     const { onFieldChange } = setup({ preview: 'https://example.com/cover.jpg' });
-    const preview = screen.getByAltText('商品圖片預覽');
+    const preview = screen.getByAltText('商品預覽');
 
     fireEvent.error(preview);
-    expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '圖片無法載入，請確認網址或重新上傳。');
-
+    expect(onFieldChange).toHaveBeenCalledWith('imageUrlError', '圖片載入失敗，請確認網址或改用上傳。');
   });
 
   it('shows uploading and error states', () => {
-    setup({ uploadingImage: true, imageUrlError: '圖片格式錯誤' });
+    setup({ uploadingImage: true, imageUrlError: '圖片上傳失敗，請稍後再試。' });
 
     expect(screen.getByText('圖片上傳中...')).toBeInTheDocument();
-    expect(screen.getByText('圖片格式錯誤')).toBeInTheDocument();
+    expect(screen.getByText('圖片上傳失敗，請稍後再試。')).toBeInTheDocument();
   });
 
   it('triggers AI copy generation', () => {

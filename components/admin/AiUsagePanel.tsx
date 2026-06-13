@@ -8,8 +8,8 @@ function formatMode(mode: string) {
   const labels: Record<string, string> = {
     'product-recommendation': '商品推薦',
     'personalized-recommendation': '個人化推薦',
-    'product-decision': '購買判斷',
-    'personalized-product-decision': '個人化購買判斷',
+    'product-decision': '商品決策',
+    'personalized-product-decision': '個人化商品決策',
     'product-comparison': '商品比較',
     'personalized-product-comparison': '個人化商品比較',
     'product-search': '商品搜尋',
@@ -27,7 +27,7 @@ function formatMode(mode: string) {
 }
 
 function formatProvider(provider: string | null) {
-  if (provider === 'openai') return '雲端 AI';
+  if (provider === 'openai') return '線上 AI';
   if (provider === 'ollama') return '本機 AI';
   return '內建回覆';
 }
@@ -50,14 +50,14 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
     <section data-testid="admin-ai-usage-panel" className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 服務狀態</p>
-          <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">客服與商品建議使用概況</h2>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">AI 使用概況</p>
+          <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">客服與商品建議紀錄</h2>
         </div>
-        <p className="text-xs text-[#8faac0]">快速確認 AI 助理是否有根據商城資料回答，以及最近使用情況。</p>
+        <p className="text-xs text-[#8faac0]">追蹤最近 AI 回覆是否有根據商城資料，以及回覆速度與 fallback 比例。</p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <StatTile testId="admin-ai-usage-total" label="回答次數" value={summary?.total || 0} />
+        <StatTile testId="admin-ai-usage-total" label="回覆次數" value={summary?.total || 0} />
         <StatTile testId="admin-ai-usage-grounded" label="根據商城資料" value={summary?.grounded || 0} tone="success" />
         <StatTile testId="admin-ai-usage-fallback" label="一般回覆" value={summary?.fallback || 0} tone="warn" />
       </div>

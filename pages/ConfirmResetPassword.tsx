@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { confirmPasswordReset } from '../services/authService';
+import type { FormEvent } from 'react';
 
 export default function ConfirmResetPasswordPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function ConfirmResetPasswordPage() {
     if (!resetCode && initialCode) setResetCode(initialCode);
   }, [initialCode, resetCode]);
 
-  const handleConfirmReset = async (event) => {
+  const handleConfirmReset = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!resetCode || !newPassword) {
       setIsError(true);

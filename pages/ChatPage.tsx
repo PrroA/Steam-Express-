@@ -92,6 +92,22 @@ type OrderCare = {
   href: string;
 };
 
+type ShoppingAgentStep = {
+  id: string;
+  title: string;
+  status: 'done' | 'suggested' | 'blocked';
+  detail: string;
+  href?: string;
+  gameId?: number;
+};
+
+type ShoppingAgentPlan = {
+  goal: string;
+  summary: string;
+  nextHref?: string;
+  steps: ShoppingAgentStep[];
+};
+
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -101,6 +117,7 @@ type ChatMessage = {
   comparison?: ProductComparisonRow[];
   cartReview?: CartReview;
   orderCare?: OrderCare;
+  agentPlan?: ShoppingAgentPlan;
   debug?: RagDebug;
 };
 
@@ -120,6 +137,12 @@ function getSourceTypeLabel(type: ChatSource['type']) {
   if (type === 'policy') return '商城規則';
   if (type === 'order') return '你的訂單';
   return '客服說明';
+}
+
+function getAgentStepStatusLabel(status: ShoppingAgentStep['status']) {
+  if (status === 'done') return '完成';
+  if (status === 'blocked') return '需處理';
+  return '建議';
 }
 
 function getAuthHeader() {
@@ -161,6 +184,8 @@ export default function ChatPage() {
 
   const quickPrompts = useMemo(
     () => [
+      '幫我找 30 美元以下的 RPG，並加入比較',
+      '幫我挑一款適合新手的遊戲並加入願望清單',
       '推薦一款適合我的遊戲',
       '怎麼付款？',
       '查詢我的訂單狀態',
@@ -209,6 +234,8 @@ export default function ChatPage() {
       const comparison = Array.isArray(data?.comparison) ? data.comparison.slice(0, 3) : undefined;
       const cartReview = data?.cartReview && Array.isArray(data.cartReview.items) ? data.cartReview : undefined;
       const orderCare = data?.orderCare?.orderId ? data.orderCare : undefined;
+      const agentPlan =
+        data?.agentPlan && Array.isArray(data.agentPlan.steps) ? data.agentPlan : undefined;
       const status =
         data?.mode === 'order-status' || data?.mode === 'order-care'
           ? 'account'
@@ -229,6 +256,7 @@ export default function ChatPage() {
           comparison,
           cartReview,
           orderCare,
+          agentPlan,
           debug: data?.debug,
         },
       ]);
@@ -288,6 +316,54 @@ export default function ChatPage() {
                         </p>
                       )}
                       <p className="whitespace-pre-wrap">{message.text}</p>
+
+                      {!isUser && message.agentPlan && (
+                        <div className="mt-3 overflow-hidden rounded-lg border border-[#8bc53f55] bg-[#101d2a]">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8bc53f33] px-3 py-2">
+                            <p className="text-[11px] font-bold tracking-[0.12em] text-[#b7df9e]">AI 購物助理任務</p>
+                            {message.agentPlan.nextHref && (
+                              <Link
+                                href={message.agentPlan.nextHref}
+                                className="rounded border border-[#8bc53f55] bg-[#18351e] px-2 py-0.5 text-xs font-bold text-[#c9f0b8]"
+                              >
+                                前往下一步
+                              </Link>
+                            )}
+                          </div>
+                          <div className="grid gap-2 p-3 text-xs leading-5 text-[#c5dced]">
+                            <p className="rounded border border-[#8bc53f33] bg-[#122816] p-2 text-[#d6edce]">
+                              {message.agentPlan.summary}
+                            </p>
+                            {message.agentPlan.steps.map((step) => (
+                              <div key={step.id} className="rounded border border-[#66c0f422] bg-[#132434] p-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="font-bold text-[#e3f0fb]">{step.title}</p>
+                                  <span
+                                    className={`rounded border px-2 py-0.5 text-[11px] font-bold ${
+                                      step.status === 'blocked'
+                                        ? 'border-[#ffb15c55] bg-[#3d2817] text-[#ffd8a8]'
+                                        : step.status === 'done'
+                                          ? 'border-[#8bc53f55] bg-[#18351e] text-[#c9f0b8]'
+                                          : 'border-[#66c0f455] bg-[#173149] text-[#c7ebff]'
+                                    }`}
+                                  >
+                                    {getAgentStepStatusLabel(step.status)}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-[#9eb4c8]">{step.detail}</p>
+                                {step.href && (
+                                  <Link
+                                    href={step.href}
+                                    className="mt-2 inline-flex rounded border border-[#66c0f455] px-2.5 py-1 text-[11px] font-bold text-[#bfe4fb] transition hover:bg-[#1a3044]"
+                                  >
+                                    開啟
+                                  </Link>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {!isUser && message.orderCare && (
                         <div className="mt-3 overflow-hidden rounded-lg border border-[#66c0f455] bg-[#101d2a]">

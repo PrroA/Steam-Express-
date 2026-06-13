@@ -31,7 +31,7 @@ export function GameManagementPanel({
         <div>
           <h2 className="text-xl font-black text-[#d8e6f3]">商品管理</h2>
           <p className="mt-1 text-xs text-[#8faac0]">
-            上架中 {activeCount} / {games.length} 款，低庫存版本 {lowStockCount} 個
+            上架中 {activeCount} / {games.length} 款，低庫存項目 {lowStockCount} 個
           </p>
         </div>
       </div>
@@ -77,12 +77,12 @@ export function GameManagementPanel({
 
             {(!Array.isArray(game.variants) || game.variants.length === 0) && (
               <div className="mt-3 rounded-md border border-[#66c0f433] bg-[#102131] p-3">
-                <p className="text-xs text-[#9eb4c8]">這個商品還沒有版本資料，請先補上預設版本。</p>
+                <p className="text-xs text-[#9eb4c8]">這個商品還沒有版本資料，可以先建立預設版本。</p>
                 <button
                   onClick={() => onEnsureVariant(game.id)}
                   className="mt-2 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
                 >
-                  補上預設版本
+                  建立預設版本
                 </button>
               </div>
             )}
@@ -137,7 +137,7 @@ function GameBasicEditor({
           value={draftDescription}
           onChange={(event) => setDraftDescription(event.target.value)}
           rows={2}
-          placeholder="商品描述"
+          placeholder="商品介紹"
           className="w-full rounded-md border border-[#66c0f444] bg-[#162737] px-3 py-2 text-xs text-[#d8e6f3] focus:border-[#66c0f4aa] focus:outline-none"
         />
         <div className="grid gap-2 sm:grid-cols-[1fr_120px]">

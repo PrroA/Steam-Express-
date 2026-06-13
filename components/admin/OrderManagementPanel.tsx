@@ -83,7 +83,7 @@ function OrderRow({
         <div>
           <p className="font-bold text-[#d8e6f3]">訂單 {order.id.slice(0, 8)}...</p>
           <p className="text-xs text-[#8fb8d5]">
-            會員 #{order.userId} · ${order.total.toFixed(2)} · {getOrderStatusLabel(order.status)}
+            使用者 #{order.userId} · ${order.total.toFixed(2)} · {getOrderStatusLabel(order.status)}
           </p>
           <p className="text-xs text-[#9eb4c8]">
             出貨狀態：{getFulfillmentStatusLabel(order.fulfillmentStatus)}
@@ -136,7 +136,7 @@ function OrderRow({
           onClick={() => onUpdateShippingDetails(order.id, { carrier, trackingNumber })}
           className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
         >
-          儲存配送
+          更新配送
         </button>
       </div>
 

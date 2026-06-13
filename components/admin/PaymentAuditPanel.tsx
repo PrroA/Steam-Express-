@@ -22,7 +22,7 @@ const statusLabels: Record<AdminPaymentAuditEvent['status'], { label: string; cl
 function formatPaymentSource(event: AdminPaymentAuditEvent) {
   if (event.source === 'demo-quick-pay') return '快速付款';
   if (event.source === 'stripe-confirm-api') return '信用卡付款確認';
-  return '信用卡付款通知';
+  return '信用卡付款';
 }
 
 function formatReason(reason: string) {
@@ -37,7 +37,7 @@ function formatReason(reason: string) {
     'missing-order-id': '缺少訂單資訊',
     'order-not-pending': '訂單狀態已變更',
   };
-  return labels[reason] || '已記錄付款狀態';
+  return labels[reason] || '未分類紀錄';
 }
 
 function formatShortOrderId(orderId: string | null) {
@@ -58,8 +58,8 @@ export function PaymentAuditPanel({ audits }: PaymentAuditPanelProps) {
     <section data-testid="admin-payment-audit-panel" className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">付款追蹤</p>
-          <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">最近付款狀態</h2>
+          <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">付款紀錄</p>
+          <h2 className="mt-1 text-xl font-black text-[#d8e6f3]">最近付款處理</h2>
         </div>
         <p className="text-xs text-[#8faac0]">快速確認最近付款是否順利，方便追訂單問題。</p>
       </div>
@@ -92,14 +92,14 @@ export function PaymentAuditPanel({ audits }: PaymentAuditPanelProps) {
                 </div>
                 <div className="text-left text-xs text-[#8faac0] md:text-right">
                   <p>{formatTime(event.createdAt)}</p>
-                  {event.userId && <p className="mt-1">會員 {event.userId}</p>}
+                  {event.userId && <p className="mt-1">使用者 {event.userId}</p>}
                 </div>
               </article>
             );
           })
         ) : (
           <p className="rounded-xl border border-[#66c0f433] bg-[#102131] p-4 text-sm text-[#9eb4c8]">
-            目前還沒有付款紀錄。完成一筆快速付款或信用卡付款後，這裡會顯示最近狀態。
+            目前還沒有付款紀錄。完成快速付款或信用卡付款後，這裡會顯示最近狀態。
           </p>
         )}
       </div>

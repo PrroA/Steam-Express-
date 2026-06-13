@@ -16,6 +16,8 @@ jest.mock('react-toastify', () => ({
   toast: { success: jest.fn(), error: jest.fn() },
 }));
 
+const mockedRegisterUser = registerUser as jest.MockedFunction<typeof registerUser>;
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockPush.mockReset();
@@ -45,7 +47,7 @@ test('Email 格式錯誤時顯示提示', async () => {
     confirmPassword: 'Password1',
   });
   fireEvent.click(screen.getByTestId('register-submit'));
-  expect(await screen.findByText('Email 格式看起來不正確。')).toBeInTheDocument();
+  expect(await screen.findByText('Email 格式不正確。')).toBeInTheDocument();
 });
 
 test('密碼太弱時顯示提示', async () => {
@@ -75,7 +77,7 @@ test('兩次密碼不一致時顯示提示', async () => {
 });
 
 test('註冊成功後導向登入頁', async () => {
-  registerUser.mockResolvedValueOnce({ ok: true });
+  mockedRegisterUser.mockResolvedValueOnce({ ok: true } as any);
 
   render(<RegisterPage />);
 
@@ -86,12 +88,12 @@ test('註冊成功後導向登入頁', async () => {
     expect(registerUser).toHaveBeenCalledWith('gooduser', 'Password1', 'good@test.com');
   });
 
-  expect(toast.success).toHaveBeenCalledWith('帳號建立完成，請登入。');
+  expect(toast.success).toHaveBeenCalledWith('帳號已建立，請登入開始使用。');
   expect(mockPush).toHaveBeenCalledWith('/login');
 });
 
 test('註冊失敗時顯示提示', async () => {
-  registerUser.mockRejectedValueOnce(new Error('duplicate'));
+  mockedRegisterUser.mockRejectedValueOnce(new Error('duplicate'));
 
   render(<RegisterPage />);
 

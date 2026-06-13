@@ -44,7 +44,7 @@ export default function RegisterPage() {
     if (!formData.email.trim()) {
       newErrors.email = '請輸入 Email。';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email 格式看起來不正確。';
+      newErrors.email = 'Email 格式不正確。';
     }
 
     if (!formData.password) {
@@ -76,7 +76,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await registerUser(formData.username, formData.password, formData.email);
-      toast.success('帳號建立完成，請登入。');
+      toast.success('帳號已建立，請登入開始使用。');
       router.push('/login');
     } catch {
       toast.error('註冊沒有完成，請確認資料後再試一次。');
@@ -89,7 +89,7 @@ export default function RegisterPage() {
     <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
       <section className="steam-panel w-full max-w-md rounded-2xl p-7 md:p-8">
         <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">建立帳號</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">開始收藏你的遊戲</h1>
+        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">加入 Steam Practice</h1>
         <p className="mt-1 text-sm text-[#9eb4c8]">
           建立帳號後可以追蹤願望清單、完成結帳，並在訂單中心查看付款進度。
         </p>
@@ -176,7 +176,7 @@ export default function RegisterPage() {
         </form>
 
         <p className="mt-4 text-center text-sm text-[#9eb4c8]">
-          已經有帳號？
+          已經有帳號了？
           <Link href="/login" className="ml-1 text-[#8fb8d5] transition hover:text-[#66c0f4]">
             前往登入
           </Link>

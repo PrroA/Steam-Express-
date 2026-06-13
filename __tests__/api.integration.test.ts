@@ -478,6 +478,21 @@ describe('API integration', () => {
     expect(ragRes.body.sources[0].price).not.toBe('$0.00');
   });
 
+  test('rag endpoint returns a shopping agent plan for assistant tasks', async () => {
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      body: JSON.stringify({ message: '幫我找 30 美元以下的 RPG，並加入比較' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.grounded).toBe(true);
+    expect(ragRes.body.mode).toBe('shopping-agent');
+    expect(Array.isArray(ragRes.body.agentPlan?.steps)).toBe(true);
+    expect(ragRes.body.agentPlan.steps.some((step) => step.id === 'open-compare')).toBe(true);
+    expect(ragRes.body.agentPlan.nextHref).toMatch(/^\/compare\?ids=/);
+    expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
+  });
+
   test('rag endpoint uses client preference memory for anonymous recommendations', async () => {
     const gamesRes = await requestJson('/games');
     const targetGame = gamesRes.body.find((game) => game?.id && game?.name) || gamesRes.body[0];
