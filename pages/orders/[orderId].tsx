@@ -2,9 +2,9 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { FaCheckCircle, FaClock, FaTimesCircle, FaUndoAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import { fetchOrderById, reorderOrder } from '../../services/orderService';
 import type { Order } from '../../types/domain';
-import { toast } from 'react-toastify';
 import {
   FULFILLMENT_STATUS,
   ORDER_STATUS,
@@ -21,15 +21,32 @@ const fulfillmentClasses = {
   [FULFILLMENT_STATUS.DELIVERED]: 'bg-[#1f3b2a] text-[#8bc53f] border-[#8bc53f55]',
 };
 
+const paymentMethodLabels: Record<string, string> = {
+  'credit-card': '信用卡',
+  'line-pay': 'LINE Pay',
+  wallet: 'Steam 錢包',
+};
+
 function fulfillmentBadgeClass(status?: Order['fulfillmentStatus']) {
   return fulfillmentClasses[normalizeFulfillmentStatus(status)];
 }
 
 function statusNodeStyle(status: Order['status']) {
-  if (status === ORDER_STATUS.PAID) return { dot: 'bg-[#8bc53f]', line: 'bg-[#8bc53f66]', icon: FaCheckCircle };
-  if (status === ORDER_STATUS.PENDING) return { dot: 'bg-[#ffd079]', line: 'bg-[#ffd07966]', icon: FaClock };
-  if (status === ORDER_STATUS.PAYMENT_FAILED) return { dot: 'bg-[#ff8d8d]', line: 'bg-[#ff8d8d66]', icon: FaTimesCircle };
+  if (status === ORDER_STATUS.PAID) {
+    return { dot: 'bg-[#8bc53f]', line: 'bg-[#8bc53f66]', icon: FaCheckCircle };
+  }
+  if (status === ORDER_STATUS.PENDING) {
+    return { dot: 'bg-[#ffd079]', line: 'bg-[#ffd07966]', icon: FaClock };
+  }
+  if (status === ORDER_STATUS.PAYMENT_FAILED) {
+    return { dot: 'bg-[#ff8d8d]', line: 'bg-[#ff8d8d66]', icon: FaTimesCircle };
+  }
   return { dot: 'bg-[#8fb8d5]', line: 'bg-[#8fb8d566]', icon: FaUndoAlt };
+}
+
+function parsePrice(price: string) {
+  const value = Number.parseFloat(price.replace('$', ''));
+  return Number.isFinite(value) ? value : 0;
 }
 
 export default function OrderDetail() {
@@ -51,9 +68,8 @@ export default function OrderDetail() {
         setOrder(data);
         setErrorMessage('');
       } catch (error) {
-        const message = error instanceof Error ? error.message : '未知錯誤';
-        console.error('無法獲取訂單詳情:', message);
-        setErrorMessage('目前無法取得訂單詳情，請稍後再試。');
+        console.error('訂單載入失敗:', error);
+        setErrorMessage('目前無法取得這筆訂單，請稍後再試。');
       } finally {
         setLoading(false);
       }
@@ -88,14 +104,13 @@ export default function OrderDetail() {
       setReorderLoading(true);
       const result = await reorderOrder(order.id, token);
       if (result.skipped?.length) {
-        toast.info(`已加入 ${result.addedCount} 項，${result.skipped.length} 項略過`);
+        toast.info(`已加入 ${result.addedCount} 個商品，另有 ${result.skipped.length} 個商品目前無法加入。`);
       } else {
-        toast.success('商品已加入購物車');
+        toast.success('已把這筆訂單的商品加入購物車。');
       }
       router.push('/cart');
     } catch (error) {
-      const message = error instanceof Error ? error.message : '再買一次失敗';
-      toast.error(message);
+      toast.error('暫時無法再次購買，請稍後再試。');
     } finally {
       setReorderLoading(false);
     }
@@ -106,7 +121,7 @@ export default function OrderDetail() {
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-10 text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#66c0f4] border-t-transparent" />
-          <p className="mt-4 text-sm text-[#9eb4c8]">載入訂單詳情中...</p>
+          <p className="mt-4 text-sm text-[#9eb4c8]">正在載入訂單明細...</p>
         </div>
       </main>
     );
@@ -116,10 +131,12 @@ export default function OrderDetail() {
     return (
       <main className="steam-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="steam-panel w-full max-w-xl rounded-2xl p-8 text-center">
-          <p className="text-2xl font-black text-[#ff9e9e]">未找到訂單</p>
-          <p className="mt-2 text-sm text-[#9eb4c8]">{errorMessage || '請確認訂單 ID 是否正確。'}</p>
+          <p className="text-2xl font-black text-[#ff9e9e]">找不到訂單</p>
+          <p className="mt-2 text-sm text-[#9eb4c8]">
+            {errorMessage || '請確認訂單連結是否正確。'}
+          </p>
           <Link href="/orders" className="steam-btn mt-5 inline-flex rounded-md px-5 py-2 text-sm">
-            返回結帳頁
+            回到訂單中心
           </Link>
         </div>
       </main>
@@ -131,21 +148,23 @@ export default function OrderDetail() {
       <section className="mx-auto w-full max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <Link href="/orders" className="text-sm text-[#8fb8d5] transition hover:text-[#66c0f4]">
-            ← 返回結帳與付款
+            返回訂單中心
           </Link>
-          <button
-            onClick={() => router.push('/')}
-            className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-4 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
-          >
-            返回商店
-          </button>
-          <button
-            onClick={handleReorder}
-            disabled={reorderLoading}
-            className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-4 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {reorderLoading ? '加入中...' : '再買一次'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push('/')}
+              className="rounded-md border border-[#66c0f455] bg-[#1b2f44] px-4 py-2 text-sm font-semibold text-[#d8e6f3] transition hover:bg-[#24384d]"
+            >
+              回到商店
+            </button>
+            <button
+              onClick={handleReorder}
+              disabled={reorderLoading}
+              className="rounded-md border border-[#8bc53f66] bg-[#233a2a] px-4 py-2 text-sm font-semibold text-[#d6ecb2] transition hover:bg-[#2d4a35] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reorderLoading ? '加入中...' : '再次購買'}
+            </button>
+          </div>
         </div>
 
         <div
@@ -154,7 +173,7 @@ export default function OrderDetail() {
             flashFromAlert ? 'ring-2 ring-[#66c0f4aa] shadow-[0_0_0_2px_rgba(102,192,244,0.25)]' : ''
           }`}
         >
-          <h1 className="text-3xl font-black text-[#d8e6f3]">訂單詳情</h1>
+          <h1 className="text-3xl font-black text-[#d8e6f3]">訂單明細</h1>
           <p className="mt-1 text-sm text-[#9eb4c8]">訂單編號：{order.id}</p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -193,7 +212,7 @@ export default function OrderDetail() {
           </div>
 
           <div className="mt-4 rounded-xl border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
-            <p>下單時間：{new Date(order.date).toLocaleString()}</p>
+            <p>建立時間：{new Date(order.date).toLocaleString()}</p>
             {(order.customerInfo?.fullName ||
               order.customerInfo?.phone ||
               order.customerInfo?.contactEmail ||
@@ -208,11 +227,7 @@ export default function OrderDetail() {
                 {order.customerInfo?.paymentMethod && (
                   <p>
                     付款方式：
-                    {order.customerInfo.paymentMethod === 'credit-card'
-                      ? '信用卡'
-                      : order.customerInfo.paymentMethod === 'line-pay'
-                        ? 'LINE Pay'
-                        : 'Steam 錢包'}
+                    {paymentMethodLabels[order.customerInfo.paymentMethod] || order.customerInfo.paymentMethod}
                   </p>
                 )}
                 {order.customerInfo?.orderNote && <p>備註：{order.customerInfo.orderNote}</p>}
@@ -231,7 +246,7 @@ export default function OrderDetail() {
               <div className="mt-2 space-y-1 border-t border-[#66c0f433] pt-2">
                 {order.shippingDetails?.carrier && <p>物流商：{order.shippingDetails.carrier}</p>}
                 {order.shippingDetails?.trackingNumber && (
-                  <p>追蹤碼：{order.shippingDetails.trackingNumber}</p>
+                  <p>追蹤編號：{order.shippingDetails.trackingNumber}</p>
                 )}
                 {order.shippingDetails?.shippedAt && (
                   <p>出貨時間：{new Date(order.shippingDetails.shippedAt).toLocaleString()}</p>
@@ -247,27 +262,30 @@ export default function OrderDetail() {
         <div className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
           <h2 className="text-xl font-black text-[#d8e6f3]">商品明細</h2>
           <ul className="mt-4 space-y-3">
-            {order.items.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-col gap-2 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-bold text-[#d8e6f3]">{item.name}</p>
-                  <p className="text-xs text-[#9eb4c8]">
-                    單價 ${parseFloat(item.price.replace('$', '')).toFixed(2)} x {item.quantity}
+            {order.items.map((item) => {
+              const unitPrice = parsePrice(item.price);
+              return (
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-2 rounded-lg border border-[#66c0f433] bg-[#132434] p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-bold text-[#d8e6f3]">{item.name}</p>
+                    <p className="text-xs text-[#9eb4c8]">
+                      單價 ${unitPrice.toFixed(2)} x {item.quantity}
+                    </p>
+                  </div>
+                  <p className="text-sm font-black text-[#8bc53f]">
+                    ${(unitPrice * item.quantity).toFixed(2)}
                   </p>
-                </div>
-                <p className="text-sm font-black text-[#8bc53f]">
-                  ${(parseFloat(item.price.replace('$', '')) * item.quantity).toFixed(2)}
-                </p>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
         <div className="steam-panel mt-5 rounded-2xl p-5 md:p-6">
-          <h2 className="text-xl font-black text-[#d8e6f3]">狀態時間軸</h2>
+          <h2 className="text-xl font-black text-[#d8e6f3]">狀態紀錄</h2>
           <ul className="mt-4 space-y-2">
             {(order.statusHistory || []).length === 0 ? (
               <li className="rounded-lg border border-[#66c0f433] bg-[#132434] p-4 text-sm text-[#9eb4c8]">
@@ -317,14 +335,14 @@ export default function OrderDetail() {
               onClick={() => router.push('/orders')}
               className="flex-1 rounded-md border border-[#66c0f455] bg-[#1b2f44] px-3 py-2 text-sm font-semibold text-[#d8e6f3]"
             >
-              回訂單列表
+              返回訂單
             </button>
             <button
               onClick={handleReorder}
               disabled={reorderLoading}
               className="flex-1 rounded-md border border-[#8bc53f66] bg-[#233a2a] px-3 py-2 text-sm font-semibold text-[#d6ecb2] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {reorderLoading ? '加入中...' : '再買一次'}
+              {reorderLoading ? '加入中...' : '再次購買'}
             </button>
           </div>
         </div>

@@ -20,6 +20,16 @@ export interface ReorderResponse {
   skipped: Array<{ id: number; name: string; reason: string }>;
 }
 
+type ServiceError = Error & { code?: string; status?: number };
+
+function buildUserFacingError(error: any, message: string): ServiceError {
+  const payload = error?.response?.data;
+  const nextError = new Error(message) as ServiceError;
+  nextError.code = payload?.error?.code || payload?.code;
+  nextError.status = error?.response?.status;
+  return nextError;
+}
+
 export async function fetchOrders(token?: string | null): Promise<Order[]> {
   const response = await apiClient.get('/orders', {
     headers: authHeader(token),
@@ -51,13 +61,10 @@ export async function createPaymentIntent(
     );
     return response.data;
   } catch (error: any) {
-    const payload = error?.response?.data;
-    const code = payload?.error?.code || payload?.code;
-    const message = '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。';
-    const nextError = new Error(message) as Error & { code?: string; status?: number };
-    nextError.code = code;
-    nextError.status = error?.response?.status;
-    throw nextError;
+    throw buildUserFacingError(
+      error,
+      '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。'
+    );
   }
 }
 
@@ -76,13 +83,10 @@ export async function confirmPaymentIntent(
     );
     return response.data;
   } catch (error: any) {
-    const payload = error?.response?.data;
-    const code = payload?.error?.code || payload?.code;
-    const message = '付款還沒完成，請再試一次，或先用快速付款完成這筆訂單。';
-    const nextError = new Error(message) as Error & { code?: string; status?: number };
-    nextError.code = code;
-    nextError.status = error?.response?.status;
-    throw nextError;
+    throw buildUserFacingError(
+      error,
+      '付款還沒完成，請再試一次，或先用快速付款完成這筆訂單。'
+    );
   }
 }
 
