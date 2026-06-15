@@ -9,13 +9,24 @@ export {
   getOrderStatusLabel,
 } from './orderStatus';
 
-export function getApiErrorMessage(error: any, fallback = '操作失敗') {
-  return (
-    error?.response?.data?.error?.message ||
-    error?.response?.data?.message ||
-    error?.message ||
-    fallback
-  );
+type ApiErrorLike = {
+  response?: {
+    data?: {
+      error?: { message?: string };
+      message?: string;
+    };
+  };
+  message?: string;
+};
+
+function isApiErrorLike(error: unknown): error is ApiErrorLike {
+  return Boolean(error && typeof error === 'object');
+}
+
+export function getApiErrorMessage(error: unknown, fallback = '操作失敗') {
+  if (!isApiErrorLike(error)) return fallback;
+
+  return error.response?.data?.error?.message || error.response?.data?.message || error.message || fallback;
 }
 
 export function normalizeImagePreviewUrl(rawValue: string) {

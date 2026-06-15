@@ -1,9 +1,12 @@
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import type { ChartData } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export function OrderStatusChart({ chartData }: { chartData: any }) {
+type OrderStatusChartData = ChartData<'pie', number[], string>;
+
+export function OrderStatusChart({ chartData }: { chartData: OrderStatusChartData | null }) {
   if (!chartData) return null;
 
   return (

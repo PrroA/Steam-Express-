@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { isExpectedAiProviderFallback } from '../../backend/aiProviderError';
 import { buildRecommendationReasons } from '../../services/aiRecommendationService';
 
 type ProductSummaryInput = {
@@ -189,6 +190,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    if (typeof client.chat?.completions?.create !== 'function') {
+      return res.status(200).json(fallback);
+    }
+
     const model = process.env.OPENAI_PRODUCT_SUMMARY_MODEL || 'gpt-4o-mini';
     const completion = await client.chat.completions.create({
       model,
@@ -223,7 +228,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: 'openai',
     });
   } catch (error) {
-    console.error('ai-product-summary error:', error);
+    if (!isExpectedAiProviderFallback(error)) {
+      console.error('ai-product-summary error:', error);
+    }
     return res.status(200).json(fallback);
   }
 }

@@ -7,6 +7,7 @@ import { persistState } from '../persistence';
 import { retrieveRagContext } from '../rag';
 import type { RagSearchResult } from '../rag';
 import { getAiUsageEvents, getAiUsageSummary, recordAiUsage } from '../aiUsageLog';
+import { isExpectedAiProviderFallback } from '../aiProviderError';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -188,8 +189,10 @@ async function queryAssistant({
       const reply = completion.choices?.[0]?.message?.content?.trim();
       if (reply) return { reply, provider: 'openai' };
     } catch (error) {
-      const typedError = error as { message?: string };
-      console.error('OpenAI completion failed:', typedError?.message || error);
+      if (!isExpectedAiProviderFallback(error)) {
+        const typedError = error as { message?: string };
+        console.error('OpenAI completion failed:', typedError?.message || error);
+      }
     }
   }
 

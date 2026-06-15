@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { isExpectedAiProviderFallback } from '../../backend/aiProviderError';
 
 type FilterIntent = {
   searchQuery?: string;
@@ -181,13 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(result);
   } catch (error) {
-    const typedError = error as { status?: number; code?: string; type?: string };
-    const isQuotaError =
-      typedError?.status === 429 ||
-      typedError?.code === 'insufficient_quota' ||
-      typedError?.type === 'insufficient_quota';
-
-    if (isQuotaError) {
+    if (isExpectedAiProviderFallback(error)) {
       openaiQuotaBlockedUntil = Date.now() + 10 * 60 * 1000;
       console.warn('ai-search-intent: OpenAI quota exceeded, fallback enabled for 10 minutes.');
     } else {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ChartData } from 'chart.js';
 import { toast } from 'react-toastify';
 import {
   createPaymentIntent,
@@ -8,6 +9,18 @@ import type { Order } from '../types/domain';
 import { upsertOrderStatusAlertsFromOrders } from '../utils/wishlistAlerts';
 import { ORDER_STATUS, getOrderStatusLabel } from '../utils/orderStatus';
 
+type OrderActionResult = { message: string; order: Order };
+type OrderStatusChartData = ChartData<'pie', number[], string>;
+type OrderActionRunner = (
+  orderId: string,
+  token?: string | null
+) => Promise<OrderActionResult>;
+type OrderOperationType = 'cancel' | 'refund' | 'retry';
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function useOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -15,7 +28,7 @@ export function useOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [operationLoading, setOperationLoading] = useState(false);
-  const [operationType, setOperationType] = useState<'cancel' | 'refund' | 'retry' | null>(null);
+  const [operationType, setOperationType] = useState<OrderOperationType | null>(null);
   const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
 
   const loadOrders = useCallback(async (preferredOrderId?: string) => {
@@ -34,8 +47,8 @@ export function useOrdersPage() {
       setSelectedOrder(preferredOrder || unpaidOrder || data[0] || null);
 
       return data;
-    } catch (fetchError: any) {
-      setError(fetchError?.message || '載入訂單失敗');
+    } catch (fetchError) {
+      setError(getErrorMessage(fetchError, '載入訂單失敗'));
       return [];
     } finally {
       setLoading(false);
@@ -56,8 +69,10 @@ export function useOrdersPage() {
         const token = localStorage.getItem('token');
         const data = await createPaymentIntent(selectedOrder.id, token);
         setClientSecret(data.clientSecret || null);
-      } catch (fetchError: any) {
-        setPaymentIntentError(fetchError?.message || '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。');
+      } catch (fetchError) {
+        setPaymentIntentError(
+          getErrorMessage(fetchError, '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。')
+        );
         setClientSecret(null);
       } finally {
         setLoading(false);
@@ -77,9 +92,9 @@ export function useOrdersPage() {
 
   const mutateOrder = useCallback(
     async (
-      runner: (orderId: string, token?: string | null) => Promise<any>,
+      runner: OrderActionRunner,
       successText: string,
-      nextOperationType: 'cancel' | 'refund' | 'retry'
+      nextOperationType: OrderOperationType
     ) => {
       if (!selectedOrder?.id) return;
       setOperationLoading(true);
@@ -120,7 +135,7 @@ export function useOrdersPage() {
     [loadOrders]
   );
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo<OrderStatusChartData>(() => {
     const paidOrders = orders.filter((order) => order.status === ORDER_STATUS.PAID).length;
     const unpaidOrders = orders.filter((order) => order.status === ORDER_STATUS.PENDING).length;
     const failedOrders = orders.filter((order) => order.status === ORDER_STATUS.PAYMENT_FAILED).length;

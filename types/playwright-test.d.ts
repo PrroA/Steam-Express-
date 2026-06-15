@@ -4,4 +4,5 @@ declare module '@playwright/test' {
   export const devices: any;
   export function defineConfig(config: any): any;
   export type APIRequestContext = any;
+  export type Page = any;
 }

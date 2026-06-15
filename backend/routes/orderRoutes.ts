@@ -35,6 +35,17 @@ type TypedAuthRequest<
   TBody = unknown,
   TParams extends object = Record<string, string>
 > = TypedAuthenticatedRequest<TBody, TParams>;
+type StripeErrorLike = {
+  message?: string;
+  type?: string;
+  code?: string;
+  raw?: {
+    message?: string;
+    code?: string;
+    detail?: { code?: string };
+  };
+  detail?: { code?: string };
+};
 
 function pushOrderStatus(order: Order, status: Order['status'], note?: string) {
   const normalizedStatus = normalizeOrderStatus(status);
@@ -42,24 +53,34 @@ function pushOrderStatus(order: Order, status: Order['status'], note?: string) {
   order.statusHistory.push({ status: normalizedStatus, at: new Date().toISOString(), note });
 }
 
-function getStripeErrorMessage(error: any) {
-  return String(error?.message || error?.raw?.message || error?.type || '');
+function isStripeErrorLike(error: unknown): error is StripeErrorLike {
+  return Boolean(error && typeof error === 'object');
 }
 
-function isExpectedStripeDemoFallback(error: any) {
+function getStripeErrorMessage(error: unknown) {
+  if (!isStripeErrorLike(error)) return String(error || '');
+  return String(error.message || error.raw?.message || error.type || '');
+}
+
+function getStripeErrorCode(error: unknown) {
+  if (!isStripeErrorLike(error)) return '';
+  return String(error.code || error.raw?.code || error.detail?.code || error.raw?.detail?.code || '');
+}
+
+function isExpectedStripeDemoFallback(error: unknown) {
   const message = getStripeErrorMessage(error);
-  const rawCode = String(error?.code || error?.raw?.code || error?.detail?.code || error?.raw?.detail?.code || '');
+  const rawCode = getStripeErrorCode(error);
   return (
-    error?.type === 'StripeConnectionError' ||
+    (isStripeErrorLike(error) && error.type === 'StripeConnectionError') ||
     rawCode === 'EACCES' ||
     /connection to Stripe|network|timeout|ECONNRESET|ECONNREFUSED|EACCES/i.test(message)
   );
 }
 
-function sendStripeDemoFallback(res: Response, error: any) {
+function sendStripeDemoFallback(res: Response, error: unknown) {
   console.warn('[payments] Stripe test payment unavailable; Demo quick pay fallback remains available.', {
-    type: error?.type,
-    code: error?.code || error?.raw?.code || error?.detail?.code || error?.raw?.detail?.code,
+    type: isStripeErrorLike(error) ? error.type : undefined,
+    code: getStripeErrorCode(error),
   });
   return res.status(503).json({
     error: {
@@ -862,8 +883,8 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
     let event;
     try {
       event = stripeClient.webhooks.constructEvent(req.body, signature, webhookSecret);
-    } catch (error: any) {
-      console.error('Stripe webhook 驗證失敗:', error?.message || error);
+    } catch (error) {
+      console.error('Stripe webhook 驗證失敗:', getStripeErrorMessage(error));
       return res.status(400).json({ message: '付款資料驗證未通過，請重新付款。' });
     }
 
@@ -928,7 +949,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
         },
       });
       return res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
-    } catch (error: any) {
+    } catch (error) {
       if (isExpectedStripeDemoFallback(error)) {
         return sendStripeDemoFallback(res, error);
       }
@@ -975,7 +996,7 @@ export function registerOrderRoutes({ app, state, authenticate, isAdmin, stripeC
       markOrderPaidFromStripe(order, paymentIntent.id, 'Stripe confirm API: payment_intent.succeeded');
       persistState(state);
       return res.status(200).json({ message: '付款已確認', order });
-    } catch (error: any) {
+    } catch (error) {
       if (isExpectedStripeDemoFallback(error)) {
         return sendStripeDemoFallback(res, error);
       }

@@ -21,12 +21,27 @@ export interface ReorderResponse {
 }
 
 type ServiceError = Error & { code?: string; status?: number };
+type ApiErrorPayload = {
+  error?: { code?: string };
+  code?: string;
+};
+type ApiErrorLike = {
+  response?: {
+    status?: number;
+    data?: ApiErrorPayload;
+  };
+};
 
-function buildUserFacingError(error: any, message: string): ServiceError {
-  const payload = error?.response?.data;
+function isApiErrorLike(error: unknown): error is ApiErrorLike {
+  return Boolean(error && typeof error === 'object' && 'response' in error);
+}
+
+function buildUserFacingError(error: unknown, message: string): ServiceError {
+  const response = isApiErrorLike(error) ? error.response : undefined;
+  const payload = response?.data;
   const nextError = new Error(message) as ServiceError;
   nextError.code = payload?.error?.code || payload?.code;
-  nextError.status = error?.response?.status;
+  nextError.status = response?.status;
   return nextError;
 }
 
@@ -60,7 +75,7 @@ export async function createPaymentIntent(
       }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     throw buildUserFacingError(
       error,
       '信用卡付款暫時無法使用，你可以先用快速付款完成這筆訂單。'
@@ -82,7 +97,7 @@ export async function confirmPaymentIntent(
       }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     throw buildUserFacingError(
       error,
       '付款還沒完成，請再試一次，或先用快速付款完成這筆訂單。'

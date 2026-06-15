@@ -203,7 +203,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       userId,
       ip: req.ip,
     });
-    console.log(line);
+    process.stdout.write(`${line}\n`);
   });
   next();
 });
@@ -245,7 +245,7 @@ function startServer(port = process.env.PORT || 4000) {
   }
 
   return server.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    process.stdout.write(`Server listening on port ${port}\n`);
   });
 }
 
