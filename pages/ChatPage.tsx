@@ -318,7 +318,10 @@ export default function ChatPage() {
                       <p className="whitespace-pre-wrap">{message.text}</p>
 
                       {!isUser && message.agentPlan && (
-                        <div className="mt-3 overflow-hidden rounded-lg border border-[#8bc53f55] bg-[#101d2a]">
+                        <div
+                          data-testid="shopping-agent-plan"
+                          className="mt-3 overflow-hidden rounded-lg border border-[#8bc53f55] bg-[#101d2a]"
+                        >
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8bc53f33] px-3 py-2">
                             <p className="text-[11px] font-bold tracking-[0.12em] text-[#b7df9e]">AI 購物助理任務</p>
                             {message.agentPlan.nextHref && (
@@ -335,7 +338,11 @@ export default function ChatPage() {
                               {message.agentPlan.summary}
                             </p>
                             {message.agentPlan.steps.map((step) => (
-                              <div key={step.id} className="rounded border border-[#66c0f422] bg-[#132434] p-2">
+                              <div
+                                key={step.id}
+                                data-testid={`shopping-agent-step-${step.id}`}
+                                className="rounded border border-[#66c0f422] bg-[#132434] p-2"
+                              >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <p className="font-bold text-[#e3f0fb]">{step.title}</p>
                                   <span

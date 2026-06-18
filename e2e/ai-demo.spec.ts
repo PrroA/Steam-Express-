@@ -34,6 +34,18 @@ test('AI demo flow exposes chat, product advice, and comparison advice', async (
   await expect(page.getByTestId('chat-message-assistant').last()).toContainText(/付款|訂單|結帳/);
   await expectNoMojibake(await page.locator('body').innerText());
 
+  await page.getByTestId('chat-input').fill('assistant recommend an RPG under $30 and add to compare');
+  await page.getByTestId('chat-send').click();
+  await expect(page.getByTestId('shopping-agent-plan').last()).toBeVisible();
+  await expect(page.getByTestId('shopping-agent-step-understand-goal').last()).toBeVisible();
+  await expect(page.getByTestId('shopping-agent-step-rank-products').last()).toBeVisible();
+  await expect(page.getByTestId('shopping-agent-step-open-compare').last()).toBeVisible();
+  await expect(page.getByTestId('shopping-agent-plan').last().getByRole('link').first()).toHaveAttribute(
+    'href',
+    /\/compare\?ids=/
+  );
+  await expectNoMojibake(await page.locator('body').innerText());
+
   await page.goto(`/game/${firstGameId}`);
   await expect(page.getByTestId('ai-product-summary')).toBeVisible();
   await expectNoMojibake(await page.locator('body').innerText());

@@ -65,3 +65,21 @@
 ## 收尾
 
 > 這個專案目前是 demo 級別，所以我保留 SQLite、local upload 與 Demo 快速付款。若要正式化，我會優先做 PostgreSQL / Prisma、Stripe webhook、object storage，以及 pgvector RAG。這些改動可以在不重寫前端流程的情況下逐步替換底層實作。
+
+## AI Shopping Agent Demo
+
+可以在 ChatPage 輸入：
+
+```text
+assistant recommend an RPG under $30 and add to compare
+assistant recommend an RPG under $30 and checkout
+幫我挑一款 RPG 加入購物車並準備結帳
+```
+
+展示時可以這樣講：
+
+> 這裡不是單純聊天，而是購物助理 Agent。它會把使用者需求拆成步驟，先理解預算與類型，再挑商品，最後依需求建立比較、加入購物車或準備結帳。checkout 只會導向購物車讓使用者確認，不會直接建立訂單或付款。
+
+接著切到 Admin dashboard：
+
+> 後台可以看到 Agent 執行次數與 Agent 步驟數，代表這個 AI 功能有被觀測，不只是前端畫面效果。

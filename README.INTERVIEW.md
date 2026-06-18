@@ -97,3 +97,11 @@ Admin dashboard 可以查看商品、訂單、銷售與 AI 使用狀態。AI 使
 5. Admin analytics：把 AI 使用紀錄轉成更清楚的營運指標。
 
 資料庫正式化細節請看 [docs/database-roadmap.md](./docs/database-roadmap.md)。
+
+## AI Shopping Agent 補充
+
+購物助理 Agent 的完整說明可看 [docs/ai-shopping-agent.md](./docs/ai-shopping-agent.md)。
+
+可以口述成：
+
+> 我把 AI 從單純推薦和客服問答往 Agent 化推進。它會把使用者需求拆成任務步驟，例如挑商品、建立比較、加入願望清單、加入購物車與準備結帳。高風險交易像下單、付款、退款仍保留給使用者確認；後台也會記錄 Agent 執行次數與步驟數，方便觀測。

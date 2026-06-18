@@ -51,3 +51,15 @@ Steam Practice 是一個可操作的遊戲商城 demo，整合 Next.js、React�
 更完整的資料庫正式化規劃請看 [database-roadmap.md](./database-roadmap.md)。
 
 正式部署前的工程檢查請看 [production-readiness.md](./production-readiness.md)。
+
+## AI Shopping Agent
+
+新增的購物助理 Agent 把 AI 從「回答建議」推進到「可執行購物步驟」：
+
+- 可依預算與類型挑商品。
+- 可建立比較頁連結。
+- 登入後可加入願望清單或購物車。
+- 使用者要求 checkout 時，只會準備購物車並導向 `/cart`，不會自動建立訂單或付款。
+- Admin AI usage 會顯示 Agent 執行次數與 Agent 步驟數。
+
+詳細說明請看 [ai-shopping-agent.md](./ai-shopping-agent.md)。
