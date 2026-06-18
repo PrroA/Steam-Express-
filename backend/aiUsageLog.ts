@@ -7,6 +7,7 @@ export type AiUsageEvent = {
   grounded: boolean;
   provider: string | null;
   sourceCount: number;
+  agentActionCount: number;
   statusCode: number;
   durationMs: number;
   messagePreview: string;
@@ -19,6 +20,8 @@ export type AiUsageSummary = {
   groundedRate: number;
   fallbackRate: number;
   averageDurationMs: number;
+  agentRuns: number;
+  agentActionCount: number;
   byMode: Record<string, number>;
   byProvider: Record<string, number>;
 };
@@ -57,6 +60,7 @@ function normalizeEvent(value: unknown): AiUsageEvent | null {
     grounded: Boolean(event.grounded),
     provider: event.provider ? String(event.provider) : null,
     sourceCount: Math.max(0, Number(event.sourceCount || 0)),
+    agentActionCount: Math.max(0, Number(event.agentActionCount || 0)),
     statusCode: Number(event.statusCode || 200),
     durationMs: Math.max(0, Number(event.durationMs || 0)),
     messagePreview: sanitizeMessagePreview(String(event.messagePreview || '')),
@@ -94,6 +98,7 @@ export function recordAiUsage(input: {
   grounded?: boolean;
   provider?: string | null;
   sourceCount?: number;
+  agentActionCount?: number;
   statusCode: number;
   durationMs: number;
   message: string;
@@ -107,6 +112,7 @@ export function recordAiUsage(input: {
     grounded: Boolean(input.grounded),
     provider: input.provider || null,
     sourceCount: Math.max(0, Number(input.sourceCount || 0)),
+    agentActionCount: Math.max(0, Number(input.agentActionCount || 0)),
     statusCode: input.statusCode,
     durationMs: Math.max(0, Number(input.durationMs || 0)),
     messagePreview: sanitizeMessagePreview(input.message),
@@ -129,6 +135,8 @@ export function getAiUsageSummary(): AiUsageSummary {
       summary.total += 1;
       if (event.grounded) summary.grounded += 1;
       if (/fallback|unavailable|auth-required|out-of-scope/i.test(event.mode)) summary.fallback += 1;
+      if (/shopping-agent/i.test(event.mode)) summary.agentRuns += 1;
+      summary.agentActionCount += event.agentActionCount;
       summary.totalDurationMs += event.durationMs;
       summary.byMode[event.mode] = (summary.byMode[event.mode] || 0) + 1;
       const provider = event.provider || 'fallback';
@@ -142,6 +150,8 @@ export function getAiUsageSummary(): AiUsageSummary {
       groundedRate: 0,
       fallbackRate: 0,
       averageDurationMs: 0,
+      agentRuns: 0,
+      agentActionCount: 0,
       totalDurationMs: 0,
       byMode: {},
       byProvider: {},
@@ -157,6 +167,8 @@ export function getAiUsageSummary(): AiUsageSummary {
     groundedRate: total > 0 ? summary.grounded / total : 0,
     fallbackRate: total > 0 ? summary.fallback / total : 0,
     averageDurationMs: total > 0 ? Math.round(totalDurationMs / total) : 0,
+    agentRuns: summary.agentRuns,
+    agentActionCount: summary.agentActionCount,
     byMode: summary.byMode,
     byProvider: summary.byProvider,
   };

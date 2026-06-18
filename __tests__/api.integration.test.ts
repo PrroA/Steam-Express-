@@ -493,6 +493,59 @@ describe('API integration', () => {
     expect(ragRes.body.sources.some((source) => source.type === 'catalog')).toBe(true);
   });
 
+  test('shopping agent can add the top pick to a signed-in cart before checkout', async () => {
+    const username = `agent_cart_${Date.now()}`;
+    const password = 'Password1!';
+
+    await requestJson('/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    const loginRes = await requestJson('/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    const token = loginRes.body.token;
+
+    const ragRes = await requestJson('/chat/rag', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: 'assistant recommend an RPG under $30 and checkout' }),
+    });
+
+    expect(ragRes.status).toBe(200);
+    expect(ragRes.body.mode).toBe('personalized-shopping-agent');
+    expect(ragRes.body.agentPlan.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'add-cart',
+          status: 'done',
+          href: '/cart',
+        }),
+        expect.objectContaining({
+          id: 'checkout-prep',
+          status: 'suggested',
+          href: '/cart',
+        }),
+      ])
+    );
+    expect(ragRes.body.agentPlan.nextHref).toBe('/cart');
+    expect(ragRes.body.reply).toContain('不會自動替你建立訂單');
+
+    const cartRes = await requestJson('/cart', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(cartRes.status).toBe(200);
+    expect(cartRes.body.length).toBeGreaterThan(0);
+    expect(cartRes.body[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(Number),
+        quantity: expect.any(Number),
+      })
+    );
+  });
+
   test('rag endpoint uses client preference memory for anonymous recommendations', async () => {
     const gamesRes = await requestJson('/games');
     const targetGame = gamesRes.body.find((game) => game?.id && game?.name) || gamesRes.body[0];
@@ -724,6 +777,8 @@ describe('API integration', () => {
         groundedRate: expect.any(Number),
         fallbackRate: expect.any(Number),
         averageDurationMs: expect.any(Number),
+        agentRuns: expect.any(Number),
+        agentActionCount: expect.any(Number),
         byMode: expect.any(Object),
         byProvider: expect.any(Object),
       })
@@ -739,6 +794,7 @@ describe('API integration', () => {
         mode: ragRes.body.mode,
         grounded: ragRes.body.grounded,
         sourceCount: ragRes.body.sources.length,
+        agentActionCount: expect.any(Number),
         messagePreview: 'recommend a game',
       })
     );

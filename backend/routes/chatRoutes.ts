@@ -147,7 +147,7 @@ const orderCarePattern =
 const orderLookupPattern = /(我的訂單|訂單狀態|查訂單|最近訂單|訂單進度|付款狀態|出貨狀態|my order|order status)/i;
 
 const shoppingAgentPattern =
-  /(幫我|代我|自動|購物助理|AI 助理|agent|assistant|加入比較|加入願望清單|收藏|wishlist|add.*compare|add.*wishlist)/i;
+  /(幫我|代我|自動|購物助理|AI 助理|agent|assistant|加入比較|加入願望清單|加入購物車|結帳|下單|收藏|wishlist|checkout|buy|add.*compare|add.*wishlist|add.*cart)/i;
 
 async function queryOllama(messages: ChatMessage[], temperature = 0.4): Promise<string | null> {
   try {
@@ -265,6 +265,14 @@ function wantsCompareAction(message: string) {
   return /(加入比較|比一比|比較|compare|versus|\bvs\b)/i.test(message);
 }
 
+function wantsCartAction(message: string) {
+  return /(加入購物車|放進購物車|加到購物車|cart|checkout|buy|結帳|下單)/i.test(message);
+}
+
+function wantsCheckoutPrepAction(message: string) {
+  return /(checkout|buy|結帳|下單|付款流程)/i.test(message);
+}
+
 function isShoppingAgentQuestion(message: string) {
   if (!shoppingAgentPattern.test(message)) return false;
   if (/order|payment|refund|shipping|account|login|訂單|付款|退款|配送|出貨|帳號|登入/i.test(message)) {
@@ -275,7 +283,9 @@ function isShoppingAgentQuestion(message: string) {
     productDecisionPattern.test(message) ||
     productSearchPattern.test(message) ||
     wantsWishlistAction(message) ||
-    wantsCompareAction(message)
+    wantsCompareAction(message) ||
+    wantsCartAction(message) ||
+    wantsCheckoutPrepAction(message)
   );
 }
 
@@ -976,6 +986,128 @@ function buildProductComparison(
   };
 }
 
+function addRecommendedGameToCart(
+  state: RouteDeps['state'],
+  user: JwtUser | null,
+  game: Game | undefined
+): ShoppingAgentStep {
+  if (!user) {
+    return {
+      id: 'add-cart',
+      title: '加入購物車',
+      status: 'blocked',
+      detail: '需要登入後才能替你把商品加入購物車。',
+      href: '/login',
+    };
+  }
+
+  if (!game) {
+    return {
+      id: 'add-cart',
+      title: '加入購物車',
+      status: 'blocked',
+      detail: '目前沒有可加入購物車的推薦商品。',
+    };
+  }
+
+  const selectedVariant = (game.variants || []).find((variant) => Number(variant.stock) > 0);
+  if (Array.isArray(game.variants) && game.variants.length > 0 && !selectedVariant) {
+    return {
+      id: 'add-cart',
+      title: '加入購物車',
+      status: 'blocked',
+      detail: `${game.name} 目前沒有可購買的庫存。`,
+      href: `/game/${game.id}`,
+      gameId: game.id,
+    };
+  }
+
+  if (!state.carts[user.id]) state.carts[user.id] = [];
+  const cartItem = state.carts[user.id].find(
+    (item) => item.id === game.id && item.variantId === selectedVariant?.id
+  );
+  const nextQuantity = (cartItem?.quantity || 0) + 1;
+  if (selectedVariant && nextQuantity > selectedVariant.stock) {
+    return {
+      id: 'add-cart',
+      title: '加入購物車',
+      status: 'blocked',
+      detail: `${game.name} 的 ${selectedVariant.name} 庫存不足，無法再加入。`,
+      href: `/game/${game.id}`,
+      gameId: game.id,
+    };
+  }
+
+  if (cartItem) {
+    cartItem.quantity += 1;
+  } else {
+    state.carts[user.id].push({
+      ...game,
+      price: selectedVariant?.price || game.price,
+      quantity: 1,
+      variantId: selectedVariant?.id,
+      variantName: selectedVariant?.name,
+    });
+  }
+
+  persistState(state);
+  return {
+    id: 'add-cart',
+    title: '加入購物車',
+    status: 'done',
+    detail: selectedVariant
+      ? `已把 ${game.name}（${selectedVariant.name}）加入購物車。`
+      : `已把 ${game.name} 加入購物車。`,
+    href: '/cart',
+    gameId: game.id,
+  };
+}
+
+function buildCheckoutPrepStep(
+  user: JwtUser | null,
+  game: Game | undefined,
+  cartStep?: ShoppingAgentStep | null
+): ShoppingAgentStep {
+  if (!user) {
+    return {
+      id: 'checkout-prep',
+      title: '準備結帳',
+      status: 'blocked',
+      detail: '需要登入後才能準備購物車與結帳資料。',
+      href: '/login',
+    };
+  }
+
+  if (!game) {
+    return {
+      id: 'checkout-prep',
+      title: '準備結帳',
+      status: 'blocked',
+      detail: '目前沒有可結帳的推薦商品。',
+    };
+  }
+
+  if (cartStep && cartStep.status === 'blocked') {
+    return {
+      id: 'checkout-prep',
+      title: '準備結帳',
+      status: 'blocked',
+      detail: '商品尚未成功加入購物車，請先處理上一步。',
+      href: cartStep.href,
+      gameId: game.id,
+    };
+  }
+
+  return {
+    id: 'checkout-prep',
+    title: '準備結帳',
+    status: 'suggested',
+    detail: `已準備好 ${game.name} 的購物車流程；請到購物車確認版本、數量與付款資料後再建立訂單。`,
+    href: '/cart',
+    gameId: game.id,
+  };
+}
+
 function buildShoppingAgentPlan(
   state: RouteDeps['state'],
   message: string,
@@ -1034,6 +1166,16 @@ function buildShoppingAgentPlan(
     });
   }
 
+  let cartStep: ShoppingAgentStep | null = null;
+  if (wantsCartAction(message)) {
+    cartStep = addRecommendedGameToCart(state, user, topPick);
+    steps.push(cartStep);
+  }
+
+  if (wantsCheckoutPrepAction(message)) {
+    steps.push(buildCheckoutPrepStep(user, topPick, cartStep));
+  }
+
   if (wantsWishlistAction(message)) {
     if (!user) {
       steps.push({
@@ -1061,12 +1203,17 @@ function buildShoppingAgentPlan(
     }
   }
 
-  const nextHref = compareHref || (topPick ? `/game/${topPick.id}` : undefined);
-  const nextAction = compareHref
-    ? '下一步建議打開比較頁確認差異。'
-    : topPick
-      ? `下一步建議查看 ${topPick.name} 的版本與庫存。`
-      : '下一步建議換一組更明確的預算或遊戲類型。';
+  const nextHref =
+    (wantsCheckoutPrepAction(message) || wantsCartAction(message)) && user
+      ? '/cart'
+      : compareHref || (topPick ? `/game/${topPick.id}` : undefined);
+  const nextAction = wantsCheckoutPrepAction(message)
+    ? '下一步請到購物車確認版本、數量與付款資料；我不會自動替你建立訂單。'
+    : compareHref
+      ? '下一步建議打開比較頁確認差異。'
+      : topPick
+        ? `下一步建議查看 ${topPick.name} 的版本與庫存。`
+        : '下一步建議換一組更明確的預算或遊戲類型。';
   const summary = topPick
     ? `我已用 Agent 流程幫你完成篩選，主推薦是 ${topPick.name}。`
     : '我已嘗試執行購物助理流程，但目前沒有足夠商品可推薦。';
@@ -1542,6 +1689,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey, au
           grounded?: boolean;
           provider?: string | null;
           sources?: unknown[];
+          agentPlan?: { steps?: unknown[] };
         };
         recordAiUsage({
           requestId: ((req as any).requestId as string) || 'unknown',
@@ -1550,6 +1698,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey, au
           grounded: body.grounded,
           provider: body.provider || null,
           sourceCount: Array.isArray(body.sources) ? body.sources.length : 0,
+          agentActionCount: Array.isArray(body.agentPlan?.steps) ? body.agentPlan.steps.length : 0,
           statusCode: res.statusCode,
           durationMs: Date.now() - startedAt,
           message,

@@ -6,6 +6,8 @@ interface AiUsagePanelProps {
 
 function formatMode(mode: string) {
   const labels: Record<string, string> = {
+    'shopping-agent': '購物助理 Agent',
+    'personalized-shopping-agent': '個人化購物助理 Agent',
     'product-recommendation': '商品推薦',
     'personalized-recommendation': '個人化推薦',
     'product-decision': '商品決策',
@@ -56,10 +58,12 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
         <p className="text-xs text-[#8faac0]">追蹤最近 AI 回覆是否有根據商城資料，以及回覆速度與 fallback 比例。</p>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <div className="mt-4 grid gap-3 md:grid-cols-5">
         <StatTile testId="admin-ai-usage-total" label="回覆次數" value={summary?.total || 0} />
         <StatTile testId="admin-ai-usage-grounded" label="根據商城資料" value={summary?.grounded || 0} tone="success" />
         <StatTile testId="admin-ai-usage-fallback" label="一般回覆" value={summary?.fallback || 0} tone="warn" />
+        <StatTile testId="admin-ai-usage-agent-runs" label="Agent 執行" value={summary?.agentRuns || 0} tone="success" />
+        <StatTile testId="admin-ai-usage-agent-actions" label="Agent 步驟" value={summary?.agentActionCount || 0} />
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -79,7 +83,7 @@ export function AiUsagePanel({ usage }: AiUsagePanelProps) {
                   <p className="text-xs text-[#8faac0]">{formatTime(event.createdAt)}</p>
                 </div>
                 <p className="mt-1 text-xs text-[#9eb4c8]">
-                  {event.grounded ? '根據商城資料回答' : '一般客服回覆'} · {formatProvider(event.provider)} · 參考 {event.sourceCount} 筆資料 · {event.durationMs}ms
+                  {event.grounded ? '根據商城資料回答' : '一般客服回覆'} · {formatProvider(event.provider)} · 參考 {event.sourceCount} 筆資料 · Agent {event.agentActionCount || 0} steps · {event.durationMs}ms
                 </p>
                 {event.messagePreview && <p className="mt-2 line-clamp-1 text-xs text-[#b9d1e3]">{event.messagePreview}</p>}
               </article>

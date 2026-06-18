@@ -29,6 +29,7 @@ export interface AdminAiUsageEvent {
   grounded: boolean;
   provider: string | null;
   sourceCount: number;
+  agentActionCount: number;
   statusCode: number;
   durationMs: number;
   messagePreview: string;
@@ -42,6 +43,8 @@ export interface AdminAiUsage {
     groundedRate: number;
     fallbackRate: number;
     averageDurationMs: number;
+    agentRuns: number;
+    agentActionCount: number;
     byMode: Record<string, number>;
     byProvider: Record<string, number>;
   };
