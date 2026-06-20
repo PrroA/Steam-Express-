@@ -253,13 +253,13 @@ export default function CartPage() {
   }
 
   return (
-    <main className="steam-shell px-4 py-6 md:px-6">
+    <main className="steam-shell px-4 py-5 md:px-6 md:py-6">
       <section className="mx-auto w-full max-w-6xl">
         <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">購物車</p>
-        <h1 className="mt-2 text-3xl font-black text-[#d8e6f3]">確認商品</h1>
+        <h1 className="mt-2 text-2xl font-black text-[#d8e6f3] sm:text-3xl">確認商品</h1>
         <p className="mt-1 text-sm text-[#9eb4c8]">確認想買的遊戲，留下聯絡資料後就能建立訂單。</p>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 rounded-xl border border-[#66c0f433] bg-[#122333] p-2">
+        <div data-testid="checkout-stepper" className="mt-4 grid grid-cols-3 gap-1.5 rounded-xl border border-[#66c0f433] bg-[#122333] p-2 sm:mt-5 sm:gap-2">
           {[
             { id: 1, label: '購物車' },
             { id: 2, label: '聯絡資料' },
@@ -269,7 +269,8 @@ export default function CartPage() {
               key={step.id}
               type="button"
               onClick={() => step.id <= activeStep && setActiveStep(step.id as CheckoutStep)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+              aria-current={step.id === activeStep ? 'step' : undefined}
+              className={`rounded-lg px-1.5 py-2 text-xs font-semibold sm:px-3 sm:text-sm ${
                 step.id === activeStep
                   ? 'border border-[#66c0f4aa] bg-[#193a52] text-[#d8e6f3]'
                   : step.id < activeStep
@@ -277,7 +278,8 @@ export default function CartPage() {
                     : 'border border-transparent bg-[#16293a] text-[#8faac0]'
               }`}
             >
-              {step.id}. {step.label}
+              <span className="hidden sm:inline">{step.id}. </span>
+              {step.label}
             </button>
           ))}
         </div>
@@ -373,9 +375,37 @@ export default function CartPage() {
                 </div>
               </>
             )}
+
+            <div data-testid="checkout-mobile-actions" className="mt-5 grid gap-2 lg:hidden">
+              {activeStep === 1 && (
+                <button data-testid="checkout-next-payment-mobile" type="button" onClick={handleNextFromItems} className="steam-btn w-full rounded-md py-2.5 text-sm">
+                  填寫聯絡資料
+                </button>
+              )}
+              {activeStep === 2 && (
+                <>
+                  <button data-testid="checkout-next-review-mobile" type="button" onClick={handleNextFromCustomer} className="steam-btn w-full rounded-md py-2.5 text-sm">
+                    前往最後確認
+                  </button>
+                  <button type="button" onClick={() => setActiveStep(1)} className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] hover:bg-[#24384d]">
+                    回到購物車
+                  </button>
+                </>
+              )}
+              {activeStep === 3 && (
+                <>
+                  <button data-testid="checkout-submit-mobile" type="button" onClick={handleSubmitOrder} disabled={isSubmitting} className="steam-btn w-full rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                    {isSubmitting ? '建立訂單中...' : '建立訂單並前往付款'}
+                  </button>
+                  <button type="button" onClick={() => setActiveStep(2)} className="w-full rounded-md border border-[#66c0f455] bg-[#1b2f44] py-2.5 text-sm font-semibold text-[#d8e6f3] hover:bg-[#24384d]">
+                    修改資料
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
-          <aside className="steam-panel h-fit rounded-2xl p-5">
+          <aside data-testid="checkout-summary" className="steam-panel h-fit rounded-2xl p-4 sm:p-5">
             <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">結帳摘要</p>
             <h2 className="mt-2 text-2xl font-black text-[#d8e6f3]">共 {itemCount} 件商品</h2>
             <div className="mt-4 space-y-2 rounded-lg border border-[#66c0f433] bg-[#132334] p-4 text-sm">
@@ -390,12 +420,12 @@ export default function CartPage() {
             />
 
             {activeStep === 1 && (
-              <button data-testid="checkout-next-payment" type="button" onClick={handleNextFromItems} className="steam-btn mt-4 w-full rounded-md py-2.5 text-sm">
+              <button data-testid="checkout-next-payment" type="button" onClick={handleNextFromItems} className="steam-btn mt-4 hidden w-full rounded-md py-2.5 text-sm lg:block">
                 填寫聯絡資料
               </button>
             )}
             {activeStep === 2 && (
-              <div className="mt-4 grid gap-2">
+              <div className="mt-4 hidden gap-2 lg:grid">
                 <button data-testid="checkout-next-review" type="button" onClick={handleNextFromCustomer} className="steam-btn w-full rounded-md py-2.5 text-sm">
                   前往最後確認
                 </button>
@@ -405,7 +435,7 @@ export default function CartPage() {
               </div>
             )}
             {activeStep === 3 && (
-              <div className="mt-4 grid gap-2">
+              <div className="mt-4 hidden gap-2 lg:grid">
                 <button data-testid="checkout-submit" type="button" onClick={handleSubmitOrder} disabled={isSubmitting} className="steam-btn w-full rounded-md py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60">
                   {isSubmitting ? '建立訂單中...' : '建立訂單並前往付款'}
                 </button>

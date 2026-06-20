@@ -8,6 +8,7 @@ import { retrieveRagContext } from '../rag';
 import type { RagSearchResult } from '../rag';
 import { getAiUsageEvents, getAiUsageSummary, recordAiUsage } from '../aiUsageLog';
 import { isExpectedAiProviderFallback } from '../aiProviderError';
+import { buildCustomerServiceFallbackReply, isCustomerServiceQuestion } from '../customerServiceReply';
 
 type TypedRequest<TBody> = Request & { body: TBody };
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -133,8 +134,6 @@ const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:7b-instruct';
 const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 
-const serviceScopePattern =
-  /(商城|商品|推薦|便宜|低價|預算|遊戲|價格|庫存|版本|購物車|結帳|付款|訂單|退款|配送|出貨|帳號|登入|願望清單|客服|game|price|cart|checkout|payment|order|refund|shipping|wishlist|account|login)/i;
 const recommendationPattern = /(推薦|便宜|低價|預算|好玩|新手|熱門|遊戲|商品|庫存|版本|recommend|cheap|price|game|stock)/i;
 const productSearchPattern =
   /(找|搜尋|查詢|篩選|有沒有|想玩|適合|新手|放鬆|劇情|多人|合作|恐怖|不要|以下|預算|便宜|search|find|filter|looking for)/i;
@@ -216,7 +215,7 @@ function getOptionalUser(req: Request, secretKey: string): JwtUser | null {
 }
 
 function isServiceQuestion(message: string) {
-  return serviceScopePattern.test(message);
+  return isCustomerServiceQuestion(message);
 }
 
 function isProductRecommendationQuestion(message: string) {
@@ -1570,30 +1569,6 @@ function buildOrderCare(orders: Order[]): OrderCareResult | null {
   };
 }
 
-function buildFallbackReply(message: string, grounded: boolean) {
-  if (!isServiceQuestion(message)) {
-    return '我主要能協助商城裡的商品、購物車、付款、訂單、退款、配送和帳號問題。你可以問我「推薦便宜的遊戲」或「我的訂單狀態」。';
-  }
-
-  if (grounded) {
-    if (/(退款|refund)/i.test(message)) {
-      return '可以在訂單詳情申請退款。退款完成後訂單會顯示已退款，demo 版本也會把商品庫存補回。';
-    }
-    if (/(付款|結帳|信用卡|payment|checkout|card)/i.test(message)) {
-      return '先把商品加入購物車並完成結帳，訂單建立後可以使用信用卡付款；如果信用卡付款暫時無法載入，也可以用快速付款完成流程。';
-    }
-    if (/(配送|出貨|shipping|delivery)/i.test(message)) {
-      return '付款完成後訂單會進入待出貨。你可以在訂單中心查看目前出貨狀態。';
-    }
-    if (/(帳號|登入|密碼|account|login|password)/i.test(message)) {
-      return '你可以註冊帳號或使用試用帳號快速登入。登入後可以管理購物車、願望清單和訂單中心。';
-    }
-    return '我可以依照商店資料協助你整理商品、付款、訂單、退款、配送和帳號相關問題。';
-  }
-
-  return '目前 AI 暫時無法使用，但你仍然可以完成商店流程。建議先到商店選商品、加入購物車，再到訂單中心付款或查看狀態。';
-}
-
 function buildSystemPrompt(grounded: boolean) {
   const base =
     '你是 Steam Practice 商城的客服助理。請用自然繁體中文回答一般使用者，不要出現 API、server、token、PaymentIntent、500 等工程字眼。不要替使用者執行付款、退款、取消訂單或修改資料，只能說明下一步。';
@@ -1660,7 +1635,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey, au
     });
 
     return res.json({
-      reply: result?.reply || buildFallbackReply(message, false),
+      reply: result?.reply || buildCustomerServiceFallbackReply(message, false),
       provider: result?.provider,
     });
   });
@@ -1864,7 +1839,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey, au
 
     if (!grounded && !isServiceQuestion(message)) {
       return res.json({
-        reply: buildFallbackReply(message, false),
+        reply: buildCustomerServiceFallbackReply(message, false),
         grounded: false,
         mode: 'out-of-scope',
         sources: [],
@@ -1891,7 +1866,7 @@ export function registerChatRoutes({ app, io, state, openaiClient, secretKey, au
     });
 
     return res.json({
-      reply: result?.reply || buildFallbackReply(message, grounded),
+      reply: result?.reply || buildCustomerServiceFallbackReply(message, grounded),
       grounded,
       mode: grounded ? (result ? 'service-rag' : 'service-rag-fallback') : result ? 'general-service' : 'service-fallback',
       provider: result?.provider,

@@ -17,7 +17,7 @@ const scanTargets = [
 ];
 
 const sourceFilePattern = /\.(tsx?|jsx?|md)$/;
-const mojibakePattern = /[\uFFFD\u0080-\u009F\uF000-\uF8FF]/u;
+const mojibakePattern = /[\uFFFD\u0080-\u009F\uE000-\uF8FF]/u;
 
 function collectFiles(target: string): string[] {
   const absoluteTarget = path.join(process.cwd(), target);

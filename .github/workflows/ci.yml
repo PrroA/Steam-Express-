@@ -44,6 +44,12 @@ jobs:
       - name: Lint check
         run: npm run lint
 
+      - name: RAG retrieval quality gate
+        run: npm run test:rag-eval
+
+      - name: RAG answer quality gate
+        run: npm run test:rag-answer-eval
+
       - name: Test
         run: npm test
 

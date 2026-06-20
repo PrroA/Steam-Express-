@@ -81,8 +81,7 @@ const staticKnowledge: RagDocument[] = [
     id: 'policy-account-004',
     title: '帳號與試用登入',
     type: 'policy',
-    content:
-      '使用者可以註冊帳號或使用試用帳號快速登入。登入後才能管理購物車、願望清單、訂單中心與個人資料。',
+    content: '使用者可以註冊帳號或使用試用帳號快速登入。登入後才能管理購物車、願望清單、訂單中心與個人資料。',
     metadata: {
       tags: ['帳號', '登入', '註冊', '試用帳號', '個人資料'],
       updatedAt: '2026-05-24',
@@ -103,8 +102,7 @@ const staticKnowledge: RagDocument[] = [
     id: 'faq-wishlist-006',
     title: '願望清單',
     type: 'faq',
-    content:
-      '願望清單可以收藏感興趣的商品，之後回來快速查看價格與商品狀態。demo 版本的降價通知會在畫面上以自然提示呈現。',
+    content: '願望清單可以收藏感興趣的商品，之後回來快速查看價格與商品狀態。demo 版本的降價通知會在畫面上以自然提示呈現。',
     metadata: {
       tags: ['願望清單', '收藏', '降價通知', '價格'],
       updatedAt: '2026-05-24',
@@ -154,7 +152,8 @@ export function buildCatalogDocuments(state: AppState): RagDocument[] {
 }
 
 function extractTerms(text: string) {
-  const baseTerms = normalizeText(text)
+  const normalized = normalizeText(text);
+  const baseTerms = normalized
     .split(/[^\p{L}\p{N}]+/u)
     .filter((term) => term.length >= 2);
 
@@ -165,7 +164,15 @@ function extractTerms(text: string) {
     if (gram.length === 2) cjkBigrams.push(gram);
   }
 
-  return Array.from(new Set([...baseTerms, ...cjkBigrams]));
+  const domainSynonyms: Array<[RegExp, string[]]> = [
+    [/黑暗奇幻/i, ['dark', 'fantasy']],
+    [/角色扮演/i, ['rpg']],
+    [/開放世界/i, ['open', 'world']],
+    [/生存恐怖/i, ['survival', 'horror']],
+  ];
+  const expandedTerms = domainSynonyms.flatMap(([pattern, synonyms]) => (pattern.test(normalized) ? synonyms : []));
+
+  return Array.from(new Set([...baseTerms, ...cjkBigrams, ...expandedTerms]));
 }
 
 function getIntentBoost(query: string, doc: RagDocument) {
@@ -173,7 +180,10 @@ function getIntentBoost(query: string, doc: RagDocument) {
     return 6;
   }
 
-  if ((doc.type === 'faq' || doc.type === 'policy') && /(付款|訂單|退款|配送|出貨|帳號|登入|願望清單|payment|order|refund|shipping|account|login|wishlist)/i.test(query)) {
+  if (
+    (doc.type === 'faq' || doc.type === 'policy') &&
+    /(付款|訂單|退款|配送|出貨|帳號|登入|願望清單|payment|order|refund|shipping|account|login|wishlist)/i.test(query)
+  ) {
     return 6;
   }
 

@@ -10,6 +10,7 @@ export function FloatingSupportWidget() {
   const shouldHide = useMemo(
     () =>
       router.pathname === '/' ||
+      router.pathname === '/cart' ||
       router.pathname === '/ChatPage' ||
       router.pathname === '/ChatUIWithMCP',
     [router.pathname]
