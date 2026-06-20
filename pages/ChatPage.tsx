@@ -121,6 +121,12 @@ type ChatMessage = {
   debug?: RagDebug;
 };
 
+const mobileQuickPrompts = [
+  { label: '推薦遊戲', prompt: '推薦一款適合我的遊戲' },
+  { label: '付款方式', prompt: '怎麼付款？' },
+  { label: '查詢訂單', prompt: '查詢我的訂單狀態' },
+];
+
 function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -277,11 +283,11 @@ export default function ChatPage() {
   };
 
   return (
-    <main data-testid="ai-chat-page" className="steam-shell min-h-screen px-4 py-6 md:px-6">
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+    <main data-testid="ai-chat-page" className="steam-shell min-h-screen px-4 py-5 md:px-6 md:py-6">
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 md:gap-5">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-[#8fb8d5]">商城客服</p>
-          <h1 className="mt-2 flex items-center gap-2 text-3xl font-black text-[#d8e6f3]">
+          <h1 className="mt-2 flex items-center gap-2 text-2xl font-black text-[#d8e6f3] sm:text-3xl">
             <FaHeadset className="text-[#66c0f4]" aria-hidden />
             想找遊戲或查訂單嗎？
           </h1>
@@ -290,9 +296,23 @@ export default function ChatPage() {
           </p>
         </div>
 
+        <div data-testid="chat-mobile-prompts" className="grid grid-cols-3 gap-2 lg:hidden">
+          {mobileQuickPrompts.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => sendMessage(item.prompt)}
+              disabled={isReplying}
+              className="rounded-md border border-[#66c0f433] bg-[#11202f] px-2 py-2 text-xs font-semibold text-[#d8e6f3] transition hover:bg-[#1a3044] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-          <section className="steam-panel flex min-h-[560px] flex-col rounded-2xl border border-[#66c0f433]">
-            <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
+          <section className="steam-panel flex h-[calc(100dvh-260px)] min-h-[500px] max-h-[720px] flex-col rounded-2xl border border-[#66c0f433] lg:h-[680px] lg:min-h-0">
+            <div data-testid="chat-message-list" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 sm:p-4 md:p-5">
               {messages.map((message) => {
                 const isUser = message.role === 'user';
                 const catalogSources = getCatalogSources(message.sources);
@@ -304,7 +324,7 @@ export default function ChatPage() {
                     className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[82%] rounded-2xl border px-4 py-3 text-sm leading-6 ${
+                      className={`max-w-[94%] rounded-2xl border px-3 py-3 text-sm leading-6 sm:max-w-[82%] sm:px-4 ${
                         isUser
                           ? 'border-[#8bc53f66] bg-[#24402b] text-[#edf8de]'
                           : 'border-[#66c0f433] bg-[#132434] text-[#d8e6f3]'
@@ -587,18 +607,19 @@ export default function ChatPage() {
                 <button
                   data-testid="chat-send"
                   type="button"
+                  aria-label="送出訊息"
                   onClick={() => sendMessage()}
                   disabled={isReplying || !input.trim()}
-                  className="steam-btn inline-flex items-center gap-2 rounded-md px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                  className="steam-btn inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md p-0 text-sm disabled:cursor-not-allowed disabled:opacity-60 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-3"
                 >
                   <FaPaperPlane aria-hidden />
-                  送出
+                  <span className="sr-only sm:not-sr-only">送出</span>
                 </button>
               </div>
             </div>
           </section>
 
-          <aside className="steam-panel h-fit rounded-2xl border border-[#66c0f433] p-4">
+          <aside data-testid="chat-sidebar" className="steam-panel hidden h-fit rounded-2xl border border-[#66c0f433] p-4 lg:block">
             <div className="rounded-lg border border-[#66c0f433] bg-[#101d2a] p-3">
               <p className="text-xs font-bold tracking-[0.14em] text-[#8fb8d5]">常用入口</p>
               <div className="mt-3 grid gap-2 text-sm text-[#d8e6f3]">

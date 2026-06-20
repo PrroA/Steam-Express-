@@ -38,7 +38,7 @@ test('demo flow can review cart, checkout, and complete demo payment', async ({ 
 
   await expect(page.getByText('AI 購物車檢查')).toBeVisible();
   await page.getByTestId('cart-ai-review').click();
-  await expect(page.getByText(/可以結帳|先確認預算|建議調整/)).toBeVisible();
+  await expect(page.getByTestId('cart-ai-review-result')).toBeVisible();
 
   await page.getByTestId('checkout-next-payment').click();
   await page.getByTestId('checkout-full-name').fill('Demo User');

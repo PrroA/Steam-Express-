@@ -7,12 +7,15 @@ export function FloatingSupportWidget() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const isChatPage = useMemo(
-    () => router.pathname === '/ChatPage' || router.pathname === '/ChatUIWithMCP',
+  const shouldHide = useMemo(
+    () =>
+      router.pathname === '/' ||
+      router.pathname === '/ChatPage' ||
+      router.pathname === '/ChatUIWithMCP',
     [router.pathname]
   );
 
-  if (isChatPage) return null;
+  if (shouldHide) return null;
 
   return (
     <aside className="fixed bottom-4 right-4 z-[70] flex flex-col items-end gap-2 md:hidden">
@@ -34,10 +37,10 @@ export function FloatingSupportWidget() {
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-label={open ? '收合客服入口' : '開啟客服入口'}
-        className="steam-btn flex items-center gap-2 rounded-full border border-[#ffffff44] px-4 py-3 text-sm shadow-[0_12px_24px_rgba(0,0,0,0.35)] transition hover:scale-[1.03]"
+        className="steam-btn flex h-12 w-12 items-center justify-center rounded-full border border-[#ffffff44] p-0 text-base shadow-[0_12px_24px_rgba(0,0,0,0.35)] transition hover:scale-[1.03]"
       >
         <FaHeadset aria-hidden="true" />
-        AI 客服
+        <span className="sr-only">AI 客服</span>
       </button>
     </aside>
   );

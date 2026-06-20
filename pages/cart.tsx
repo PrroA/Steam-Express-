@@ -479,7 +479,10 @@ function CartReviewPanel({
       )}
 
       {!isLoading && advice ? (
-        <div className="mt-3 space-y-3 leading-6 text-[#cde8c7]">
+        <div
+          data-testid="cart-ai-review-result"
+          className="mt-3 space-y-3 leading-6 text-[#cde8c7]"
+        >
           <p>{advice.summary}</p>
           <div className="rounded-lg border border-[#8bc53f33] bg-[#132816] p-3">
             <p className="text-xs font-bold text-[#b7df9e]">亮點</p>
